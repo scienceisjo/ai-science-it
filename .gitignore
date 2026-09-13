@@ -1,0 +1,9 @@
+qa/
+guided-qa/
+*.log
+*.local
+.env*
+auth.json
+node_modules/
+test-record.json
+sample-self-guided.json

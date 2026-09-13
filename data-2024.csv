@@ -1,0 +1,4 @@
+country,year,electricity_demand_per_capita_kWh,renewables_share_elec_percent,nuclear_share_elec_percent,fossil_share_elec_percent,carbon_intensity_elec_gCO2e_per_kWh
+South Korea,2024,12092.212,9.709,30.182,60.109,415.510
+Germany,2024,6176.773,58.642,0.000,41.358,336.380
+France,2024,7089.562,27.176,67.722,5.102,40.480
