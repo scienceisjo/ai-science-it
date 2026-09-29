@@ -1,0 +1,26 @@
+{
+  "id": "solar-house",
+  "source": "Meshy_AI_Solaris_House_0928104819_texture.glb",
+  "sourceSHA256": "bba5da18ee69d31ff1677c6a8fac14d123faed94ed15269a0783b74e44e9e858",
+  "originalBytes": 33398068,
+  "originalTriangles": 820480,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 2546048,
+  "webTriangles": 39998,
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+}

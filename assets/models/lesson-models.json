@@ -1,0 +1,158 @@
+[
+  {
+    "id": "carbon-display",
+    "source": "Meshy_AI_Emerald_Slate_Display_0928093923_texture.glb",
+    "sourceSHA256": "de9c69a93c7b76d37e6181b7a373e94c261f0b9b45ca17a9d70ffcb61f0fc6a3",
+    "originalBytes": 10404460,
+    "originalTriangles": 125870,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 1276620,
+    "webTriangles": 17996,
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  },
+  {
+    "id": "energy-console",
+    "source": "Meshy_AI_Eco_Control_Console_0928104913_texture.glb",
+    "sourceSHA256": "c5c57be087649d6eff3a3582f192e5aac0b1db81336f6544c327ea745a6703e9",
+    "originalBytes": 17709920,
+    "originalTriangles": 356104,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 1691028,
+    "webTriangles": 29976,
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  },
+  {
+    "id": "evidence-counter",
+    "source": "Meshy_AI_Eco_Sorting_Station_0928104908_texture.glb",
+    "sourceSHA256": "9dc16a288ed6522e924782cdb22cd372aca8a997571226297aee69e75d42bf3c",
+    "originalBytes": 14698296,
+    "originalTriangles": 289684,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 1384272,
+    "webTriangles": 20000,
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  },
+  {
+    "id": "eco-guide",
+    "source": "Meshy_AI_Solar_Sprout_Bot_0928101315_texture.glb",
+    "sourceSHA256": "00958727fec353989d5d9e7884cd40d7eebcb7beb390284bef63287d20529048",
+    "originalBytes": 30952624,
+    "originalTriangles": 843170,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 2011264,
+    "webTriangles": 39994,
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  },
+  {
+    "id": "eco-pavilion",
+    "source": "Meshy_AI_Emerald_Solar_Pavilio_0928104825_texture.glb",
+    "sourceSHA256": "8fe2759885c100c28cd3ec01ce684ea30acd8f54436b1af7f786531356e39b48",
+    "originalBytes": 36680752,
+    "originalTriangles": 940420,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 2767876,
+    "webTriangles": 49994,
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  },
+  {
+    "id": "solar-house",
+    "source": "Meshy_AI_Solaris_House_0928104819_texture.glb",
+    "sourceSHA256": "bba5da18ee69d31ff1677c6a8fac14d123faed94ed15269a0783b74e44e9e858",
+    "originalBytes": 33398068,
+    "originalTriangles": 820480,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 2546048,
+    "webTriangles": 39998,
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  }
+]

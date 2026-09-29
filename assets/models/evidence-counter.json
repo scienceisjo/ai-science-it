@@ -1,0 +1,26 @@
+{
+  "id": "evidence-counter",
+  "source": "Meshy_AI_Eco_Sorting_Station_0928104908_texture.glb",
+  "sourceSHA256": "9dc16a288ed6522e924782cdb22cd372aca8a997571226297aee69e75d42bf3c",
+  "originalBytes": 14698296,
+  "originalTriangles": 289684,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 1384272,
+  "webTriangles": 20000,
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+}

@@ -1,0 +1,26 @@
+{
+  "id": "eco-guide",
+  "source": "Meshy_AI_Solar_Sprout_Bot_0928101315_texture.glb",
+  "sourceSHA256": "00958727fec353989d5d9e7884cd40d7eebcb7beb390284bef63287d20529048",
+  "originalBytes": 30952624,
+  "originalTriangles": 843170,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 2011264,
+  "webTriangles": 39994,
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+}

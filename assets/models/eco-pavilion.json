@@ -1,0 +1,26 @@
+{
+  "id": "eco-pavilion",
+  "source": "Meshy_AI_Emerald_Solar_Pavilio_0928104825_texture.glb",
+  "sourceSHA256": "8fe2759885c100c28cd3ec01ce684ea30acd8f54436b1af7f786531356e39b48",
+  "originalBytes": 36680752,
+  "originalTriangles": 940420,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 2767876,
+  "webTriangles": 49994,
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+}

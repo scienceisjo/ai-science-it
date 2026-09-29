@@ -1,0 +1,26 @@
+{
+  "id": "carbon-display",
+  "source": "Meshy_AI_Emerald_Slate_Display_0928093923_texture.glb",
+  "sourceSHA256": "de9c69a93c7b76d37e6181b7a373e94c261f0b9b45ca17a9d70ffcb61f0fc6a3",
+  "originalBytes": 10404460,
+  "originalTriangles": 125870,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 1276620,
+  "webTriangles": 17996,
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+}

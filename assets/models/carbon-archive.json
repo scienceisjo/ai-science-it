@@ -1,0 +1,25 @@
+{
+  "source": "Meshy_AI_Green_Solar_Office_Bu_0926163236_image-to-3d-texture.glb",
+  "sourceSHA256": "f1fb817b88f60d68b7490aae09a88310d54769a6b8dd725ee0aff2f29e49219e",
+  "originalBytes": 36249944,
+  "originalTriangles": 410454,
+  "originalTextures": [
+    {
+      "width": 4096,
+      "height": 4096
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 4096,
+      "height": 4096
+    }
+  ],
+  "webBytes": 4985404,
+  "webTriangles": 73880,
+  "textureLimit": 2048,
+  "geometryCompression": false,
+  "role": "Lesson 1 exterior; decorative Meshy asset, not a scientific performance model"
+}

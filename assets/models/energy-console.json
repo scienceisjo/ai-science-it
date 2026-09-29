@@ -1,0 +1,26 @@
+{
+  "id": "energy-console",
+  "source": "Meshy_AI_Eco_Control_Console_0928104913_texture.glb",
+  "sourceSHA256": "c5c57be087649d6eff3a3582f192e5aac0b1db81336f6544c327ea745a6703e9",
+  "originalBytes": 17709920,
+  "originalTriangles": 356104,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 1691028,
+  "webTriangles": 29976,
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+}
