@@ -5,7 +5,7 @@ window.Research=(()=>{
  const credential=()=>!staticHosting&&sessionStorage.getItem('researchRole')==='student'?sessionStorage.getItem('researchToken')||'':'';
  async function call(route,data){const r=await fetch('/api/research/'+route,{method:data?'POST':'GET',headers:{'content-type':'application/json','x-research-token':credential()},...(data?{body:JSON.stringify(data)}:{})});const d=await r.json();if(!r.ok){const e=Error(d.error);e.status=r.status;throw e}return d}
  function notice(message){const el=document.querySelector('#research-status');if(el)el.textContent=message}
- function gate(message){blocked=true;pressed.clear();document.querySelectorAll('dialog[open]').forEach(d=>d.close());let el=document.querySelector('#research-gate');if(!el){el=document.createElement('div');el.id='research-gate';el.style.cssText='position:fixed;inset:0;z-index:100;background:#f6f8f8;display:grid;place-content:center;padding:28px;';el.innerHTML='<h2>연구 참여 상태</h2><p></p><a href="research.html">검사·참여 현황으로</a>';document.body.append(el)}el.querySelector('p').textContent=message}
+ function gate(message){blocked=true;pressed.clear();document.querySelectorAll('dialog[open]').forEach(d=>d.close());document.querySelectorAll('body>header,main.app').forEach(e=>e.inert=true);let el=document.querySelector('#research-gate');if(!el){el=document.createElement('div');el.id='research-gate';el.style.cssText='position:fixed;inset:0;z-index:100;background:#f6f8f8;display:grid;place-content:center;padding:28px;';el.innerHTML='<h2>연구 참여 상태</h2><p></p><a href="research.html">검사·참여 현황으로</a>';document.body.append(el)}el.querySelector('p').textContent=message}
  async function boot(){
   if(!credential())return;
   try{member=await call('me');SAVE='netzero_research_'+member.participant.id;
