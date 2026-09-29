@@ -1,0 +1,39 @@
+{
+  "id": "carbon-archive-cozy-v1",
+  "source": "Meshy_AI_Solar_Learning_Center_0929151242_texture.glb",
+  "sourceSHA256": "304b07639e4962607104db8908b5fe3310c98aca863e4ea7fea28983d59f439f",
+  "originalBytes": 25147420,
+  "originalTriangles": 522832,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 5602976,
+  "webTriangles": 60000,
+  "webSHA256": "cf31385d5a967a3d3588e312e09eff23728f87d4aa96ba69c218c8d8e8647878",
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "preparedBy": "Codex 2026-09-30 (prepare-models.mjs, local copy only)",
+  "placement": {
+    "widthM": 15,
+    "center": [
+      8,
+      -20
+    ],
+    "door": [
+      8.4,
+      -13.8
+    ]
+  },
+  "role": "Lesson 1 archive exterior (Codex/Meshy 2026-09-30). Exterior only: the interior scene is separate; only the front centre door is an entrance. PV panels and rain barrel are visual, not validated performance."
+}

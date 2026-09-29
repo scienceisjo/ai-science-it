@@ -1,0 +1,142 @@
+{
+ "source": "Codex story package netzero-story-eco-20260929-v1 (built-in image_gen)",
+ "prepared": "2026-09-30",
+ "note": "Web copies only. Originals kept unchanged in qa/story-originals (not deployed). Story illustrations are narrative scenes, not data or simulations.",
+ "files": [
+  {
+   "source": "story-01-eco-invitation.png",
+   "sourceSha256": "2b4bb79b396a56d255b0d6c8eff83b710f30188d22f50b6049fe7cec3775c2bb",
+   "sourceBytes": 2525654,
+   "sourceSize": [
+    1672,
+    941
+   ],
+   "outputs": [
+    {
+     "file": "assets/story/story-01-eco-invitation-1600.webp",
+     "size": [
+      1600,
+      900
+     ],
+     "bytes": 255100
+    },
+    {
+     "file": "assets/story/story-01-eco-invitation-800.webp",
+     "size": [
+      800,
+      450
+     ],
+     "bytes": 102482
+    }
+   ]
+  },
+  {
+   "source": "story-02-archive-assignment.png",
+   "sourceSha256": "8f2ce21c125dda0fae4a48ade461b67fa8918f4f6c59e2c542bd2b5446e64444",
+   "sourceBytes": 1888218,
+   "sourceSize": [
+    1672,
+    941
+   ],
+   "outputs": [
+    {
+     "file": "assets/story/story-02-archive-assignment-1600.webp",
+     "size": [
+      1600,
+      900
+     ],
+     "bytes": 129930
+    },
+    {
+     "file": "assets/story/story-02-archive-assignment-800.webp",
+     "size": [
+      800,
+      450
+     ],
+     "bytes": 57598
+    }
+   ]
+  },
+  {
+   "source": "story-03-second-look.png",
+   "sourceSha256": "deda3f48ef18321ad6bbbb280427a67c6d056fa40a78c1545e3bf81a1bbd2250",
+   "sourceBytes": 1886208,
+   "sourceSize": [
+    1672,
+    941
+   ],
+   "outputs": [
+    {
+     "file": "assets/story/story-03-second-look-1600.webp",
+     "size": [
+      1600,
+      900
+     ],
+     "bytes": 116652
+    },
+    {
+     "file": "assets/story/story-03-second-look-800.webp",
+     "size": [
+      800,
+      450
+     ],
+     "bytes": 52170
+    }
+   ]
+  },
+  {
+   "source": "story-04-next-expedition.png",
+   "sourceSha256": "744f9ade2d0634da54dd7bbf09fec04a740846445ae6a521bfad19d44a9b582d",
+   "sourceBytes": 2489813,
+   "sourceSize": [
+    1672,
+    941
+   ],
+   "outputs": [
+    {
+     "file": "assets/story/story-04-next-expedition-1600.webp",
+     "size": [
+      1600,
+      900
+     ],
+     "bytes": 231728
+    },
+    {
+     "file": "assets/story/story-04-next-expedition-800.webp",
+     "size": [
+      800,
+      450
+     ],
+     "bytes": 98090
+    }
+   ]
+  },
+  {
+   "source": "energy-ball-cozy-v1.png",
+   "sourceSha256": "a3c6cb8161f1e819919f32393982f8e3e6dba5a6f4095ec39c09f5539c50c3ba",
+   "sourceBytes": 1601219,
+   "sourceSize": [
+    1254,
+    1254
+   ],
+   "outputs": [
+    {
+     "file": "assets/story/energy-ball-512.webp",
+     "size": [
+      512,
+      512
+     ],
+     "bytes": 18262
+    },
+    {
+     "file": "assets/story/energy-ball-160.webp",
+     "size": [
+      160,
+      160
+     ],
+     "bytes": 4032
+    }
+   ]
+  }
+ ]
+}

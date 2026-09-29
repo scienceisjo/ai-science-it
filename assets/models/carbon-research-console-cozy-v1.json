@@ -1,0 +1,47 @@
+{
+  "id": "carbon-research-console-cozy-v1",
+  "source": "Meshy_AI_Retro_Control_Console_0929150504_texture.glb",
+  "sourceSHA256": "9e6a6b412ed573d26eb91fc28fad0be9c410bf20a2bd0612101097498e2483d8",
+  "originalBytes": 16996396,
+  "originalTriangles": 347582,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 3280068,
+  "webTriangles": 25000,
+  "webSHA256": "2d64b094563a25446e478adbd0f78b5c22f299565626c8f27c928e9823c6f467",
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "preparedBy": "Codex 2026-09-30 (prepare-models.mjs, local copy only)",
+  "placement": {
+    "widthM": 3.1,
+    "screenModelRect": {
+      "x": [
+        -0.63,
+        0.48
+      ],
+      "y": [
+        0.03,
+        0.48
+      ],
+      "z": 0.0238,
+      "normal": [
+        0,
+        0,
+        1
+      ]
+    }
+  },
+  "role": "Lesson 1 data-check analysis desk (exhibit 04). Single merged mesh; data are drawn on a separate plane over the measured flat screen; dials and modules are not functional."
+}

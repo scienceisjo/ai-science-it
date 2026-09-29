@@ -154,5 +154,122 @@
     "textureLimit": 1024,
     "geometryCompression": false,
     "role": "Decorative educational RPG asset; not validated building performance, emissions data or a rigged mechanical model."
+  },
+  {
+    "id": "carbon-archive-cozy-v1",
+    "source": "Meshy_AI_Solar_Learning_Center_0929151242_texture.glb",
+    "sourceSHA256": "304b07639e4962607104db8908b5fe3310c98aca863e4ea7fea28983d59f439f",
+    "originalBytes": 25147420,
+    "originalTriangles": 522832,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 5602976,
+    "webTriangles": 60000,
+    "webSHA256": "cf31385d5a967a3d3588e312e09eff23728f87d4aa96ba69c218c8d8e8647878",
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "preparedBy": "Codex 2026-09-30 (prepare-models.mjs, local copy only)",
+    "placement": {
+      "widthM": 15,
+      "center": [
+        8,
+        -20
+      ],
+      "door": [
+        8.4,
+        -13.8
+      ]
+    },
+    "role": "Lesson 1 archive exterior (Codex/Meshy 2026-09-30). Exterior only: the interior scene is separate; only the front centre door is an entrance. PV panels and rain barrel are visual, not validated performance."
+  },
+  {
+    "id": "carbon-research-console-cozy-v1",
+    "source": "Meshy_AI_Retro_Control_Console_0929150504_texture.glb",
+    "sourceSHA256": "9e6a6b412ed573d26eb91fc28fad0be9c410bf20a2bd0612101097498e2483d8",
+    "originalBytes": 16996396,
+    "originalTriangles": 347582,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 3280068,
+    "webTriangles": 25000,
+    "webSHA256": "2d64b094563a25446e478adbd0f78b5c22f299565626c8f27c928e9823c6f467",
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "preparedBy": "Codex 2026-09-30 (prepare-models.mjs, local copy only)",
+    "placement": {
+      "widthM": 3.1,
+      "screenModelRect": {
+        "x": [
+          -0.63,
+          0.48
+        ],
+        "y": [
+          0.03,
+          0.48
+        ],
+        "z": 0.0238,
+        "normal": [
+          0,
+          0,
+          1
+        ]
+      }
+    },
+    "role": "Lesson 1 data-check analysis desk (exhibit 04). Single merged mesh; data are drawn on a separate plane over the measured flat screen; dials and modules are not functional."
+  },
+  {
+    "id": "energy-ball-cozy-v1",
+    "source": "Meshy_AI_Eco_Orb_0929151036_texture.glb",
+    "sourceSHA256": "b5c4f81af11dc464d30a1113b2a8f49f4f669502e38f82489351772545b9cb68",
+    "originalBytes": 20931068,
+    "originalTriangles": 489434,
+    "originalTextures": [
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      },
+      {
+        "width": 2048,
+        "height": 2048
+      }
+    ],
+    "webBytes": 3111892,
+    "webTriangles": 20582,
+    "webSHA256": "7a1d9ff4c928787936d2acef3889593aa05a947e15b6356bb300b0f56f0d0275",
+    "textureLimit": 1024,
+    "geometryCompression": false,
+    "preparedBy": "Codex 2026-09-30 (prepare-models.mjs, local copy only)",
+    "placement": {
+      "widthM": 0.22
+    },
+    "role": "Story prop: pre-charged spare battery module (reward after the existing completion gate). Static; the blue lens is texture colour, not a light source."
   }
 ]

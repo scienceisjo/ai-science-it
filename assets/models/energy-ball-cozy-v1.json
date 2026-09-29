@@ -1,0 +1,31 @@
+{
+  "id": "energy-ball-cozy-v1",
+  "source": "Meshy_AI_Eco_Orb_0929151036_texture.glb",
+  "sourceSHA256": "b5c4f81af11dc464d30a1113b2a8f49f4f669502e38f82489351772545b9cb68",
+  "originalBytes": 20931068,
+  "originalTriangles": 489434,
+  "originalTextures": [
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    },
+    {
+      "width": 2048,
+      "height": 2048
+    }
+  ],
+  "webBytes": 3111892,
+  "webTriangles": 20582,
+  "webSHA256": "7a1d9ff4c928787936d2acef3889593aa05a947e15b6356bb300b0f56f0d0275",
+  "textureLimit": 1024,
+  "geometryCompression": false,
+  "preparedBy": "Codex 2026-09-30 (prepare-models.mjs, local copy only)",
+  "placement": {
+    "widthM": 0.22
+  },
+  "role": "Story prop: pre-charged spare battery module (reward after the existing completion gate). Static; the blue lens is texture colour, not a light source."
+}
