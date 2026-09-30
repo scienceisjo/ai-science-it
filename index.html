@@ -45,11 +45,18 @@ body.rpg{overflow:hidden}.rpg>header{position:fixed;inset:0 0 auto;height:64px;z
 .quest-tools{position:absolute;top:8px;right:8px;display:flex;gap:4px;pointer-events:auto}.quest-tools button{width:30px;min-height:30px;padding:4px;background:#ffffff1f;border-color:#ffffff40;color:white}.quest-tools button:hover{background:#ffffff3a;border-color:#ffffff80}.quest-tools .lucide{width:16px;height:16px}.quest-tools img{width:22px;height:22px;border-radius:50%;background:white;object-fit:cover}.quest-tools button[hidden]{display:none}.quest-hud p{padding-right:34px}.quest-hud.has-bag p{padding-right:68px}
 @media(max-width:700px){.quest-tools{top:5px;right:5px}.quest-tools button{width:26px;min-height:26px;padding:3px}.quest-tools img{width:18px;height:18px}.quest-hud p{padding-right:30px}.quest-hud.has-bag p{padding-right:60px}}
 .story-list{display:grid;gap:10px}.story-list button{justify-content:flex-start;text-align:left;gap:12px;padding:8px}.story-list img{width:112px;aspect-ratio:16/9;object-fit:cover;border-radius:4px;flex-shrink:0}.story-list small{display:block}.bag-item{display:grid;grid-template-columns:120px 1fr;gap:16px;align-items:center}.bag-item img{width:120px;height:120px;border-radius:12px;background:white;border:1px solid var(--line)}@media(max-width:480px){.bag-item{grid-template-columns:1fr}.bag-item img{margin:auto}}
+.opening{position:absolute;inset:0;z-index:30;pointer-events:none;overflow:hidden}.opening[hidden]{display:none}.opening::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at center,transparent 58%,#0b1f1c50 100%)}.opening-bar{position:absolute;left:0;right:0;height:0;background:#0b1715;z-index:1;transition:height .7s cubic-bezier(.2,.8,.2,1)}.opening-bar.top{top:0}.opening-bar.bottom{bottom:0}.opening.playing .opening-bar{height:9vh}.opening.closing{opacity:0;transition:opacity .45s}
+.opening-title{position:absolute;left:50%;top:44%;z-index:2;transform:translate(-50%,-46%);width:min(92%,900px);text-align:center;color:#fff;opacity:0;letter-spacing:.3em;text-shadow:0 2px 18px #0009;transition:opacity .7s,transform 1s cubic-bezier(.2,.8,.2,1),letter-spacing 1.1s cubic-bezier(.2,.8,.2,1)}.opening-title small{display:block;font-size:12px;letter-spacing:.2em;color:#cfe9df;margin-bottom:10px}.opening-title b{display:block;font-size:clamp(28px,6vw,64px);font-weight:800;line-height:1.1}.opening-title span{display:block;font-size:clamp(14px,2.2vw,20px);margin-top:12px;color:#e8f3ee;letter-spacing:.06em}.opening.show-title .opening-title{opacity:1;letter-spacing:.04em;transform:translate(-50%,-52%)}
+.opening-caption{position:absolute;z-index:2;left:clamp(16px,4vw,48px);bottom:calc(9vh + 24px);display:flex;gap:14px;align-items:center;color:#fff;opacity:0;transform:translateY(16px);transition:opacity .35s,transform .5s cubic-bezier(.2,.8,.2,1);max-width:calc(100% - 32px)}.opening-caption.show{opacity:1;transform:none}.opening-num{display:grid;place-items:center;min-width:46px;height:46px;padding:0 8px;border-radius:12px;background:#2f7d67;font-size:16px;box-shadow:0 4px 16px #0005;flex-shrink:0}.opening-caption strong{display:block;font-size:clamp(18px,2.6vw,28px);line-height:1.3;text-shadow:0 2px 10px #000b}.opening-caption small{display:block;font-size:clamp(12px,1.5vw,15px);color:#eef7f2;text-shadow:0 1px 6px #000d;word-break:keep-all}
+.opening-pin{position:absolute;left:0;top:0;z-index:2;display:flex;align-items:center;gap:6px;padding:4px 10px 4px 6px;margin:-30px 0 0 -11px;border-radius:999px;background:#fffffff0;color:#1f3f37;font-size:12px;font-weight:700;white-space:nowrap;box-shadow:0 3px 12px #0003;opacity:0;transition:opacity .3s}.opening-pin.show{opacity:1}.opening-pin i{width:10px;height:10px;border-radius:50%;background:#e0a22f;animation:opening-pulse 1.4s infinite}@keyframes opening-pulse{from{box-shadow:0 0 0 0 #e0a22fb0}to{box-shadow:0 0 0 10px #e0a22f00}}
+.opening-progress{position:absolute;z-index:2;left:0;right:0;bottom:9vh;height:3px;background:#ffffff33}.opening-progress i{display:block;height:100%;width:0;background:#9bd7c5}.opening-skip{position:absolute;z-index:3;right:clamp(14px,3vw,32px);top:calc(9vh + 14px);pointer-events:auto;background:#0b1715cc;color:#fff;border-color:#ffffff66;min-height:38px;padding:6px 12px;font-size:13px;gap:8px}.opening-skip:hover{background:#0b1715;border-color:#fff}.opening-skip kbd{font:11px system-ui;border:1px solid #ffffff77;border-radius:4px;padding:1px 5px}
+.opening-active>header,.opening-active .quest-hud,.opening-active .rpg-route,.opening-active .world-tools,.opening-active .pad,.opening-active .minimap,.opening-active .world-heading,.opening-active .world-label,.opening-active #rpg-interact,.opening-active .tutorial-panel,.opening-active .view-reticle{visibility:hidden}
+@media(max-width:700px){.opening-pin{font-size:11px;padding:3px 8px 3px 5px}.opening-num{min-width:38px;height:38px;font-size:14px}.opening-caption{gap:10px;bottom:calc(9vh + 16px)}}
 </style></head><body>
 <header><div class="brand"><span class="brand-mark"><i data-lucide="sprout"></i></span><div><b>NET ZERO ECO-CITY</b><small>AI와과학을IT다 · 데이터로 설계하는 미래도시</small></div></div><div class="tools"><span id="save-status" class="save-status">이 기기에 저장</span><button id="passport-open" title="DATA PASSPORT"><i data-lucide="notebook-pen"></i> 탐구 기록 <span id="proof-count">0</span></button><button id="teacher-open" class="icon" title="교사 자료 및 연결 상태" aria-label="교사 자료"><i data-lucide="sliders-horizontal"></i></button><button id="report-open" class="icon" title="결과 보고서" aria-label="결과 보고서"><i data-lucide="file-check-2"></i></button></div></header>
 <nav class="lessons" id="lessons" aria-label="차시"></nav>
 <main class="app"><section class="world" aria-label="3D 탐구 공간"><canvas id="world-canvas" tabindex="0" aria-label="도시 탐구: 방향키로 이동, 건물 선택으로 탐구 열기"></canvas><div class="world-heading"><div class="eyebrow" id="world-kicker"></div><h2 id="world-title"></h2><p id="world-description"></p></div><div class="world-tools"><button class="icon" id="camera-home" title="전체 도시 보기" aria-label="전체 도시 보기"><i data-lucide="scan"></i></button><button class="icon" id="camera-in" title="확대" aria-label="확대"><i data-lucide="plus"></i></button><button class="icon" id="camera-out" title="축소" aria-label="축소"><i data-lucide="minus"></i></button><button class="icon" id="scene-shot" title="도시 이미지 저장" aria-label="도시 이미지 저장"><i data-lucide="camera"></i></button><button class="icon" id="world-back" title="탐구 활동으로" aria-label="탐구 활동으로"><i data-lucide="panel-right-open"></i></button></div><div class="scene-chip" id="scene-chip">탐구팀의 데이터 수집을 기다리는 도시</div><div class="world-label" id="world-label">수업용 개념 모형 · 실제 도시의 정밀 복제 아님</div><div class="pad"><button data-move="up" aria-label="앞으로"><i data-lucide="chevron-up"></i></button><button data-move="left" aria-label="왼쪽"><i data-lucide="chevron-left"></i></button><button data-move="down" aria-label="뒤로"><i data-lucide="chevron-down"></i></button><button data-move="right" aria-label="오른쪽"><i data-lucide="chevron-right"></i></button></div></section>
-<section class="workspace"><div class="mission-head"><div class="mission-meta"><div class="eyebrow" id="mission-kicker"></div><div class="timer"><span id="timer">50:00</span><button id="timer-toggle" title="타이머 시작·정지" aria-label="타이머 시작·정지"><i data-lucide="play"></i></button><button class="mobile-world" id="world-open" title="3D 탐구 공간" aria-label="3D 탐구 공간"><i data-lucide="box"></i></button></div></div><h1 id="mission-title"></h1><p class="deliverable" id="deliverable"></p></div><nav class="steps" id="steps" aria-label="탐구 단계"></nav><div class="scroll" id="scroll"><div id="content"></div><div id="feedback" class="feedback" role="alert"></div><div id="coach"></div><footer id="app-credit">수업 시나리오: 노동규(인창고), 2026.09.14 · AI와과학을IT다<br>© 2026 조승재(과학이조선생) · 해누리중학교 · 최종 업데이트: 2026-09-30</footer></div><div class="actions"><button id="previous"><i data-lucide="arrow-left"></i> 이전</button><span id="step-status" class="progress"></span><button id="next" class="primary">다음 탐구 <i data-lucide="arrow-right"></i></button></div></section></main>
+<section class="workspace"><div class="mission-head"><div class="mission-meta"><div class="eyebrow" id="mission-kicker"></div><div class="timer"><span id="timer">50:00</span><button id="timer-toggle" title="타이머 시작·정지" aria-label="타이머 시작·정지"><i data-lucide="play"></i></button><button class="mobile-world" id="world-open" title="3D 탐구 공간" aria-label="3D 탐구 공간"><i data-lucide="box"></i></button></div></div><h1 id="mission-title"></h1><p class="deliverable" id="deliverable"></p></div><nav class="steps" id="steps" aria-label="탐구 단계"></nav><div class="scroll" id="scroll"><div id="content"></div><div id="feedback" class="feedback" role="alert"></div><div id="coach"></div><footer id="app-credit">수업 시나리오: 노동규(인창고), 2026.09.14 · AI와과학을IT다<br>© 2026 과학을 잇다 · 최종 업데이트: 2026-09-30</footer></div><div class="actions"><button id="previous"><i data-lucide="arrow-left"></i> 이전</button><span id="step-status" class="progress"></span><button id="next" class="primary">다음 탐구 <i data-lucide="arrow-right"></i></button></div></section></main>
 <dialog id="modal"><div class="dialog-head"><h2 id="modal-title"></h2><button class="icon" id="modal-close" aria-label="닫기"><i data-lucide="x"></i></button></div><div id="modal-body" class="dialog-body"></div></dialog><dialog id="story-dialog" class="story-dialog" aria-labelledby="story-title" aria-describedby="story-body"><div class="story-frame"><figure class="story-figure"><img id="story-image" alt="" width="1600" height="900" decoding="async"><figcaption>이야기 장면 · 실제 자료 아님</figcaption></figure><div class="story-copy"><div class="story-meta"><span class="story-speaker" id="story-speaker"></span><span class="story-progress" id="story-progress"></span><button id="story-close" title="이야기 닫기" aria-label="이야기 닫기"><i data-lucide="x"></i></button></div><h2 id="story-title"></h2><p id="story-body"></p><p class="story-note" id="story-note"></p><div class="story-actions" id="story-actions"></div></div></div></dialog><div id="toast" class="toast" role="status"></div><div id="print" class="print-only"></div>
 <script src="vendor/three.min.js"></script><script src="vendor/GLTFLoader.js"></script><script src="vendor/GLTFExporter.js"></script><script src="vendor/lucide.min.js"></script><script src="research-client.js"></script>
 <script>
@@ -449,7 +456,7 @@ function villageBackdrop(){
  // Low-detail neighbourhood blocks outside the play area, turned slightly so the skyline does not read as a grid.
  const g=new THREE.Group();g.userData.streetDetail='neighborhood';city.add(g);
  const walls=[],roofs=[],windows=[],trunks=[],crowns=[];
- const sites=[[-32,-38,.3,6.2,5.2,4.4],[-20,-42,-.18,6.6,5.6,5.2],[-8,-45,.12,7,5.4,4.2],[24,-41,.25,6.2,5.2,4.8],[34,-33,-.4,6.4,5,4.2],[-41,-27,.55,6,5,4.6],[41,-24,-.45,6.4,5.2,4],[-44,-8,1.25,6.4,5,4.6],[-46,9,1.4,6,5,5.2],[-40,22,1.1,6.4,5,4.2],[-28,31,.22,6.2,5,4.6],[-14,35,-.16,6.6,5.2,5],[1,33,.1,6,5,4.2],[14,35,-.22,6.4,5,4.8],[27,30,.3,6,5,4.2],[30,14,-.6,6.2,5,4.8],[43,1,-1.3,6.4,5,4.4],[45,-17,-1.15,6,5,4.6]];
+ const sites=[[-32,-38,.3,6.2,5.2,4.4],[-20,-42,-.18,6.6,5.6,5.2],[-8,-45,.12,7,5.4,4.2],[24,-41,.25,6.2,5.2,4.8],[34,-33,-.4,6.4,5,4.2],[-41,-27,.55,6,5,4.6],[41,-24,-.45,6.4,5.2,4],[-44,-8,1.25,6.4,5,4.6],[-46,9,1.4,6,5,5.2],[-40,22,1.1,6.4,5,4.2],[-28,31,.22,6.2,5,4.6],[-14,35,-.16,6.6,5.2,5],[1,33,.1,6,5,4.2],[14,35,-.22,6.4,5,4.8],[27,30,.3,6,5,4.2],[41,23,-.6,6.2,5,4.8],[43,1,-1.3,6.4,5,4.4],[45,-17,-1.15,6,5,4.6]];
  const rot=(x,z,a,dx,dz)=>[x+dx*Math.cos(a)+dz*Math.sin(a),z-dx*Math.sin(a)+dz*Math.cos(a)];
  sites.forEach(([x,z,a,w,d,h],i)=>{
   walls.push([x,h/2,z,w,h,d,['#efe6d3','#e8d8c2','#f3ecdd','#e4dccb'][i%4],a]);
@@ -702,7 +709,7 @@ function initScene(){renderer=new THREE.WebGLRenderer({canvas:$('#world-canvas')
  requestAnimationFrame(frame);
 }
 function resizeScene(){if(!renderer)return;const r=$('.world').getBoundingClientRect();if(r.width<1||r.height<1)return;renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix()}
-async function boot(){try{const storyLoad=fetch('data/story.json').then(r=>r.ok?r.json():null).then(d=>Array.isArray(d?.scenes)?d:null).catch(()=>null);const data=await Promise.all([fetch('data/snapshot.json').then(r=>{if(!r.ok)throw Error('자료 파일 오류');return r.json()}),fetch('data/cities.json').then(r=>r.json())]);[D,CITIES]=data;if(!window.Research?.staticHosting){try{const r=await fetch('/api/status');if(r.ok)api=await r.json()}catch{}}await window.Research?.boot();storyData=await storyLoad;render();try{initScene();initRPG()}catch(e){$('#world-label').textContent='이 기기에서 3D를 열 수 없습니다. 오른쪽에서 모든 자료 탐구를 진행할 수 있습니다.';console.warn('3D unavailable',e.message)}try{window.Research?.init()}catch(e){console.warn('research init',e.message)}storyBoot();if(S.model&&renderer){try{const buf=await modelRead();if(buf)await loadModel(buf);else{S.model=null;save()}}catch{S.model=null;save()}}timerInterval=setInterval(()=>{if(running&&S.seconds[S.lesson]>0){S.seconds[S.lesson]--;updateTimer();if(S.seconds[S.lesson]%10===0)save()}},1000);window.__ECO={getState:()=>structuredClone(S),budget,buildingCalc,getPlayer:()=>player.position.toArray(),data:D,story:()=>structuredClone(storyState())};}catch(e){$('#content').innerHTML='<div class="note myth">자료를 불러오지 못했습니다. 로컬 서버 주소로 열었는지 확인하세요. '+esc(e.message)+'</div>'}}
+async function boot(){try{const storyLoad=fetch('data/story.json').then(r=>r.ok?r.json():null).then(d=>Array.isArray(d?.scenes)?d:null).catch(()=>null);const data=await Promise.all([fetch('data/snapshot.json').then(r=>{if(!r.ok)throw Error('자료 파일 오류');return r.json()}),fetch('data/cities.json').then(r=>r.json())]);[D,CITIES]=data;if(!window.Research?.staticHosting){try{const r=await fetch('/api/status');if(r.ok)api=await r.json()}catch{}}await window.Research?.boot();storyData=await storyLoad;render();try{initScene();initRPG()}catch(e){$('#world-label').textContent='이 기기에서 3D를 열 수 없습니다. 오른쪽에서 모든 자료 탐구를 진행할 수 있습니다.';console.warn('3D unavailable',e.message)}try{window.Research?.init()}catch(e){console.warn('research init',e.message)}storyBoot();if(S.model&&renderer){try{const buf=await modelRead();if(buf)await loadModel(buf);else{S.model=null;save()}}catch{S.model=null;save()}}timerInterval=setInterval(()=>{if(running&&S.seconds[S.lesson]>0){S.seconds[S.lesson]--;updateTimer();if(S.seconds[S.lesson]%10===0)save()}},1000);window.__ECO={getState:()=>structuredClone(S),budget,buildingCalc,getPlayer:()=>player.position.toArray(),data:D,story:()=>structuredClone(storyState()),opening:{seek:t=>{if(opening)opening.time=t},active:()=>!!opening}};}catch(e){$('#content').innerHTML='<div class="note myth">자료를 불러오지 못했습니다. 로컬 서버 주소로 열었는지 확인하세요. '+esc(e.message)+'</div>'}}
 const RPG_NPCS=['기록관 연구원 서하','도시 정책 연구원 민준','건물 에너지 연구원 지우','도시 설계 연구원 하린'];
 const RPG_COLORS=['#4eaa99','#679dc0','#c9a65d','#a47791'];
 let rpgTargets=[],rpgNearest=null,rpgWalk=null,rpgReady=false,rpgLast=-1;
@@ -1141,6 +1148,7 @@ function storyMark(id,{walk=false}={}){
  const t=storyResolve(id);
  if(walk&&t){if(document.body.classList.contains('activity-open'))closeActivity();routeTo(t,false)}
  if(id==='lesson1-comparison-bench'&&!t){toast('비교 실험대는 기록관 안에 있어요. 기록관 문을 표시했어요.');rpgHud();return}
+ if(id==='lesson1-researcher'&&!storySeen('map-opening')&&!openingReduced()&&!archiveRoom&&S.lesson===0){rpgHud();return} // the map opening ends with this hint
  toast(id==='lesson1-researcher'?'기록관 입구의 연구원 서하를 표시했어요. 다리를 건너 앞마당으로 가 보세요.':id==='lesson2-portal'?(archiveRoom?'출구를 표시했어요. 밖으로 나가면 다음 탐사 안내 포탈이 보여요.':'다음 탐사 안내 포탈을 표시했어요.'):id==='lesson1-comparison-bench'?'선택 활동 · 비교 실험대로 이동해요.':'목적지를 표시했어요.');
  rpgHud();
 }
@@ -1168,7 +1176,7 @@ function storyResumeWalk(r){if(!r||!rpgReady||rpgBlocked())return;if(r.cruise&&c
 function storyAfterImport(){if(storyData&&S.done[0]&&!storyState().reward)storyGrantReward('existing_completion_record');updateStoryProps()}
 function storyMenu(){
  if(!storyData)return;if(!$('#modal').open&&!storyIsOpen())storyMenuResume=storyWalkSnapshot();const list=storyUnlocked();
- showModal('이야기 다시 보기','<p class="small">다시 보기에서는 기록·보상·이동이 바뀌지 않아요.</p><div class="story-list">'+list.map((s,i)=>'<button data-story-replay="'+i+'"><img src="'+esc(s.runtimeImage?.small||'')+'" alt="" width="112" height="63"><span><b>'+esc(s.title)+'</b><small>'+({intro:'도입',checkpoint:'탐구 중간',outro:'1차시 마무리'}[s.kind]||'')+'</small></span></button>').join('')+'</div>');
+ showModal('이야기 다시 보기','<p class="small">다시 보기에서는 기록·보상·이동이 바뀌지 않아요.</p><div class="story-list">'+list.map((s,i)=>'<button data-story-replay="'+i+'"><img src="'+esc(s.runtimeImage?.small||'')+'" alt="" width="112" height="63"><span><b>'+esc(s.title)+'</b><small>'+({intro:'도입',checkpoint:'탐구 중간',outro:'1차시 마무리'}[s.kind]||'')+'</small></span></button>').join('')+'</div>'+(!archiveRoom&&S.lesson===0&&rpgReady&&!openingReduced()?'<div class="row" style="margin-top:12px"><button data-opening-replay><i data-lucide="clapperboard"></i> 맵 오프닝 다시 보기</button></div>':''));
 }
 function showBag(){
  showModal('에코의 탐사 가방','<div class="bag-item"><img src="assets/story/energy-ball-512.webp" alt="초록 띠와 청록색 렌즈 무늬가 있는 둥근 예비 에너지볼" width="120" height="120"><div><h3>예비 에너지볼 · 1개</h3><p class="small">외부 전원으로 미리 충전해 둔 가상의 교체형 배터리 모듈이에요. 1차시 자료 점검 기록을 마친 뒤 연구원이 맡겨 둔 것을 받았고, 에코와 다음 탐사를 준비할 때 써요.</p><div class="note">기록을 마친 이야기 보상일 뿐 정답 인증이나 점수가 아니에요. 기록을 남기거나 답을 써서 전기가 생긴 것도 아니에요.</div></div></div>'+(storyData?'<div class="row"><button id="story-replay-bag"><i data-lucide="book-open"></i> 이야기 다시 보기</button></div>':''));
@@ -1204,6 +1212,7 @@ $('#story-dialog').addEventListener('close',()=>{
  const v=storyView;storyView=null;if(!v)return;
  if(!v.replay&&!v.acted)log('story_closed',{scene:v.scenes[v.index].id,reason:v.reason||'escape'});if(!v.acted)storyResumeWalk(storyResume);
  storyResume=null;if(tutorialStep>=0)drawTutorial();
+ if(!v.replay&&v.scenes.some(s=>STORY_INTRO.includes(s.id))&&!storySeen('map-opening'))setTimeout(()=>openingStart(),80);
  if(document.body.classList.contains('activity-open'))$('#activity-close')?.focus();else if(!rpgBlocked())$('#world-canvas')?.focus();
  if(rpgReady)rpgHud();
 });
@@ -1218,9 +1227,90 @@ document.addEventListener('click',e=>{
  }
  if(b.id==='story-replay'||b.id==='story-replay-bag'||b.id==='story-replay-eco'||b.id==='story-replay-pass'){if(b.id!=='story-replay'||!rpgBlocked())storyMenu();return}
  if(b.id==='bag-open'){if(!rpgBlocked())showBag();return}
+ if(b.dataset.openingReplay!==undefined){storyMenuResume=null;$('#modal').close();setTimeout(()=>openingStart({replay:true}),0);return}
  if(b.dataset.storyReplay!==undefined){const list=storyUnlocked(),i=+b.dataset.storyReplay;$('#modal').close();log('story_replay',{scene:list[i]?.id});storyShow(list.map(s=>s.id),{replay:true,index:i})}
 });
-function rpgBlocked(){return document.body.classList.contains('activity-open')||$('#modal').open||!!$('#story-dialog')?.open||!!$('#research-gate')}
+// ── 1차시 맵 오프닝: 도입 이야기를 닫으면 한 번, 마을 전체를 훑는 카메라 이동과 자막(모션그래픽).
+// 학습 기록·임무·보상에는 영향이 없고, 동작 줄이기 설정에서는 재생하지 않는다. 풍경 설명에 수치는 넣지 않는다.
+const OPENING_SHOTS=[
+ {t:0,p:[-44,50,56],l:[2,0,-4]},{t:3.2,p:[-31,22,31],l:[-12,0,6]},{t:5.1,p:[-24,7,12.5],l:[-15,1.2,6.5]},
+ {t:7.1,p:[-5.8,6.4,17.2],l:[-9.6,1.6,9.4]},{t:9.1,p:[-2.6,4.2,14.8],l:[-1,1.2,3]},{t:10.8,p:[-1,3.4,8.8],l:[-.6,1.6,-2]},
+ {t:12.4,p:[-.6,5.8,-3.6],l:[7,2.4,-16]},{t:13.8,p:[.6,6.4,-5.2],l:[7.2,2.2,-16]},{t:15.8,p:[3,23,-9],l:[17,0,12]},{t:17.8,p:[-5,22,4],l:[-33,8,-26]}
+];
+const OPENING_CAPTIONS=[
+ {from:3.3,to:5.2,n:'01',text:'수변 도착',sub:'강가 데크에서 첫 탐사를 시작해요'},
+ {from:5.3,to:7.2,n:'02',text:'에코의 그늘 쉼터',sub:'탐구 도우미 에코가 기다려요'},
+ {from:7.3,to:9.2,n:'03',text:'S자 산책길과 다리',sub:'강은 다리로만 건널 수 있어요'},
+ {from:9.3,to:11.3,n:'04',text:'좁은 길목 · 앞마당',sub:'길이 넓어지면 기록관이 보여요'},
+ {from:11.4,to:14.2,n:'05',text:'지구 탄소 기록관',sub:'입구의 연구원 서하가 자료 점검 임무를 줘요'},
+ {from:14.3,to:18,n:'+',text:'마을의 재생에너지 시설',sub:'태양광 발전 단지 · 에너지 저장 장치 · 소형 풍력 발전기'},
+ {from:18.1,to:19.9,n:'GO',text:'여기서 출발!',sub:'연구원 서하에게 걸어가 보세요'}
+];
+const OPENING_PINS=[
+ {text:'에코',at:()=>[-9.6,3.1,9.55],from:5.3,to:7.6},{text:'다리',at:()=>[-1,1.8,4.4],from:7.4,to:10.2},
+ {text:'연구원 서하',at:()=>[4.6,2.1,-14.2],from:11.4,to:14.2},{text:'정문',at:()=>[ARCHIVE_SITE.door.x,.7,ARCHIVE_SITE.door.z-1.2],from:11.8,to:14.2},
+ {text:'태양광 발전 단지',at:()=>[17.5,2.4,13.8],from:14.6,to:18},{text:'에너지 저장 장치(ESS)',at:()=>[30.4,3.4,12.2],from:15,to:18},
+ {text:'소형 풍력 발전기',at:()=>[-35,16,-29],from:16.8,to:18.3},{text:'나',at:()=>[player.position.x,2.3,player.position.z],from:18.2,to:20}
+];
+let opening=null;
+function openingReduced(){return matchMedia('(prefers-reduced-motion: reduce)').matches}
+function initOpening(){
+ $('.world').insertAdjacentHTML('beforeend','<div id="opening" class="opening" hidden><div class="opening-bar top"></div><div class="opening-bar bottom"></div><div class="opening-title" aria-hidden="true"><small>AI와과학을IT다 · 01 / WHY</small><b>NET ZERO ECO-CITY</b><span>지구 탄소 기록관 · 첫 번째 탐사</span></div><div class="opening-caption" role="status" aria-live="polite"><b class="opening-num"></b><span><strong></strong><small></small></span></div><div class="opening-pins" aria-hidden="true"></div><div class="opening-progress" aria-hidden="true"><i></i></div><button id="opening-skip" class="opening-skip" type="button">건너뛰기 <kbd>Esc</kbd></button></div>');
+ $('#opening-skip').addEventListener('click',()=>openingEnd('skipped'));
+ window.addEventListener('keydown',e=>{if(opening&&e.key==='Escape'){e.preventDefault();e.stopImmediatePropagation();openingEnd('skipped')}},true);
+}
+function openingStart({replay=false}={}){
+ if(opening||!rpgReady||S.lesson!==0||archiveRoom||$('#research-gate')||storyIsOpen()||$('#modal').open||document.body.classList.contains('activity-open'))return false;
+ if(!replay){storyState().seen['map-opening']=new Date().toISOString();log('map_opening',{result:openingReduced()?'reduced-motion':'started'})}
+ if(openingReduced())return false;
+ pressed.clear();rpgWalk=null;drag=null;
+ const pts=k=>new THREE.CatmullRomCurve3(OPENING_SHOTS.map(s=>new THREE.Vector3(...s[k])),false,'centripetal');
+ opening={time:0,replay,endP:camera.position.clone(),endQ:camera.quaternion.clone(),endFov:camera.fov,curveP:pts('p'),curveL:pts('l'),caption:-1,pins:[]};
+ const layer=$('#opening'),pinBox=layer.querySelector('.opening-pins');pinBox.innerHTML='';
+ opening.pins=OPENING_PINS.map(p=>{const el=document.createElement('span');el.className='opening-pin';el.innerHTML='<i></i>'+esc(p.text);pinBox.append(el);return {...p,el}});
+ layer.hidden=false;layer.classList.remove('closing');document.body.classList.add('opening-active');void layer.offsetWidth;layer.classList.add('playing');
+ $('#opening-skip').focus();
+ return true;
+}
+function openingPose(time){
+ // Knot-by-knot time mapping with a soft ease, so each place gets a short beat without a hard stop.
+ const s=OPENING_SHOTS,n=s.length;let i=0;while(i<n-2&&time>=s[i+1].t)i++;
+ const u=THREE.MathUtils.clamp((time-s[i].t)/(s[i+1].t-s[i].t),0,1),e=u*.45+u*u*(3-2*u)*.55,k=(i+e)/(n-1);
+ return {p:opening.curveP.getPoint(k),l:opening.curveL.getPoint(k)};
+}
+function openingFrame(dt){
+ const o=opening,last=OPENING_SHOTS.at(-1).t,blend=2.4;o.time+=dt;
+ if(o.time>=last+blend){openingEnd('completed');return}
+ if(o.time<=last){const a=openingPose(o.time);camera.position.copy(a.p);camera.lookAt(a.l);camera.fov=52}
+ else{
+  // Hand over to the gameplay camera the student will control.
+  const k=THREE.MathUtils.smootherstep((o.time-last)/blend,0,1),a=openingPose(last);camera.position.copy(a.p);camera.lookAt(a.l);const q=camera.quaternion.clone();
+  camera.position.lerpVectors(a.p,o.endP,k);camera.quaternion.copy(q.slerp(o.endQ,k));camera.fov=52+(o.endFov-52)*k;
+ }
+ camera.updateProjectionMatrix();camera.updateMatrixWorld();player.visible=true;
+ city.children.forEach(o=>{if(o.isSprite)o.visible=false}); // world name labels would double the opening pins
+ const total=last+blend,layer=$('#opening');layer.querySelector('.opening-progress i').style.width=(o.time/total*100).toFixed(1)+'%';
+ layer.classList.toggle('show-title',o.time>.25&&o.time<3.1);
+ const ci=OPENING_CAPTIONS.findIndex(c=>o.time>=c.from&&o.time<c.to);
+ if(ci!==o.caption){o.caption=ci;const box=layer.querySelector('.opening-caption');box.classList.remove('show');if(ci>=0){const c=OPENING_CAPTIONS[ci];box.querySelector('.opening-num').textContent=c.n;box.querySelector('strong').textContent=c.text;box.querySelector('small').textContent=c.sub;void box.offsetWidth;box.classList.add('show')}}
+ const r=$('.world').getBoundingClientRect(),v=new THREE.Vector3();
+ for(const p of o.pins){
+  const on=o.time>=p.from&&o.time<p.to;v.set(...p.at()).project(camera);
+  const vis=on&&v.z<1&&Math.abs(v.x)<.95&&Math.abs(v.y)<.9;p.el.classList.toggle('show',vis);
+  if(vis)p.el.style.transform='translate('+((v.x+1)/2*r.width).toFixed(1)+'px,'+((1-v.y)/2*r.height).toFixed(1)+'px)';
+ }
+}
+function openingEnd(result){
+ const o=opening;if(!o)return;opening=null;
+ camera.fov=o.endFov;camera.updateProjectionMatrix();
+ const layer=$('#opening');layer.classList.remove('playing','show-title');layer.classList.add('closing');
+ setTimeout(()=>{if(!opening){layer.hidden=true;layer.classList.remove('closing')}},450);
+ document.body.classList.remove('opening-active');followReady=false;
+ log('map_opening',{result,replay:o.replay,seconds:Math.round(o.time*10)/10});
+ $('#world-canvas').focus();
+ if(!o.replay&&!questState()[0])toast('기록관 입구의 연구원 서하를 표시했어요. 다리를 건너 앞마당으로 가 보세요.');
+}
+function rpgBlocked(){return document.body.classList.contains('activity-open')||document.body.classList.contains('opening-active')||$('#modal').open||!!$('#story-dialog')?.open||!!$('#research-gate')}
 function moveRpgPlayer(dx,dz){
  const before=player.position.clone(),limits=navigationBounds(),steps=Math.max(1,Math.ceil(Math.hypot(dx,dz)/.15));
  const obstacles=archiveRoom?archiveObstacles:plazaObstacles;
@@ -1476,12 +1566,14 @@ function rpgFrame(dt){
  const focusX=archiveRoom?player.position.x*(innerWidth<700?1:.5):player.position.x,focusZ=archiveRoom?player.position.z*.35:player.position.z;
  camera.position.set(focusX+Math.sin(camAngle)*orbitRadius,camHeight+.4,focusZ+Math.cos(camAngle)*orbitRadius);camera.lookAt(focusX,.4,focusZ);
 }
+const baseRpgFrame=rpgFrame;
+rpgFrame=function(dt){baseRpgFrame(dt);if(opening)openingFrame(dt)};
 function resetOutdoorCamera(){overviewPitch=Math.atan(.7);camAngle=.04;camRadius=innerWidth<700?32:52;camHeight=camRadius*.7}
 function initRPG(){
  document.body.classList.add('rpg');resetOutdoorCamera();
  styleCozyPlayer();player.rotation.y=Math.PI;if(S.lesson===0&&!archiveRoom)placeVillageSpawn();initFirstPersonHands();initObjectiveMarker();
  $('.world-tools').insertAdjacentHTML('afterbegin','<div class="camera-modes" role="group" aria-label="플레이 시점"><button class="icon" id="camera-third" data-camera-mode="third" aria-pressed="true" title="전체 보기" aria-label="전체 보기"><i data-lucide="orbit"></i></button><button class="icon" id="camera-follow" data-camera-mode="follow" aria-pressed="false" title="따라가기 시점" aria-label="따라가기 시점"><i data-lucide="footprints"></i></button><button class="icon" id="camera-first" data-camera-mode="first" aria-pressed="false" title="1인칭 시점" aria-label="1인칭 시점"><i data-lucide="eye"></i></button></div>');
- $('.world').insertAdjacentHTML('beforeend','<span class="view-reticle" aria-hidden="true"><i data-lucide="plus"></i></span>');
+ $('.world').insertAdjacentHTML('beforeend','<span class="view-reticle" aria-hidden="true"><i data-lucide="plus"></i></span>');initOpening();
  $$('[data-camera-mode]').forEach(b=>b.addEventListener('click',()=>setCameraMode(b.dataset.cameraMode)));
  $('#camera-home').addEventListener('click',e=>{if(rpgBlocked())return;if(cameraMode==='first'){viewYaw=0;viewPitch=0;drag=null;pressed.clear();rpgWalk=null;$('#world-canvas').focus();e.stopPropagation()}else if(cameraMode==='follow'){followYaw=player.rotation.y-Math.PI;followPitch=.24;followDistance=4.8;followReady=false;e.stopPropagation()}else if(!archiveRoom){resetOutdoorCamera();e.stopPropagation()}});
  for(const [id,amount]of[['camera-in',-.6],['camera-out',.6]])$('#'+id).addEventListener('click',e=>{e.stopPropagation();if(rpgBlocked())return;if(cameraMode==='follow')followDistance=Math.max(2.7,Math.min(6.8,followDistance+amount));else if(cameraMode==='third')camRadius=Math.max(archiveRoom?14:22,Math.min(archiveRoom?30:90,camRadius+amount*8))});
