@@ -1,5 +1,7 @@
 'use strict';
 window.Research=(()=>{
+ const preview=new URLSearchParams(location.search).get('map-preview');
+ if(['localhost','127.0.0.1'].includes(location.hostname)&&/^[1234]$/.test(preview||''))return {mapPreview:Number(preview)-1,staticHosting:true,boot:async()=>{},init:()=>{},schedule:()=>{},credential:()=>''};
  const staticHosting=document.querySelector('meta[name="netzero-hosting"]')?.content==='static';
  let member=null,timer=null,inflight=false,pending=false,blocked=false,ready=false;
  const credential=()=>!staticHosting&&sessionStorage.getItem('researchRole')==='student'?sessionStorage.getItem('researchToken')||'':'';
