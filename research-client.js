@@ -1,8 +1,9 @@
 'use strict';
 window.Research=(()=>{
  const preview=new URLSearchParams(location.search).get('map-preview');
- if(['localhost','127.0.0.1'].includes(location.hostname)&&/^[1234]$/.test(preview||''))return {mapPreview:Number(preview)-1,staticHosting:true,boot:async()=>{},init:()=>{},schedule:()=>{},credential:()=>''};
  const staticHosting=document.querySelector('meta[name="netzero-hosting"]')?.content==='static';
+ // A public static preview is isolated from student records; remote research servers retain their gate.
+ if((staticHosting||['localhost','127.0.0.1'].includes(location.hostname))&&/^[1234]$/.test(preview||''))return {mapPreview:Number(preview)-1,staticHosting:true,boot:async()=>{},init:()=>{},schedule:()=>{},credential:()=>''};
  let member=null,timer=null,inflight=false,pending=false,blocked=false,ready=false;
  const credential=()=>!staticHosting&&sessionStorage.getItem('researchRole')==='student'?sessionStorage.getItem('researchToken')||'':'';
  async function call(route,data){const r=await fetch('/api/research/'+route,{method:data?'POST':'GET',headers:{'content-type':'application/json','x-research-token':credential()},...(data?{body:JSON.stringify(data)}:{})});const d=await r.json();if(!r.ok){const e=Error(d.error);e.status=r.status;throw e}return d}
