@@ -65,6 +65,7 @@ body.rpg{overflow:hidden}.rpg>header{position:fixed;inset:0 0 auto;height:64px;z
 <dialog id="modal"><div class="dialog-head"><h2 id="modal-title"></h2><button class="icon" id="modal-close" aria-label="닫기"><i data-lucide="x"></i></button></div><div id="modal-body" class="dialog-body"></div></dialog><dialog id="story-dialog" class="story-dialog" aria-labelledby="story-title" aria-describedby="story-body"><div class="story-frame"><figure class="story-figure"><img id="story-image" alt="" width="1600" height="900" decoding="async"><figcaption>이야기 장면 · 실제 자료 아님</figcaption></figure><div class="story-copy"><div class="story-meta"><span class="story-speaker" id="story-speaker"></span><span class="story-progress" id="story-progress"></span><button id="story-close" title="이야기 닫기" aria-label="이야기 닫기"><i data-lucide="x"></i></button></div><h2 id="story-title"></h2><p id="story-body"></p><p class="story-note" id="story-note"></p><div class="story-actions" id="story-actions"></div></div></div></dialog><div id="toast" class="toast" role="status"></div><div id="print" class="print-only"></div>
 <link rel="stylesheet" href="assets/council/style.css">
 <script src="assets/council/model.js"></script><script src="assets/council/app.js"></script>
+<link rel="stylesheet" href="assets/presentation/tools.css"><script src="assets/presentation/tools.js"></script><script src="assets/presentation/landmarks.js"></script><script src="assets/presentation/netzero.js"></script>
 <script src="vendor/three.min.js"></script><script src="vendor/GLTFLoader.js"></script><script src="vendor/GLTFExporter.js"></script><script src="vendor/lucide.min.js"></script><script src="research-client.js"></script>
 <script>
 'use strict';
@@ -74,7 +75,8 @@ if(COUNCIL_PAGE)document.body.classList.add('council-page');
 if(INQUIRY_PAGE)document.body.classList.add('inquiry-page');
 let SAVE='netzero_ecocity_four_v1';const SCHEMA=1,$=s=>document.querySelector(s),$$=s=>Array.from(document.querySelectorAll(s));
 const MAP_PREVIEW=window.Research?.mapPreview??null;
-const PREVIEW_SESSION='netzero-map-preview-session';
+const PRESENTATION=MAP_PREVIEW!==null&&new URLSearchParams(location.search).get('presentation')==='1';
+const PREVIEW_SESSION=PRESENTATION?'netzero-presentation-v1-'+(MAP_PREVIEW+1):'netzero-map-preview-session';
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmt=(v,d=1)=>Number.isFinite(+v)?Number(v).toLocaleString('ko-KR',{maximumFractionDigits:d}):'자료 없음';
 const names={'World':'세계','South Korea':'한국','Germany':'독일','France':'프랑스'};
@@ -90,7 +92,7 @@ const BASE={'건물 연료':350,'교통':250,'전력':200,'폐기물':100,'산�
 let D,CITIES,selectedPoints=[],api={claude:false,meshy:false},running=false,timerInterval,scene,renderer,camera,city,player,imports,labels=[],clickables=[],wind=[],camAngle=.78,camRadius=36,camHeight=29,sceneLesson=-1,pressed=new Set(),clockTime=0,drag=null,modelURL=null;
 const fresh=()=>({schema:SCHEMA,id:crypto.randomUUID(),lesson:0,steps:[0,0,0,0],done:[false,false,false,false],answers:{},revisions:[],evidence:[],events:[],chat:[],seconds:[3000,3000,3000,3000],mode:'guided',country:'World',start:1950,end:2024,year:2024,metric:'fossil_share_energy',city:'vancouver',day:0,capacity:15,efficiency:20,policies:{},scenarios:[],checks:{},placements:{},visited:[],model:null,story:null});
 let S=fresh();try{const raw=MAP_PREVIEW===null?JSON.parse(localStorage.getItem(SAVE)):null;if(raw?.schema===SCHEMA)S={...S,...raw}}catch{}
-if(MAP_PREVIEW!==null){S.lesson=MAP_PREVIEW;S.done=[true,true,true,true].map((_,i)=>i<MAP_PREVIEW);S.rpgAccepted=[false,false,false,false];S.story={version:'eco-archive-story-v1',seen:Object.fromEntries(['arrival-question','archive-assignment','second-look','first-record-next-question','map-opening'].map(k=>[k,'preview'])),reward:null}}
+if(MAP_PREVIEW!==null){S.lesson=MAP_PREVIEW;S.done=[true,true,true,true].map((_,i)=>!PRESENTATION&&i<MAP_PREVIEW);S.rpgAccepted=[false,false,false,false];S.story={version:'eco-archive-story-v1',seen:Object.fromEntries(['arrival-question','archive-assignment','second-look','first-record-next-question','map-opening'].map(k=>[k,'preview'])),reward:null}}
 if(MAP_PREVIEW!==null)try{const temp=JSON.parse(sessionStorage.getItem(PREVIEW_SESSION));if(temp?.schema===SCHEMA&&temp.lesson===MAP_PREVIEW)S={...S,...temp}}catch{}
 let saveTimer;function save(){if(MAP_PREVIEW!==null){$('#save-status').textContent='맵 미리보기 · 저장 안 함';$('#proof-count').textContent=S.evidence.length;return}try{localStorage.setItem(SAVE,JSON.stringify(S));$('#save-status').textContent='저장됨 · 이 기기';}catch{$('#save-status').textContent='저장 공간 부족 · 기록 내보내기 필요';}$('#proof-count').textContent=S.evidence.length;window.Research?.schedule();}
 function log(type,payload={}){S.events.push({time:new Date().toISOString(),lesson:S.lesson+1,step:S.steps[S.lesson],type,...payload});if(S.events.length>10000)S.events.shift();save()}
@@ -927,7 +929,7 @@ function initScene(){renderer=new THREE.WebGLRenderer({canvas:$('#world-canvas')
   drag=null;
  });
  canvas.addEventListener('pointercancel',()=>{drag=null;pressed.clear()});
- canvas.addEventListener('wheel',e=>{e.preventDefault();if(cameraMode==='first'||rpgBlocked())return;if(cameraMode==='follow'){followDistance=Math.max(2.7,Math.min(6.8,followDistance+e.deltaY*.004));return}camRadius=Math.max(archiveRoom?14:22,Math.min(archiveRoom?30:90,camRadius+e.deltaY*.025))},{passive:false});
+ canvas.addEventListener('wheel',e=>{e.preventDefault();if(cameraMode==='first'||rpgBlocked())return;if(cameraMode==='follow'){followDistance=Math.max(2.7,Math.min(6.8,followDistance+e.deltaY*.004));return}camRadius=Math.max(archiveRoom?14:22,Math.min(archiveRoom?30:140,camRadius+e.deltaY*.025))},{passive:false});
  const keys={ArrowUp:'up',w:'up',ArrowDown:'down',s:'down',ArrowLeft:'left',a:'left',ArrowRight:'right',d:'right'};
  const movementKey=e=>cameraMode!=='third'&&['ArrowLeft','ArrowRight'].includes(e.key)?(e.key==='ArrowLeft'?'turn-left':'turn-right'):keys[e.key]||keys[e.key.toLowerCase()];
  window.addEventListener('keydown',e=>{if(e.target!==canvas||rpgBlocked())return;const key=movementKey(e);if(key){rpgWalk=null;pressed.add(key);e.preventDefault()}});
@@ -1024,7 +1026,7 @@ const ARCHIVE_EXHIBITS=[
 ];
 const LEARNING_BOUNDS={minX:-34,maxX:34,minZ:-38,maxZ:35};
 function navigationBounds(){return archiveRoom?{minX:-9.3,maxX:9.3,minZ:-7.2,maxZ:6.8}:S.lesson===0?VILLAGE_BOUNDS:DISTRICTS[S.lesson].bounds}
-function canVisitLesson(i){return Number.isInteger(i)&&i>=0&&i<4&&(i<=S.lesson||S.done.slice(0,i).every(Boolean))}
+function canVisitLesson(i){return Number.isInteger(i)&&i>=0&&i<4&&(PRESENTATION||i<=S.lesson||S.done.slice(0,i).every(Boolean))}
 function cruiseEnabled(){return S.cruise===true}
 function flushLearningInputs(){clearTimeout(saveTimer);$$('[data-answer]').forEach(el=>answer(el.dataset.answer,el.value))}
 function cruiseRequirement(l,s){
@@ -1150,7 +1152,7 @@ const TUTORIAL_STEPS=[
  {title:'연구원과 대화해 보세요',icon:'message-circle',keys:'E',hint:'연구원에게 다가가 대화하기',action:'interact'}
 ];
 function tutorialRead(){if(MAP_PREVIEW!==null)return 'done';try{return localStorage.getItem(TUTORIAL_KEY+S.id)}catch{return null}}
-function tutorialEnd(status='done'){try{localStorage.setItem(TUTORIAL_KEY+S.id,status)}catch{}tutorialStep=-1;document.body.classList.remove('tutorial-active');$('#controls-tutorial').hidden=true;$('#world-canvas').focus()}
+function tutorialEnd(status='done'){try{if(MAP_PREVIEW===null)localStorage.setItem(TUTORIAL_KEY+S.id,status)}catch{}tutorialStep=-1;document.body.classList.remove('tutorial-active');$('#controls-tutorial').hidden=true;$('#world-canvas').focus()}
 function tutorialStart(){if(rpgBlocked())return;pressed.clear();rpgWalk=null;tutorialDistance=0;tutorialStep=0;document.body.classList.add('tutorial-active');drawTutorial()}
 function drawTutorial(){
  const panel=$('#controls-tutorial');if(!panel)return;panel.hidden=tutorialStep<0||rpgBlocked();if(tutorialStep<0)return;
@@ -1765,6 +1767,7 @@ function addRpgObjects(){
  const guide={kind:'guide',x:nt.x+3.2,z:nt.z,name:'에코 · 탐구 도우미'};rpgTargets.push(guide);replaceLessonModel('eco-guide',eco,{height:1.95,rotation:0,target:guide,ready:cozyModelFinish});label('에코',guide.x,2.7,guide.z);
  for(const [x,z] of layout.portals){const g=new THREE.Group();g.position.set(x,0,z);city.add(g);cylinder(1.35,.22,0,.12,0,'#345d65',g);box(.35,3.6,.55,-1.15,1.9,0,'#507680',g);box(.35,3.6,.55,1.15,1.9,0,'#507680',g);box(2.7,.35,.6,0,3.65,0,'#507680',g);const ring=new THREE.Mesh(new THREE.TorusGeometry(1,.08,8,40),new THREE.MeshBasicMaterial({color:RPG_COLORS[l]}));ring.position.y=2;g.add(ring);const pt={kind:'portal',x,z,name:'도시 이동 포탈'};rpgTargets.push(pt);g.traverse(o=>{if(o.isMesh){o.userData.rpg=pt;clickables.push(o)}});label('도시 이동 포탈',x,4.5,z)}
  rpgTargets.push(...city.userData.stations);
+ city.traverse(g=>{const target=g.userData.learningTarget;if(!target)return;rpgTargets.push(target);g.traverse(o=>{if(o.isMesh){o.userData.rpg=target;clickables.push(o)}})});
  if(districtSpawnLesson!==l){player.position.set(layout.spawn[0],0,layout.spawn[1]);districtSpawnLesson=l}
  scene.background.set(['#c8e2df','#d4e2eb','#e2e7da','#d9e2e9'][l]);scene.fog.color.copy(scene.background);rpgHud();
 }
@@ -1780,6 +1783,7 @@ const baseGo=go;
 go=function(l,s){const prevLesson=S.lesson,prev=S.steps[l];baseGo(l,s);if(l===0&&prevLesson===0&&prev===2&&S.steps[0]===3&&!S.done[0])storyQueue('second-look')};
 function rpgFrame(dt){
  if(!rpgReady)return;
+ if(!archiveRoom&&scene.fog){scene.fog.near=cameraMode==='third'&&S.lesson>0?Math.max(100,camRadius*1.4):100;scene.fog.far=scene.fog.near+(S.lesson>0?130:90)}
  city.children.forEach(o=>{if(o.isSprite)o.visible=cameraMode==='third'&&innerWidth>=700;if(o.userData.firstPersonOnly)o.visible=cameraMode!=='third'});
  const blocked=rpgBlocked();
  const walking=!blocked&&(!!rpgWalk||['up','down','left','right'].some(k=>pressed.has(k))),reduced=matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -1800,8 +1804,8 @@ function rpgFrame(dt){
  if(archiveRoom){camAngle=Math.max(-.45,Math.min(.45,camAngle));camRadius=Math.max(14,Math.min(30,camRadius))}
  const orbitDistance=camRadius/Math.cos(archiveRoom?Math.atan(18/19):Math.atan(.7)),orbitRadius=orbitDistance*Math.cos(overviewPitch);camHeight=orbitDistance*Math.sin(overviewPitch);
  if(!archiveRoom){
-  camRadius=Math.max(22,Math.min(90,camRadius));
-  const narrow=innerWidth<700,fx=player.position.x*(narrow?.95:S.lesson===0?.4:.72),fz=player.position.z*(narrow?.9:S.lesson===0?.35:.7)-(narrow?2:5);
+  camRadius=Math.max(22,Math.min(140,camRadius));
+  const narrow=innerWidth<700,fx=narrow?player.position.x*.95:S.lesson===0?player.position.x*.4:0,fz=narrow?player.position.z*.9-2:S.lesson===0?player.position.z*.35-5:-5;
   camera.position.set(fx+Math.sin(camAngle)*orbitRadius,camHeight+1.15,fz+Math.cos(camAngle)*orbitRadius);camera.lookAt(fx,1.15,fz);return;
  }
  const focusX=archiveRoom?player.position.x*(innerWidth<700?1:.5):player.position.x,focusZ=archiveRoom?player.position.z*.35:player.position.z;
@@ -1811,7 +1815,7 @@ const baseRpgFrame=rpgFrame;
 rpgFrame=function(dt){baseRpgFrame(dt);if(opening)openingFrame(dt)};
 const townBaseFrame=rpgFrame;
 rpgFrame=function(dt){townBaseFrame(dt);updateTownLife(dt)};
-const WORLD_ENV_KEY='netzero_world_environment_v1';
+const WORLD_ENV_KEY=PRESENTATION?'netzero_presentation_environment_v1':'netzero_world_environment_v1';
 function readWorldEnvironment(){
  const defaults={minutes:540,playing:true,water:true,rate:1};
  try{const data=JSON.parse((MAP_PREVIEW===null?localStorage:sessionStorage).getItem(WORLD_ENV_KEY));if(!data)return defaults;return {minutes:Number.isFinite(data.minutes)?THREE.MathUtils.clamp(data.minutes,0,5256000):540,playing:typeof data.playing==='boolean'?data.playing:true,water:typeof data.water==='boolean'?data.water:true,rate:[1,3,6].includes(data.rate)?data.rate:1}}catch{return defaults}
@@ -1873,7 +1877,7 @@ function initWorldEnvironment(){
  $('#minimap-title').closest('.minimap-head').insertAdjacentHTML('afterend','<button id="world-clock" class="world-clock" title="도시 시간 설정"><i data-lucide="clock-3"></i><span class="world-clock-copy"><small>도시 시간</small><span id="world-time-period"></span></span><time id="world-time-display"></time></button>');
  $('#world-clock').onclick=worldEnvironmentSettings;window.addEventListener('pagehide',storeWorldEnvironment);document.addEventListener('visibilitychange',()=>{if(document.hidden)storeWorldEnvironment()});applyWorldLighting();paintWorldClock();
 }
-function resetOutdoorCamera(){overviewPitch=Math.atan(.7);camAngle=.04;camRadius=innerWidth<700?32:52;camHeight=camRadius*.7}
+function resetOutdoorCamera(){overviewPitch=S.lesson>0&&innerWidth>=700?.82:Math.atan(.7);camAngle=.04;camRadius=innerWidth<700?32:S.lesson===0?52:fitCampusOverview();camHeight=camRadius*.7}
 function initRPG(){
  document.body.classList.add('rpg');resetOutdoorCamera();
  styleCozyPlayer();player.rotation.y=Math.PI;if(S.lesson===0&&!archiveRoom)placeVillageSpawn();initFirstPersonHands();initObjectiveMarker();
@@ -1881,7 +1885,7 @@ function initRPG(){
  $('.world').insertAdjacentHTML('beforeend','<span class="view-reticle" aria-hidden="true"><i data-lucide="plus"></i></span>');initOpening();
  $$('[data-camera-mode]').forEach(b=>b.addEventListener('click',()=>setCameraMode(b.dataset.cameraMode)));
  $('#camera-home').addEventListener('click',e=>{if(rpgBlocked())return;if(cameraMode==='first'){viewYaw=0;viewPitch=0;drag=null;pressed.clear();rpgWalk=null;$('#world-canvas').focus();e.stopPropagation()}else if(cameraMode==='follow'){followYaw=player.rotation.y-Math.PI;followPitch=.24;followDistance=4.8;followReady=false;e.stopPropagation()}else if(!archiveRoom){resetOutdoorCamera();e.stopPropagation()}});
- for(const [id,amount]of[['camera-in',-.6],['camera-out',.6]])$('#'+id).addEventListener('click',e=>{e.stopPropagation();if(rpgBlocked())return;if(cameraMode==='follow')followDistance=Math.max(2.7,Math.min(6.8,followDistance+amount));else if(cameraMode==='third')camRadius=Math.max(archiveRoom?14:22,Math.min(archiveRoom?30:90,camRadius+amount*8))});
+ for(const [id,amount]of[['camera-in',-.6],['camera-out',.6]])$('#'+id).addEventListener('click',e=>{e.stopPropagation();if(rpgBlocked())return;if(cameraMode==='follow')followDistance=Math.max(2.7,Math.min(6.8,followDistance+amount));else if(cameraMode==='third')camRadius=Math.max(archiveRoom?14:22,Math.min(archiveRoom?30:140,camRadius+amount*8))});
  $('.pad').addEventListener('pointerdown',()=>{rpgWalk=null});
  $('.world').insertAdjacentHTML('beforeend','<aside class="quest-hud"><small>현재 임무</small><p id="quest-text"></p><span class="quest-tools"><button id="bag-open" hidden title="에코의 탐사 가방" aria-label="에코의 탐사 가방 · 예비 에너지볼 1개"><img src="assets/story/energy-ball-160.webp" alt="" width="22" height="22"></button><button id="story-replay" hidden title="이야기 다시 보기" aria-label="이야기 다시 보기"><i data-lucide="book-open"></i></button></span></aside><div class="rpg-route"><button class="icon" id="rpg-find-npc" title="연구원에게 이동" aria-label="연구원에게 이동"><i data-lucide="message-circle"></i></button><button class="icon" id="rpg-find-portal" title="포탈로 이동" aria-label="포탈로 이동"><i data-lucide="map-pin"></i></button><button class="icon" id="rpg-find-exhibit" title="현재 임무의 전시물로 이동" aria-label="현재 임무의 전시물로 이동"><i data-lucide="landmark"></i></button><button class="icon" id="rpg-find-exit" title="기록관 출구로 이동" aria-label="기록관 출구로 이동"><i data-lucide="door-open"></i></button></div><button class="rpg-interact primary" id="rpg-interact" hidden></button>');
  $('.workspace').insertAdjacentHTML('afterbegin','<button class="icon" id="activity-close" title="도시로 돌아가기" aria-label="도시로 돌아가기"><i data-lucide="x"></i></button>');
@@ -2239,6 +2243,7 @@ function districtScenery(l){
   districtTrees([[-43,8,1.3],[-19,8],[-16,-9],[-22,-35],[-40,-18],[15,13],[44,10],[13,-22],[43,-35]]);
   for(const z of[-30,3,14]){campusBenchPair(9,z,-Math.PI/2);cozyLamp(8,z+3)}
   for(let i=0;i<5;i++)campusBike(-20+i*1.6,-17);
+  learningCanopy(-25,-30.5);
   const bus=policyObject({id:'transit'},-30,-31);streetCollider(bus,0,0,4,1.8,2);
   for(const x of[-43,-39,-35]){box(.15,3,.15,x,1.5,34,'#668c82');const p=box(3,.12,2,x,3.1,34,'#356b83');p.rotation.x=-.2}
   for(const x of[-19,17])campusGarden(x,32,4,2.6);
@@ -2249,7 +2254,7 @@ function districtScenery(l){
   districtTrees([[-35,-29,1.2],[-35,7],[35,-30],[35,2],[12,18],[-12,2],[-8,-32],[9,-32],[-35,25],[37,24]]);
   for(let i=0;i<24;i++){const a=i*Math.PI/12;cozyTree(Math.cos(a)*47,Math.sin(a)*47,.8+(i%3)*.2)}
   for(const x of[-7,-2,3,8]){const panel=box(3.6,.12,3,x,2.6,-33,'#396b7d');panel.rotation.x=-.3;box(.2,2.5,.2,x,1.25,-33,'#b7c9bd')}
-  for(const x of[-6,6]){const g=new THREE.Group();g.position.set(x,0,18);city.add(g);cozyBox(3,1.25,2,0,.65,0,'#e8e9dd',g);cozyBox(3.2,.15,2.2,0,1.34,0,x<0?'#749bae':'#c58a75',g);cozyBox(1.7,1.1,1.3,0,1.95,0,'#edf0e7',g);cozySign(x<0?'A':'B',.6,.4,0,1,1.12,g);streetCollider(g,0,0,3.2,2.2,2.7)}
+  for(const [x,label]of[[-6,'A'],[6,'B']])learningTestHouse(x,label);
   for(const z of[-10,0,10])campusGarden(36,z,3.4,3);for(const x of[-14,14])campusBenchPair(x,-29);
   const tank=new THREE.Group();tank.position.set(-35,0,-2);city.add(tank);cylinder(1.7,3.5,0,1.75,0,'#adc6bf',tank);cylinder(1.8,.18,0,3.55,0,'#557e75',tank);cozySign('빗물 저장',2.3,.5,0,2.2,1.75,tank);streetCollider(tank,0,0,3.6,3.6,3.7);
  }else{
@@ -2257,7 +2262,7 @@ function districtScenery(l){
   districtTrees([[-43,3],[-26,10],[-26,-6],[-3,-28],[43,-22],[43,5],[5,23],[-7,34]]);
   campusPad(-12,12,10,6,'#e9e3d8');for(const [x,z,r]of[[-20,11,1.1],[-5,14,-.5],[-10,18,0]])campusBenchPair(x,z,r);
   const table=new THREE.Group();table.position.set(7,0,14);city.add(table);cozyBox(12,.35,7,0,1.3,0,'#d5e3dd',table);for(const x of[-4,4])cozyBox(.5,1.2,4,x,.6,0,'#6e9991',table);streetCollider(table,0,0,12,7,2.5);
-  for(let i=0;i<12;i++){const x=(i%4-1.5)*2.2,z=(Math.floor(i/4)-1)*1.6;cozyBox(1.25,.45+(i%3)*.5,1,x,1.7+(i%3)*.25,z,['#83a6b2','#ca997b','#86b098'][i%3],table)}
+  learningCityModel(table);
   cozySign('도시설계 모형',4,.6,7,3,10.4,city,'#456c65');
   const gantry=new THREE.Group();gantry.position.set(32,0,18);city.add(gantry);for(const x of[-6,6])cozyBox(.35,7,.35,x,3.5,0,'#cf9b5e',gantry);cozyBox(12.8,.4,.5,0,7,0,'#d0a66e',gantry);cozyBox(.12,2,.12,0,6,0,'#5f7975',gantry);
   for(const x of[-6,6])streetCollider(gantry,x,0,.5,.5,7);
@@ -2276,7 +2281,7 @@ function buildLessonCampus(){
   const g=i===0?campusLandmarkHall(x,z,l):l===2&&i===1?districtConservatory(x,z):campusHall(x,z,i,layout.styles[i]),tracking=outdoorBuilding(g,i,layout.ends[i]);tracking.target.name=c.stations[i];
   g.traverse(o=>{if(o.isMesh){o.userData.step=i;clickables.push(o)}});
   // Imported building GLBs are archived, not used as map facades. Student GLB verification is unchanged.
-  label((i+1)+'. '+c.stations[i],x,layout.styles[i]==='tower'?12:8,z);
+  label((i+1)+'. '+c.stations[i],x,layout.styles[i]==='tower'?12:8,z).scale.set(6.2,1.3,1);
  });
  districtScenery(l);
  if(l===3){campusPad(31,18,5.5,5,'#e5ebe5');cozySign('생성 모형 검증',4,.5,31,2.5,13,city,'#426f68');campusModelSite()}
@@ -2342,8 +2347,8 @@ Object.assign(answerLabels,{l2revision:'첫 판단의 수정과 근거',l2lens:'
 const campusBoot=boot;
 const districtSave=save;
 save=function(){if(MAP_PREVIEW!==null)try{sessionStorage.setItem(PREVIEW_SESSION,JSON.stringify(S))}catch{}districtSave();if(MAP_PREVIEW!==null)$('#save-status').textContent='미리보기 · 임시 기록'};
-function inquiryURL(l,s){const q=new URLSearchParams({lesson:l+1,step:s});if(MAP_PREVIEW!==null)q.set('map-preview',l+1);return 'inquiry.html?'+q}
-function mapURL(){return './'+(MAP_PREVIEW!==null?'?map-preview='+(S.lesson+1):'')}
+function inquiryURL(l,s){const q=new URLSearchParams({lesson:l+1,step:s});if(MAP_PREVIEW!==null)q.set('map-preview',l+1);if(PRESENTATION)q.set('presentation','1');return 'inquiry.html?'+q}
+function mapURL(){return './'+(MAP_PREVIEW!==null?'?map-preview='+(S.lesson+1)+(PRESENTATION?'&presentation=1':''):'')}
 function rememberMap(){if(!player)return;S.mapReturn={lesson:S.lesson,x:player.position.x,z:player.position.z,inside:!!archiveRoom,camera:cameraMode};log('inquiry_departure',{destination:S.steps[S.lesson]})}
 function restoreMap(){const p=S.mapReturn;if(!p||p.lesson!==S.lesson)return;const valid=Number.isFinite(p.x)&&Number.isFinite(p.z);if(!valid)return;
  if(p.inside&&S.lesson===0)enterArchive(rpgTargets.find(t=>t.kind==='station')||{x:ARCHIVE_SITE.door.x,z:ARCHIVE_SITE.door.z,step:0});
@@ -2393,7 +2398,7 @@ function districtStory(l=S.lesson,{replay=false,outro=false,index=0}={}){
 }
 function districtArrival(){
  if($('#district-replay'))$('#district-replay').hidden=S.lesson===0;
- if(INQUIRY_PAGE||S.lesson===0||!rpgReady||!districtStoryData()||$('#research-gate'))return;
+ if(PRESENTATION||INQUIRY_PAGE||S.lesson===0||!rpgReady||!districtStoryData()||$('#research-gate'))return;
  if(!$('#district-replay')){$('.quest-tools').insertAdjacentHTML('beforeend','<button id="district-replay" title="이 구역 이야기 다시 보기" aria-label="이 구역 이야기 다시 보기"><i data-lucide="book-open"></i></button>');icons()}
  $('#district-replay').hidden=false;
  const kind=S.done[S.lesson]?'outro':'intro';if(!needsMissionWelcome()&&!storySeen(districtStoryKey(S.lesson,kind)))districtStory(S.lesson,{outro:kind==='outro'});
@@ -2463,7 +2468,7 @@ boot=async function(){if(INQUIRY_PAGE)return bootInquiry();try{const r=await fet
 // The start guide is an entry point, not a reset of learning or research records.
 const MISSION_WELCOME='mission-welcome-20261011';
 let welcomeActive=false;
-function needsMissionWelcome(){return !S.story?.seen?.[MISSION_WELCOME]}
+function needsMissionWelcome(){return !PRESENTATION&&!S.story?.seen?.[MISSION_WELCOME]}
 function missionWelcome(page=0){
  if($('#research-gate'))return;
  flushLearningInputs();pressed.clear();rpgWalk=null;drag=null;storyMenuResume=null;
@@ -2571,5 +2576,5 @@ validateImport=function(v){councilValidate(v);if(!CityCouncilModel.validateRecor
 const councilBoot=boot;
 boot=async function(){await councilBoot();if(!D||!CITIES||!$('.tools'))return;const b=document.createElement('button');b.id='council-open';b.title='현재 차시 시민 설계회의';b.setAttribute('aria-label','시민 설계회의');b.innerHTML='<i data-lucide="git-compare-arrows"></i><span>설계회의</span>';$('.tools').append(b);icons()};
 document.addEventListener('click',e=>{if(e.target.closest('#council-open,#council-start'))openCouncil()});
-window.addEventListener('beforeunload',()=>{const t=document.activeElement;if(t?.dataset.answer)answer(t.dataset.answer,t.value);save()});boot();
+window.addEventListener('beforeunload',()=>{const t=document.activeElement;if(t?.dataset.answer)answer(t.dataset.answer,t.value);save()});boot().then(mountNetzeroPresentation);
 </script></body></html>

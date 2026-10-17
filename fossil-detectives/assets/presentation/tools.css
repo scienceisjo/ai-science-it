@@ -1,0 +1,20 @@
+#presentation-tools{position:fixed;z-index:24;left:50%;bottom:14px;transform:translateX(-50%);display:flex;align-items:center;gap:7px;width:max-content;max-width:calc(100% - 32px);padding:9px;background:#f8faf8f5;border:1px solid #c8d6d0;border-radius:7px;box-shadow:0 4px 24px #173f3226;letter-spacing:0;color:#244c42}
+#presentation-tools .presentation-status{padding:0 7px;font-size:12px;font-weight:800;white-space:nowrap}
+#presentation-tools small{display:block;font-size:10px;font-weight:400;margin-top:3px;color:#526c63}
+#presentation-tools select{width:175px;min-width:0;min-height:36px;height:36px;padding:5px 7px;border:1px solid #bdcfc4;border-radius:4px;background:#fff;color:#244c42;font:12px 'Malgun Gothic',sans-serif}
+#presentation-tools button{width:36px;min-width:36px;height:36px;min-height:36px;padding:8px;border:1px solid #ccd9d2;border-radius:4px;background:white;color:#24594e;display:inline-flex;align-items:center;justify-content:center}
+#presentation-tools button:hover{background:#e1eee8}#presentation-tools svg{width:19px;height:19px}
+.presentation-mode #map-preview-nav{display:none!important}
+.presentation-mode #rpg-interact,.presentation-mode .interact{bottom:90px}
+.presentation-mode .bottomline,.presentation-mode .world-disclaimer{bottom:76px}
+.presentation-mode #research-open{display:none}
+.worldlabel.is-current span{background:#204d43;color:#fff;border:2px solid #f4cf68;font-size:12px}
+.worldlabel.is-current b{color:#fff;text-shadow:0 1px 4px #203d30}
+@media(max-width:900px){#presentation-tools{max-width:calc(100% - 24px);gap:5px}#presentation-tools select{width:145px}#presentation-tools .presentation-status{display:none}}
+@media(max-width:600px){#presentation-tools{width:calc(100% - 24px);display:grid;grid-template-columns:repeat(4,minmax(0,1fr));bottom:10px;padding:8px}#presentation-tools select{width:100%;grid-column:span 2}#presentation-tools button{width:100%}
+.presentation-mode .minimap,.presentation-mode .rpg-map{bottom:119px!important}
+.presentation-mode .touchpad,.presentation-mode .rpg-pad{bottom:119px!important}
+.presentation-mode .interact,.presentation-mode #rpg-interact{bottom:288px}
+.presentation-mode .bottomline,.presentation-mode .world-disclaimer{display:none}}
+@media print{#presentation-tools,.presentation-entry{display:none!important}}
+.presentation-mode #inquiry .inquiry-wrap{padding-bottom:130px}
