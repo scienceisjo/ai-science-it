@@ -285,7 +285,7 @@ function validStoryRecord(s){const obj=x=>x&&typeof x==='object'&&!Array.isArray
  if(!obj(s)||typeof s.version!=='string'||s.version.length>48||!obj(s.seen))return false;const seen=Object.entries(s.seen);if(seen.length>50||seen.some(([k,t])=>!id(k)||!time(t)))return false;
  return s.reward==null||(obj(s.reward)&&s.reward.id==='lesson1-reserve-energy-ball'&&time(s.reward.time)&&id(s.reward.trigger))}
 // Generated models stay in IndexedDB, separate from the compact research record.
-function db(){return new Promise((resolve,reject)=>{const r=indexedDB.open(window.Research?.credential()?'netzero-models-study-'+S.id:'netzero-models-v1',1);r.onupgradeneeded=()=>r.result.createObjectStore('assets');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
+function db(){return new Promise((resolve,reject)=>{const name=MAP_PREVIEW!==null?'netzero-models-preview-'+(PRESENTATION?'presentation-':'')+(MAP_PREVIEW+1):window.Research?.credential()?'netzero-models-study-'+S.id:'netzero-models-v1';const r=indexedDB.open(name,1);r.onupgradeneeded=()=>r.result.createObjectStore('assets');r.onsuccess=()=>resolve(r.result);r.onerror=()=>reject(r.error)})}
 async function modelStore(buf){const d=await db();return new Promise((resolve,reject)=>{const tx=d.transaction('assets','readwrite');buf?tx.objectStore('assets').put(buf,'model'):tx.objectStore('assets').delete('model');tx.oncomplete=()=>{d.close();resolve()};tx.onerror=()=>{d.close();reject(tx.error)}})}
 async function modelRead(){const d=await db();return new Promise((resolve,reject)=>{const r=d.transaction('assets').objectStore('assets').get('model');r.onsuccess=()=>{d.close();resolve(r.result)};r.onerror=()=>{d.close();reject(r.error)}})}
 function clearImport(){if(imports){scene.remove(imports);dispose(imports);imports=null}if(typeof plazaObstacles!=='undefined')for(let i=plazaObstacles.length-1;i>=0;i--)if(plazaObstacles[i].importedModel)plazaObstacles.splice(i,1)}
@@ -1643,7 +1643,7 @@ function archiveScreen(step,w,h){
   const row=D.countries.World.energy.find(r=>r.year===2024),items=[['석탄','coal_consumption'],['석유','oil_consumption'],['가스','gas_consumption'],['저탄소','low_carbon_consumption']],max=Math.max(1,...items.map(([,k])=>row?.[k]||0));
   ctx.fillText('세계 1차에너지 사용량 · 2024 · TWh/년',30,96);
   items.forEach(([name,k],i)=>{const value=row?.[k],y=124+i*55;ctx.fillStyle='#526963';ctx.fillText(name,30,y+23);if(Number.isFinite(value)){ctx.fillStyle=e.color;ctx.fillRect(120,y,value/max*380,28)}ctx.fillStyle='#25423c';ctx.fillText(Number.isFinite(value)?fmt(value,0):'자료 없음',520,y+23)});
-  ctx.font='16px sans-serif';ctx.fillText('OWID Energy Data · 대체법 · 저탄소 = 재생에너지 + 원자력',30,382);
+  ctx.font='16px sans-serif';ctx.fillText('OWID 수업 저장본 · 저탄소 = 재생에너지 + 원자력',30,382);
  }else{
   const lines=[['에너지가 보존되는데','왜 에너지를 절약할까요?','처음 생각을 남겨 보세요.'],[],[],['전력 ≠ 전체 에너지','같은 연도 · 같은 단위 · 같은 경계','자료를 바꾸면 판단도 달라질까요?'],['주장 → 근거 → 추론','수치 2개 이상으로 설명하기','처음 생각에서 무엇이 달라졌나요?']][step];
   lines.forEach((line,i)=>{ctx.font=(i===0?'bold 32':'25')+'px sans-serif';ctx.fillStyle=i===0?e.color:'#25423c';ctx.fillText(line,35,155+i*70)});
@@ -1666,7 +1666,7 @@ function energyMixScreen(electric){
   const items=[['재생에너지',renewable,'#258365'],['원자력',low-renewable,'#416f9b'],[electric?'나머지 전원':'화석연료',electric?100-low:row.fossil_share_energy,'#986d4b']];
   items.forEach(([name,value,color],i)=>{const y=140+i*77;ctx.fillStyle='#25423c';ctx.fillText(name,26,y);ctx.fillText(fmt(value,1)+'%',455,y);ctx.fillStyle=color;ctx.fillRect(26,y+13,value/100*530,18)});
  }else{ctx.fillText('자료 없음',26,180)}
- ctx.font='19px sans-serif';ctx.fillStyle='#526963';ctx.fillText('OWID Energy Data · 저탄소 = 재생 + 원자력',26,404);ctx.fillText(electric?'나머지 전원 = 100 − 저탄소 비율':'1차에너지: 대체법',26,432);
+ ctx.font='19px sans-serif';ctx.fillStyle='#526963';ctx.fillText('OWID Energy Data · 저탄소 = 재생 + 원자력',26,404);ctx.fillText(electric?'나머지 전원 = 100 − 저탄소 비율':'1차에너지: 수업 저장본 기준',26,432);
  const texture=new THREE.CanvasTexture(c);texture.encoding=THREE.sRGBEncoding;
  const screen=new THREE.Mesh(new THREE.PlaneGeometry(1.38,1.13),new THREE.MeshBasicMaterial({map:texture,toneMapped:false}));screen.userData.energyScope=electric?'electricity':'primary';return screen;
 }
@@ -2338,7 +2338,13 @@ document.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)r
  if(b.id==='policy-reveal'&&!cityEvidenceReady()){e.stopImmediatePropagation();toast('현재 도시의 총배출과 다른 자료 종류를 각각 담은 뒤 대조하세요.');return}
  if(['unlock-building','unlock-budget','trial-save'].includes(b.id)){
   e.stopImmediatePropagation();flushLearningInputs();
-  if(b.id==='trial-save'){const ts=trialRows(),c=buildingCalc(),t={day:S.day,date:buildingRows()[0].timestamp.slice(0,10),capacity:S.capacity,efficiency:S.efficiency,consumption:c.consumption,production:c.production,imported:c.imported};if(ts.some(a=>a.day===t.day&&a.capacity===t.capacity&&a.efficiency===t.efficiency))return toast('같은 조건의 실험을 이미 기록했습니다.');if(ts.length>=8)return toast('실험 기록은 8개까지입니다. 기존 기록을 비교해 보세요.');answer('l3trials',JSON.stringify([...ts,t]));log('building_trial',{trial:t});}
+  if(b.id==='trial-save'){
+   const ts=trialRows(),c=buildingCalc(),key=S.steps[2]===2?'l3passivePrediction':'l3balancePrediction',a=window.EcoLearningAudit?.baseline();
+   const t={day:S.day,date:buildingRows()[0].timestamp.slice(0,10),capacity:S.capacity,efficiency:S.efficiency,consumption:c.consumption,production:c.production,imported:c.imported,predictionRef:{key,revision:S.revisions.findLastIndex(r=>r.key===key)},baseline:a?{day:a.day,capacity:a.capacity,efficiency:a.efficiency,predictionRef:a.predictionRef}:null,contentVersion:window.EcoLearning?.version||null};
+   if(ts.some(a=>a.day===t.day&&a.capacity===t.capacity&&a.efficiency===t.efficiency))return toast('같은 조건의 실험을 이미 기록했습니다.');
+   if(ts.length>=8)return toast('실험 기록은 8개까지입니다. 기존 기록을 비교해 보세요.');
+   answer('l3trials',JSON.stringify([...ts,t]));log('building_trial',{trial:t});
+  }
   render();
  }
 },true);
@@ -2576,5 +2582,10 @@ validateImport=function(v){councilValidate(v);if(!CityCouncilModel.validateRecor
 const councilBoot=boot;
 boot=async function(){await councilBoot();if(!D||!CITIES||!$('.tools'))return;const b=document.createElement('button');b.id='council-open';b.title='현재 차시 시민 설계회의';b.setAttribute('aria-label','시민 설계회의');b.innerHTML='<i data-lucide="git-compare-arrows"></i><span>설계회의</span>';$('.tools').append(b);icons()};
 document.addEventListener('click',e=>{if(e.target.closest('#council-open,#council-start'))openCouncil()});
-window.addEventListener('beforeunload',()=>{const t=document.activeElement;if(t?.dataset.answer)answer(t.dataset.answer,t.value);save()});boot().then(mountNetzeroPresentation);
-</script></body></html>
+window.addEventListener('beforeunload',()=>{const t=document.activeElement;if(t?.dataset.answer)answer(t.dataset.answer,t.value);save()});
+</script>
+<link rel="stylesheet" href="assets/learning/style.css">
+<script src="assets/learning/curriculum.js"></script>
+<script src="assets/learning/app.js"></script>
+<script>boot().then(mountNetzeroPresentation);</script>
+</body></html>

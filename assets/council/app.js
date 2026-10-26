@@ -16,7 +16,7 @@
     if (!r.episodes[l]) {
       r.episodes[l] = { lesson: l, opened: now(), base: M.baseFor(r,l), initial: null, final: null, trials: [],
         draft: { choice: '', prediction: '', evidenceNote: '', evidence: [], confidence: 0, afterConfidence: 0,
-          trialPrediction: '', reason: '', limit: '', transfer: '', context: 'standard', plan: null } };
+          trialPrediction: '', referenceTrial: null, reason: '', limit: '', transfer: '', context: 'standard', plan: null } };
       bridge.save();
     }
     return r.episodes[l];
@@ -70,18 +70,32 @@
       ${lesson>=1?`<label>교통망<select data-cq-plan="mobility">${Object.entries(M.MOBILITY).map(([k,v])=>`<option value="${k}" ${p.mobility===k?'selected':''}>${v.name} · ${v.cost}점</option>`).join('')}</select></label>`:''}
       ${lesson>=2?`<label class="cq-checkbox"><input type="checkbox" data-cq-plan="flex" ${p.flex?'checked':''}>시간대 조정 · 1점</label>`:''}</div>`;
   }
+  function predictionReference(e) {
+    const ref=e.draft.referenceTrial;
+    if(Number.isInteger(ref))return `예상 기준 A: 실험 ${ref+1} (작성 시작 시 고정)`;
+    if(e.draft.trialPrediction.trim())return '기준 미기록 / 추가 비교 필요';
+    return `예상 기준 A: 실험 ${Math.min(selectedA,e.trials.length-1)+1} (작성 전)`;
+  }
+  function referenceNotice(e) {
+    const missing=e.trials.some((t,i)=>i>0&&M.comparisonReference(e.trials,i)===null);
+    return missing?'<p class="cq-muted">기준 미기록 / 추가 비교 필요: 해당 예상의 비교 기준 A는 알 수 없습니다. 원래 예상과 확정 기록은 그대로 보존합니다.</p>':'';
+  }
+  function sensitivityNotice(e) {
+    if(e.lesson!==2||!e.initial)return '';
+    return `<p class="cq-muted">${M.hasSensitivityTrial(e)?'조건 민감도 비교 기록 있음':'추가 비교 필요: 기준 A를 기록하고, 정책을 고정한 채 발전 조건 또는 절감분 재사용률 하나만 바꾼 실험이 필요합니다.'}</p>`;
+  }
   function comparison(e) {
     if (e.trials.length < 2) return '<p class="cq-muted">비교 실험을 한 번 기록하면 A와 B의 차이가 표시됩니다.</p>';
     const bi=selectedB<0?e.trials.length-1:Math.min(selectedB,e.trials.length-1), ai=Math.min(selectedA,e.trials.length-1);
     const a=e.trials[ai],b=e.trials[bi],diff=M.compare(a,b), ar=M.calculate(a.settings,a.context),br=M.calculate(b.settings,b.context);
     const options=(s)=>e.trials.map((t,i)=>`<option value="${i}" ${i===s?'selected':''}>${i+1} · ${esc(M.CONTEXTS[t.context].name)} · ${n(M.calculate(t.settings,t.context).annual)} tCO2e/년</option>`).join('');
-    return `<section class="cq-section"><h3>기록한 두 실험 비교</h3><div class="cq-controls"><label>A<select data-cq-compare="a">${options(ai)}</select></label><label>B<select data-cq-compare="b">${options(bi)}</select></label></div>
+    return `<section class="cq-section"><h3>현재 선택한 두 결과 비교</h3><div class="cq-controls"><label>A<select data-cq-compare="a">${options(ai)}</select></label><label>B<select data-cq-compare="b">${options(bi)}</select></label></div>
       <p class="cq-comparison-kind">${diff.identical?'같은 조건입니다.':diff.controlled?'한 변인 비교 · 다른 조건을 고정한 모형 안의 비교입니다.':'여러 변인 비교 · 차이를 특정 한 정책의 효과로 해석할 수 없습니다.'}<br>변경: ${esc(diff.changed.join(', ')||'없음')}</p>
       <figure class="cq-bars"><figcaption>운영 배출 · 가로축 0~1,000 tCO2e/년</figcaption>${[[ar,'A'],[br,'B']].map(([r,name])=>`<div><span>${name}</span><div class="cq-track"><div style="width:${r.annual/10}%"></div></div><b>${n(r.annual)}</b></div>`).join('')}<p>B − A: ${diff.annual>0?'+':''}${n(diff.annual)} tCO2e/년</p></figure>
       <div class="cq-table-wrap"><table><thead><tr><th>관점</th><th>A</th><th>B</th></tr></thead><tbody>${[
         ['자원(점)',ar.cost,br.cost],['접근성(%)',ar.access,br.access],['외곽 접근성(%)',ar.outer,br.outer],['저녁 최대수요(지수)',ar.peak,br.peak],['건설 배출(tCO2e, 일회)',ar.embodied,br.embodied],['첫해 합계(tCO2e)',ar.firstYear,br.firstYear]
       ].map(row=>`<tr><th>${row[0]}</th><td>${n(row[1])}</td><td>${n(row[2])}</td></tr>`).join('')}</tbody></table></div>
-      <details><summary>A·B의 설정과 실험 전 예상</summary><p>A: ${esc(labelPlan(a.settings))}<br>${esc(a.prediction)}</p><p>B: ${esc(labelPlan(b.settings))}<br>${esc(b.prediction)}</p></details></section>`;
+      <details><summary>A·B의 설정과 실험 전 예상</summary><p>A: ${esc(labelPlan(a.settings))}<br>예상 당시 기준: ${esc(M.referenceLabel(e.trials,ai))}<br>${esc(a.prediction)}</p><p>B: ${esc(labelPlan(b.settings))}<br>예상 당시 기준: ${esc(M.referenceLabel(e.trials,bi))}<br>${esc(b.prediction)}</p></details></section>`;
   }
   function experimentView(e,l) {
     const d=e.draft,p=d.plan;
@@ -91,6 +105,7 @@
       <h3>비교 실험대</h3><p>${l===0?'관심이 있다면 한 조건을 더 비교하세요.':l===1?'접근 가능해진 사람이 모두 교통수단을 바꾸는 것은 아닙니다. 전환율 조건을 비교해 보세요.':l===2?'정책은 그대로 두고 발전 조건 또는 절감분 재사용률 하나만 바꿔 비교하세요.':'기본 가정 아래 자원 8점 이내의 다른 정책 조합을 적어도 하나 비교하세요.'}</p>
       ${plansForm(p,l)}<div class="cq-controls"><label>비교 조건<select data-cq-draft="context">${Object.entries(M.CONTEXTS).filter(([id])=>l>=2||id==='standard'||l===1&&id==='participation').map(([id,c])=>`<option value="${id}" ${d.context===id?'selected':''}>${c.name}</option>`).join('')}</select></label></div>
       <p id="cq-cost" role="status">현재 설정 자원 ${M.calculate(p).cost}/8점</p>
+      <p id="cq-prediction-reference" role="status">${esc(predictionReference(e))}</p>
       ${field('trialPrediction','실험 전 예상 · A에 비해 무엇이 달라질까? 이유는?',d.trialPrediction)}
       <div class="cq-actions">${button('trial','예상 저장 후 계산','flask-conical',true)}${button('restore','처음 선택의 설정으로','rotate-ccw')}</div><p class="cq-muted">실험 기록 ${e.trials.length}/12. 예산 초과 조합은 기록하지 않습니다.</p>
       ${comparison(e)}
@@ -124,7 +139,7 @@
         <h1 tabindex="-1" id="cq-heading">${q.title}</h1><p class="cq-speaker">${q.speaker} · 사전 작성된 대사</p><p>${q.story}</p>
         <div class="cq-base"><b>${e.base.from?e.base.from+'차시에서 가져온 제안':'이전 회의 확정 기록 없음 · 정책 미적용 기준에서 시작'}</b><p>${esc(labelPlan(e.base.settings))}</p><p>미배정 자원 ${8-M.calculate(e.base.settings).cost}/8점 · 건설 전 초안. 실제 통계와 구분한 가상도시입니다.</p></div>
         <nav class="cq-phases" aria-label="회의 진행"><span ${!e.initial?'aria-current="step"':''}>1 예상</span><span ${e.initial&&!e.final?'aria-current="step"':''}>2 비교·검토</span><span ${e.final?'aria-current="step"':''}>3 제안</span></nav>
-        ${assumptions()}${e.final?finalView(e,l):e.initial?experimentView(e,l):initialView(e,l)}
+      ${assumptions()}${referenceNotice(e)}${sensitivityNotice(e)}${e.final?finalView(e,l):e.initial?experimentView(e,l):initialView(e,l)}
         <p id="cq-error" role="alert" tabindex="-1"></p><footer class="cq-footer">${button('learning','탐구 기록으로','book-open')}${button('map','맵으로 돌아가기','map')}${button('json','전체 기록 내보내기','download')}</footer></div>`;
       bridge.icons();
     } catch(err) { host.innerHTML='<p role="alert">'+esc(err.message)+'</p>'+button('json','원본 기록 내보내기','download');bridge.icons(); }
@@ -159,16 +174,16 @@
         if(e.trials.length>=12)throw Error('이 회의의 실험 기록은 12개까지입니다. 기존 비교 기록으로 판단을 정리하세요.');
         requireText(d.trialPrediction,'계산하기 전에 이번 실험의 예상과 이유를 적어 주세요.');
         const r=M.calculate(d.plan,d.context);if(!r.feasible)throw Error('자원 8점을 넘었습니다. 조건을 조정하세요.');
-        e.trials.push({at:now(),settings:M.clone(d.plan),context:d.context,prediction:d.trialPrediction.trim()});d.trialPrediction='';d.finalTrial=e.trials.length-1;selectedB=-1;
+        e.trials.push({at:now(),settings:M.clone(d.plan),context:d.context,prediction:d.trialPrediction.trim(),referenceTrial:d.referenceTrial??null});d.trialPrediction='';d.referenceTrial=null;d.finalTrial=e.trials.length-1;selectedB=-1;
         bridge.log('council_trial',{councilLesson:l+1,trial:e.trials.length,modelVersion:M.VERSION});
       }
       if(id==='finish') {
         requireText(d.reason,'유지하거나 수정한 이유를 적어 주세요.');requireText(d.limit,'모형의 한계와 추가로 필요한 자료를 적어 주세요.');
         if(!d.afterConfidence)throw Error('검토 후 설명에 대한 확신 정도를 선택해 주세요.');
-        if(l===2&&!e.trials.some((t,i)=>i&&M.compare(e.trials[0],t).controlled))throw Error('3차시는 처음 설정과 한 변인만 다른 실험을 한 번 기록해 주세요.');
+        if(l===2&&!M.hasSensitivityTrial(e))throw Error('3차시는 예상 기준 A를 기록하고, 정책은 고정한 채 발전 조건 또는 절감분 재사용률 하나만 바꾼 실험을 기록해 주세요. 기준 미기록 실험은 추가 비교가 필요합니다.');
         if(l===3){requireText(d.transfer,'새 마을에 적용할 때 바꿀 가정과 필요한 자료를 적어 주세요.');if(!e.trials.some(t=>t.context==='standard'&&Object.keys(M.DEFAULT).some(k=>t.settings[k]!==e.initial.settings[k])))throw Error('4차시는 기본 가정에서 다른 정책 조합 하나를 계산하여 비교해 주세요.');}
         const idx=d.finalTrial??0,t=e.trials[idx];if(!t)throw Error('최종 제안으로 삼을 실험을 선택해 주세요.');
-        e.final={at:now(),settings:M.clone(t.settings),trial:idx,reason:d.reason.trim(),limit:d.limit.trim(),transfer:d.transfer.trim(),confidence:d.afterConfidence};
+        e.final={at:now(),settings:M.clone(t.settings),trial:idx,reason:d.reason.trim(),limit:d.limit.trim(),transfer:d.transfer.trim(),confidence:d.afterConfidence,comparisonVersion:1};
         bridge.log('council_completed',{councilLesson:l+1,modelVersion:M.VERSION});
       }
       bridge.save();render();if(id==='reveal'||id==='finish')host.querySelector('#cq-heading').focus();
@@ -179,7 +194,11 @@
     document.addEventListener('input',event=>{
       if(!host?.contains(event.target))return;const t=event.target,key=t.dataset.cqDraft;
       if(!key||t.type==='radio'&&!t.checked)return;
-      const e=episode();if(e.final)return;e.draft[key]=['confidence','afterConfidence'].includes(key)?Number(t.value):t.value;bridge.save();
+      const e=episode();if(e.final)return;
+      if(key==='trialPrediction'&&!e.draft.trialPrediction.trim()&&t.value.trim()&&e.draft.referenceTrial==null&&e.trials.length)e.draft.referenceTrial=Math.min(selectedA,e.trials.length-1);
+      e.draft[key]=['confidence','afterConfidence'].includes(key)?Number(t.value):t.value;
+      if(key==='trialPrediction')host.querySelector('#cq-prediction-reference').textContent=predictionReference(e);
+      bridge.save();
     });
     document.addEventListener('change',event=>{
       if(!host?.contains(event.target))return;const t=event.target,e=episode();
@@ -195,7 +214,7 @@
     const r=bridge.state().council;if(!r||!M.validateRecord(r))return '';
     return '<section><h2>시민 설계회의 · '+M.VERSION+'</h2><p>가상의 계수로 계산한 조건부 결과. 과학적 정확성을 자동 채점하지 않음.</p>'+r.episodes.map((e,l)=>{
       if(!e?.initial)return '';
-      return `<h3>${l+1}차시 · ${E[l].title}</h3><p>처음 예상: ${esc(e.initial.prediction)}</p><p>선택 근거: ${esc(e.initial.evidenceNote)}</p><p>연결 근거: ${e.initial.evidence.map(v=>esc(v.id+' '+v.label)).join(', ')||'없음'}</p>`+(e.final?`<p>최종 조건: ${esc(labelPlan(e.final.settings))}</p><p>운영 배출 ${n(M.calculate(e.final.settings).annual)} tCO2e/년 · 가정</p><p>유지/수정 이유: ${esc(e.final.reason)}</p><p>한계: ${esc(e.final.limit)}</p><p>전이: ${esc(e.final.transfer)}</p><p>확신 ${e.initial.confidence}→${e.final.confidence} · 실험 ${e.trials.length}개</p>`:'<p>검토 중 · 확정 전</p>');
+      return `<h3>${l+1}차시 · ${E[l].title}</h3><p>처음 예상: ${esc(e.initial.prediction)}</p><p>선택 근거: ${esc(e.initial.evidenceNote)}</p><p>연결 근거: ${e.initial.evidence.map(v=>esc(v.id+' '+v.label)).join(', ')||'없음'}</p>`+(e.final?`<p>최종 조건: ${esc(labelPlan(e.final.settings))}</p><p>운영 배출 ${n(M.calculate(e.final.settings).annual)} tCO2e/년 · 가정</p><p>유지/수정 이유: ${esc(e.final.reason)}</p><p>한계: ${esc(e.final.limit)}</p><p>전이: ${esc(e.final.transfer)}</p><p>확신 ${e.initial.confidence}→${e.final.confidence} · 실험 ${e.trials.length}개</p>`:'<p>검토 중 · 확정 전</p>')+referenceNotice(e)+sensitivityNotice(e)+`<ul>${e.trials.map((t,i)=>`<li>실험 ${i+1} · ${esc(M.CONTEXTS[t.context].name)} · ${esc(labelPlan(t.settings))}<br>예상 기준 A: ${esc(M.referenceLabel(e.trials,i))}<br>${esc(t.prediction)}</li>`).join('')}</ul>`;
     }).join('')+'</section>';
   }
   window.CityCouncilUI={install(b){bridge=b;bind()},render,report};

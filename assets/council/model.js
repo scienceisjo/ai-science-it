@@ -56,6 +56,27 @@
       annual: round(right.annual - left.annual), access: round(right.access - left.access), cost: right.cost - left.cost,
       firstYear: round(right.firstYear - left.firstYear), peak: round(right.peak - left.peak) };
   }
+  function comparisonReference(trials, index) {
+    const ref = trials[index]?.referenceTrial;
+    return Number.isInteger(ref) && ref >= 0 && ref < index ? ref : null;
+  }
+  function referenceLabel(trials, index) {
+    if (index === 0) return '최초 예상 (비교 기준 없음)';
+    const ref = comparisonReference(trials, index);
+    return ref === null ? '기준 미기록 / 추가 비교 필요' : `실험 ${ref + 1}`;
+  }
+  function isSensitivityComparison(a, b) {
+    if (!a || !b) return false;
+    const ca = CONTEXTS[a.context], cb = CONTEXTS[b.context];
+    return !!ca && !!cb && Object.keys(DEFAULT).every(k => a.settings[k] === b.settings[k]) &&
+      ca.uptake === cb.uptake && Number(ca.sun !== cb.sun) + Number(ca.rebound !== cb.rebound) === 1;
+  }
+  function hasSensitivityTrial(e) {
+    return e.trials.some((t, i) => {
+      const ref = comparisonReference(e.trials, i);
+      return ref !== null && isSensitivityComparison(e.trials[ref], t);
+    });
+  }
   const EPISODES = [
     { title: '첫 예산, 어느 쪽부터?', speaker: '서하 · 기록관 연구원',
       story: '도시 설계 초안에 “태양광만 늘리면 해결된다”는 문장이 남아 있어. 오늘 모은 자료로 이 주장을 검토했지? 첫 예산 2점을 어디에 쓸지 제안해 줘. 발전을 바꾸는 일과 소비를 줄이는 일은 같은 효과일까?',
@@ -121,6 +142,7 @@
         if (!draft || !text(draft.choice, 30) || !text(draft.prediction) || !text(draft.reason) || !text(draft.limit) || !text(draft.transfer) || !text(draft.evidenceNote) || !text(draft.trialPrediction) || ![0,1,2,3,4,5].includes(draft.confidence) || ![0,1,2,3,4,5].includes(draft.afterConfidence) || !Array.isArray(draft.evidence) || draft.evidence.length > 20 || draft.evidence.some(id => !text(id, 100))) return false;
         if (draft.plan) settings(draft.plan);
         if (draft.finalTrial !== undefined && (!Number.isInteger(draft.finalTrial) || draft.finalTrial < 0 || draft.finalTrial >= e.trials.length)) return false;
+        if (draft.referenceTrial != null && (!Number.isInteger(draft.referenceTrial) || draft.referenceTrial < 0 || draft.referenceTrial >= e.trials.length)) return false;
         if (draft.context && !Object.hasOwn(CONTEXTS, draft.context)) return false;
         if (e.initial) {
           const a = e.initial;
@@ -129,13 +151,16 @@
           if (JSON.stringify(settings(a.settings)) !== JSON.stringify(expected) || !calculate(a.settings).feasible) return false;
           if (!draft.plan || !e.trials.length || e.trials[0].context !== 'standard' || JSON.stringify(settings(e.trials[0].settings)) !== JSON.stringify(expected) || e.trials[0].prediction !== a.prediction) return false;
         }
-        for (const t of e.trials) {
+        for (const [j, t] of e.trials.entries()) {
           if (!e.initial || !text(t.at,40) || !Number.isFinite(Date.parse(t.at)) || !text(t.prediction) || !t.prediction.trim() || !calculate(t.settings,t.context).feasible) return false;
+          if (t.referenceTrial != null && comparisonReference(e.trials, j) === null) return false;
         }
         if (e.final) {
           const f = e.final;
           if (!e.initial || !text(f.at,40) || !Number.isFinite(Date.parse(f.at)) || !text(f.reason) || !f.reason.trim() || !text(f.limit) || !f.limit.trim() || !text(f.transfer) || ![1,2,3,4,5].includes(f.confidence) || !Number.isInteger(f.trial) || f.trial < 0 || f.trial >= e.trials.length || JSON.stringify(settings(f.settings)) !== JSON.stringify(settings(e.trials[f.trial].settings))) return false;
-          if (i === 2 && !e.trials.some((t,j)=>j && compare(e.trials[0],t).controlled)) return false;
+          if (f.comparisonVersion !== undefined && f.comparisonVersion !== 1) return false;
+          // Preserve legacy finals as records; only new finals certify the stricter comparison task.
+          if (i === 2 && (f.comparisonVersion === 1 ? !hasSensitivityTrial(e) : !e.trials.some((t,j)=>j && compare(e.trials[0],t).controlled))) return false;
           if (i === 3 && (!f.transfer.trim() || !e.trials.some(t=>t.context==='standard'&&Object.keys(DEFAULT).some(k=>t.settings[k]!==e.initial.settings[k])))) return false;
         }
       }
@@ -149,6 +174,11 @@
     return previous.episodes.every((e,i) => {
       if (!e) return true;
       const t=next.episodes[i];if (!t) return false;
+      if (i === 2 && !e.final && t.final && !hasSensitivityTrial(t)) return false;
+      if (Number.isInteger(e.draft.referenceTrial)) {
+        const added = t.trials[e.trials.length];
+        if ((added ? added.referenceTrial : t.draft.referenceTrial) !== e.draft.referenceTrial) return false;
+      }
       for (const key of ['base','opened']) if (JSON.stringify(e[key]) !== JSON.stringify(t[key])) return false;
       for (const key of ['initial','final']) if (e[key] && JSON.stringify(e[key]) !== JSON.stringify(t[key])) return false;
       return e.trials.every((trial,j)=>JSON.stringify(trial)===JSON.stringify(t.trials[j]));
@@ -161,13 +191,17 @@
   }
   function csv(record, anonymousId) {
     if (!validateRecord(record)) throw Error('회의 기록 형식 오류');
-    const rows = [['anonymous_id','model_version','lesson','phase','time','choice','prediction','reason','limit','transfer','confidence','evidence_ids','context','solar','retrofit','mobility','flex','resource_points','annual_tCO2e','embodied_once_tCO2e','first_year_tCO2e','access_percent','outer_percent','evening_peak_index']];
-    const add = (lesson, phase, x, p, context, initial) => {
+    const rows = [['anonymous_id','model_version','lesson','phase','time','choice','prediction','reason','limit','transfer','confidence','evidence_ids','context','solar','retrofit','mobility','flex','resource_points','annual_tCO2e','embodied_once_tCO2e','first_year_tCO2e','access_percent','outer_percent','evening_peak_index','reference_trial','reference_status','sensitivity_comparison']];
+    const add = (lesson, phase, x, p, context, initial, episode, trialIndex = null) => {
       const r = calculate(p, context);
-      rows.push([anonymousId, VERSION, lesson + 1, phase, x.at, initial.choice, x.prediction || '', x.reason || x.evidenceNote || '', x.limit || '', x.transfer || '', x.confidence ?? '', initial.evidence.map(v=>v.id).join('|'), context,p.solar,p.retrofit,p.mobility,p.flex,r.cost,r.annual,r.embodied,r.firstYear,r.access,r.outer,r.peak]);
+      const ref = trialIndex === null ? null : comparisonReference(episode.trials, trialIndex);
+      rows.push([anonymousId, VERSION, lesson + 1, phase, x.at, initial.choice, x.prediction || '', x.reason || x.evidenceNote || '', x.limit || '', x.transfer || '', x.confidence ?? '', initial.evidence.map(v=>v.id).join('|'), context,p.solar,p.retrofit,p.mobility,p.flex,r.cost,r.annual,r.embodied,r.firstYear,r.access,r.outer,r.peak,
+        ref === null ? '' : ref + 1, trialIndex === null ? '해당 없음' : referenceLabel(episode.trials, trialIndex),
+        lesson !== 2 || phase === 'initial' || trialIndex === 0 ? '해당 없음' :
+          (phase === 'final' ? hasSensitivityTrial(episode) : ref !== null && isSensitivityComparison(episode.trials[ref], x)) ? '조건 민감도 비교 기록 있음' : '추가 비교 필요']);
     };
-    record?.episodes.forEach((e,i) => { if (!e?.initial) return; add(i,'initial',e.initial,e.initial.settings,'standard',e.initial); e.trials.forEach((t,j)=>add(i,'trial_'+(j+1),t,t.settings,t.context,e.initial)); if(e.final)add(i,'final',e.final,e.final.settings,'standard',e.initial); });
+    record?.episodes.forEach((e,i) => { if (!e?.initial) return; add(i,'initial',e.initial,e.initial.settings,'standard',e.initial,e); e.trials.forEach((t,j)=>add(i,'trial_'+(j+1),t,t.settings,t.context,e.initial,e,j)); if(e.final)add(i,'final',e.final,e.final.settings,'standard',e.initial,e); });
     return '\ufeff' + rows.map(row => row.map(csvCell).join(',')).join('\r\n');
   }
-  return { VERSION, BASE, DEFAULT, CONTEXTS, MOBILITY, LABELS, EPISODES, calculate, compare, optionPlan, ending, emptyRecord, baseFor, validateRecord, isContinuation, csv, clone };
+  return { VERSION, BASE, DEFAULT, CONTEXTS, MOBILITY, LABELS, EPISODES, calculate, compare, comparisonReference, referenceLabel, isSensitivityComparison, hasSensitivityTrial, optionPlan, ending, emptyRecord, baseFor, validateRecord, isContinuation, csv, clone };
 });
