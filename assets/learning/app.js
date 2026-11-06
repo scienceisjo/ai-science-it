@@ -10,7 +10,7 @@
  const real=l=>S.evidence.filter(e=>e.lesson===l+1&&e.kind==='실제 자료');
  const pinnedPair=l=>real(l).some((a,i,all)=>all.slice(i+1).some(b=>a.label===b.label&&a.source===b.source&&a.unit===b.unit&&a.year!==b.year&&(l!==1||a.label===CITIES.find(c=>c.id===S.city)?.name+' 총배출')));
  const trialPair=()=>trialRows().some((a,i,all)=>all.slice(i+1).some(b=>a.day===b.day&&a.capacity===b.capacity&&a.efficiency!==b.efficiency));
- const keyProblem=(l,k)=>({key:k,step:stepFor(l,k),message:'「'+(answerLabels[k]||k)+'」 기록이 필요해요. 한두 문장으로 설명하거나, 판단 보류와 필요한 자료를 남겨도 됩니다.'});
+ const keyProblem=(l,k)=>({key:k,step:stepFor(l,k),message:k==='l1initial'?'지금 생각과 가장 가까운 설명을 하나 골라 주세요. “아직 잘 모르겠어요.”를 골라도 됩니다.':'「'+(answerLabels[k]||k)+'」 기록이 필요해요. 한두 문장으로 설명하거나, 아직 판단하기 어렵다면 어떤 자료가 더 필요한지 적어 주세요.'});
  // The contract checks records and comparison conditions, never scientific correctness.
  function stepIssue(l,s){
   const step=curriculum.lessons[l].steps[s];
@@ -36,7 +36,7 @@
  function finalIssue(l,requireAI=true){
   for(let s=0;s<5;s++){const e=stepIssue(l,s);if(e)return e}
   if(l===0&&(S.answers.l1evidence.match(/\d+(?:[.,]\d+)*/g)||[]).length<2)return {key:'l1evidence',step:4,message:'근거 칸에 담은 실제 수치 두 개를 가져오고, 그 의미를 설명해 주세요.'};
-  if(l===3&&requireAI&&!S.model)return {step:3,message:'AI 생성 모델 검증은 아직 미실시입니다. 모델을 가져오거나 아래에서 핵심 학습 기록만 보존할 수 있습니다.'};
+  if(l===3&&requireAI&&!S.model)return {step:3,message:'AI 생성 모델 검증은 아직 하지 않았습니다. 모델을 가져오거나 아래에서 작성한 활동만 저장할 수 있습니다.'};
   return null;
  }
  validFinal=l=>finalIssue(l);
@@ -52,19 +52,20 @@
  };
  function helpView(l,s){
   const d=curriculum.lessons[l].steps[s];
-  return '<section class="learning-task" aria-label="이번 탐구의 목표"><p class="learning-eyebrow">'+(l+1)+'차시 · '+(s+1)+'/5</p><h2>'+esc(d.name)+'</h2><p>'+esc(d.action)+'</p><details data-learning-help="overview"><summary>오늘 배우는 것과 남길 기록</summary><p>'+esc(curriculum.lessons[l].question)+'</p><ul>'+curriculum.lessons[l].goals.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul><p><b>결과물</b> '+esc(curriculum.lessons[l].output)+'</p></details></section>'+
-   '<div class="learning-help" aria-label="자료 읽기 도움">'+[['terms','말뜻부터',d.terms],['reading','읽는 순서와 해설',d.read],['frame','내 설명의 문장 틀',d.frame]].map(([id,title,text])=>'<details data-learning-help="'+id+'"><summary>'+title+'</summary><p>'+esc(text)+'</p>'+(id==='frame'?'<p class="small">문장 틀은 예시입니다. 자기 말로 쓰고, 수치와 판단은 직접 고르세요.</p>':'')+'</details>').join('')+'</div>';
+  if(l===0&&s===0)return '<section class="learning-task initial-overview"><details data-learning-help="overview"><summary>학습 목표 확인하기</summary><ul>'+curriculum.lessons[0].goals.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul><p>'+esc(d.terms)+'</p></details></section>';
+  return '<section class="learning-task" aria-label="이번 탐구의 목표"><p class="learning-eyebrow">'+(l+1)+'차시 · '+(s+1)+'/5</p><h2>'+esc(d.name)+'</h2><p>'+esc(d.action)+'</p><details data-learning-help="overview"><summary>학습 목표와 활동</summary><p>'+esc(curriculum.lessons[l].question)+'</p><ul>'+curriculum.lessons[l].goals.map(g=>'<li>'+esc(g)+'</li>').join('')+'</ul><p><b>결과물</b> '+esc(curriculum.lessons[l].output)+'</p></details></section>'+
+   '<div class="learning-help" aria-label="자료 읽기 도움">'+[['terms','용어 설명',d.terms],['reading','읽는 순서와 해설',d.read],['frame',l===0&&s===0?'선택 방법':'작성 예시',d.frame]].map(([id,title,text])=>'<details data-learning-help="'+id+'"><summary>'+title+'</summary><p>'+esc(text)+'</p>'+(id==='frame'&&!(l===0&&s===0)?'<p class="small">문장 틀은 예시입니다. 자기 말로 쓰고, 수치와 판단은 직접 고르세요.</p>':'')+'</details>').join('')+'</div>';
  }
  function previousWork(l,s){
-  const keys=s===4?[['l1initial','처음 생각'],['l2initial','처음 판단'],['l3prediction','첫 예상'],['l4priority','나의 우선순위']][l]:l===3?['planConditions','3차시에서 남긴 설계 조건']:l===2?['l2transfer','2차시에서 가져온 전략']:l===1?['l1claim','1차시에서 남긴 주장']:null;
+  const keys=s===4?[['l1initial','처음 생각'],['l2initial','처음 판단'],['l3prediction','첫 예상'],['l4priority','나의 우선순위']][l]:l===3?['planConditions','3차시에서 정한 설계 조건']:l===2?['l2transfer','2차시에서 가져온 전략']:l===1?['l1claim','1차시에서 쓴 주장']:null;
   if(!keys||!(s===0||s===4))return '';
-  return '<details class="learning-previous" open><summary>'+esc(keys[1])+'</summary><blockquote>'+esc(S.answers[keys[0]]||'아직 기록이 없습니다. 아래에서 모르는 점부터 남겨도 됩니다.')+'</blockquote><p class="small">'+esc(curriculum.lessons[l].transfer)+'</p></details>';
+  return '<details class="learning-previous" open><summary>'+esc(keys[1])+'</summary><blockquote>'+esc(S.answers[keys[0]]||'아직 기록이 없습니다. 모르는 점이 있다면 적어 보세요.')+'</blockquote><p class="small">'+esc(curriculum.lessons[l].transfer)+'</p></details>';
  }
  function chartReading(l,s){
   if(l===0&&s===1){
    const r=D.countries[S.country].co2.filter(x=>x.co2!==null&&x.year>=S.start&&x.year<=S.end),a=r[0],b=r.at(-1);if(!a||!b)return '';
    const diff=b.co2-a.co2;
-   return '<details class="reading-worked" data-learning-help="chart" open><summary>선택한 그래프 함께 읽기</summary><p>가로축 <b>연도</b> · 세로축 <b>연간 배출량(백만 tCO₂/년)</b> · 대상 <b>'+esc(names[S.country])+'</b></p><table class="mini-table"><caption>현재 선택한 실제 자료</caption><tr><th>처음</th><th>나중</th><th>나중−처음</th></tr><tr><td>'+a.year+'년<br>'+fmt(a.co2)+'</td><td>'+b.year+'년<br>'+fmt(b.co2)+'</td><td>'+fmt(diff)+' 백만 tCO₂/년</td></tr></table><p>'+ (a.year===b.year?'같은 연도입니다. 비교할 다른 연도를 선택하세요.':diff>0?'이 기간의 끝값이 시작값보다 큽니다. 모든 해에 계속 증가했다는 뜻인지는 중간의 선도 살펴보세요.':diff<0?'이 기간의 끝값이 시작값보다 작습니다. 감소 원인은 이 선만으로 확정할 수 없습니다.':'두 끝값은 같습니다. 중간에도 변화가 없었는지는 그래프를 더 살펴보세요.')+'</p><p class="small">계산과 관찰 해설입니다. 이것이 어떤 주장을 지지하는지는 직접 판단하세요.</p></details>';
+   return '<details class="reading-worked" data-learning-help="chart" open><summary>선택한 그래프 함께 읽기</summary><p>가로축 <b>연도</b> · 세로축 <b>연간 배출량(백만 tCO₂/년)</b> · 대상 <b>'+esc(names[S.country])+'</b></p><table class="mini-table"><caption>현재 선택한 실제 자료</caption><tr><th>처음</th><th>나중</th><th>나중−처음</th></tr><tr><td>'+a.year+'년<br>'+fmt(a.co2)+'</td><td>'+b.year+'년<br>'+fmt(b.co2)+'</td><td>'+fmt(diff)+' 백만 tCO₂/년</td></tr></table><p>'+ (a.year===b.year?'같은 연도입니다. 비교할 다른 연도를 선택하세요.':diff>0?'이 기간의 끝값이 시작값보다 큽니다. 모든 해에 계속 증가했다는 뜻인지는 중간의 선도 살펴보세요.':diff<0?'이 기간의 끝값이 시작값보다 작습니다. 감소 원인은 이 선만으로 확정할 수 없습니다.':'두 끝값은 같습니다. 중간에도 변화가 없었는지는 그래프를 더 살펴보세요.')+'</p><p class="small">위 해설을 참고해 자료가 내 생각을 뒷받침하는지 판단해 보세요.</p></details>';
   }
   if(l===0&&s===3){
    const r=D.countries[S.country].energy.find(r=>r.year===+S.year);if(!r)return '';
@@ -82,20 +83,26 @@
  }
  function refreshProgress(){
   document.querySelectorAll('[data-learning-status]').forEach(el=>{const issue=stepIssue(S.lesson,+el.dataset.learningStatus);el.textContent=issue?'보완 필요':'기록 있음';el.classList.toggle('record-ready',!issue)});
-  const state=document.getElementById('learning-completion-state');if(state)state.textContent='핵심 학습 기록: '+(!finalIssue(3,false)?'구비됨':'작성 중')+' · AI 생성 모델 검증: '+(S.model&&!finalIssue(3)?'기록 구비됨':'미완료');
+  const state=document.getElementById('learning-completion-state');if(state)state.textContent='핵심 학습 기록: '+(!finalIssue(3,false)?'작성 완료':'작성 중')+' · AI 생성 모델 검증: '+(S.model&&!finalIssue(3)?'작성 완료':'미완료');
  }
  const previousAnswer=answer;
  answer=function(k,v){previousAnswer(k,v);queueMicrotask(refreshProgress)};
- document.addEventListener('change',()=>queueMicrotask(refreshProgress));
+ document.addEventListener('change',e=>{
+  if(e.target.matches('[name="l1initial"]')){
+   const status=document.querySelector('.initial-status');if(status)status.textContent='선택이 저장되었습니다.';
+  }
+  queueMicrotask(refreshProgress);
+ });
  const previousPicker=evidencePicker;
  evidencePicker=k=>previousPicker(k).replace(' open><summary>','><summary>');
  const priorContent=getContent;
  getContent=function(l,s){
   let body=priorContent(l,s);
+  if(l===0&&s===0)return body+helpView(l,s);
   if(l===0&&s===4){const list=evidenceList(S.evidence.filter(e=>e.lesson===1));body=body.replace(list,'<details class="learning-bridge"><summary>이번 차시에 모은 근거 '+S.evidence.filter(e=>e.lesson===1).length+'개 다시 읽기</summary>'+list+'</details>')}
   if(l===3&&s===0)body='<div class="learning-bridge">'+[0,1,2].map((n)=>'<details><summary>'+(n+1)+'차시 핵심 기록</summary>'+[['l1claim','l1reason'],['l2transfer','l2limit'],['l3trialReason','planConditions']][n].map(k=>'<p><b>'+esc(answerLabels[k]||k)+'</b><br>'+esc(S.answers[k]||'아직 기록 없음')+'</p>').join('')+'</details>').join('')+'</div>'+body;
   if(l===2&&s===4)body=body.replace('앞 차시의 정책 전략과 건물 탐구 결과를 연결합니다.','각 분야는 한 문장씩. 근거가 부족하면 “보류: 필요한 자료”를 적어도 됩니다.');
-  return helpView(l,s)+previousWork(l,s)+chartReading(l,s)+body+(s===4?progressView(l)+'<section class="learning-exit"><h3>발표 전, 한 번 더 생각하기</h3><p>'+esc(curriculum.lessons[l].exit)+'</p><p class="small">이웃과 말로 설명해 보세요. 자신과 다른 판단이 나오면 서로 쓴 근거를 확인하세요.</p></section>':'');
+  return helpView(l,s)+previousWork(l,s)+chartReading(l,s)+body+(s===4?progressView(l)+'<section class="learning-exit"><h3>발표 전, 한 번 더 생각하기</h3><p>'+esc(curriculum.lessons[l].exit)+'</p><p class="small">짝에게 설명해 보세요. 생각이 다르다면 어떤 근거를 썼는지 비교해 보세요.</p></section>':'');
  };
  const oldCo2Source=source;
  source=function(text,url,unit,year,updated){return oldCo2Source(String(text).replace('OWID, 1차에너지 대체법','OWID, 앱에 저장된 1차에너지 자료'),url,unit,year,updated)+(String(url).includes('ourworldindata.org')?'<small class="snapshot-note">수업에서는 '+esc(D.version)+' 저장본을 사용합니다. 원사이트는 이후 값·산정 방법이 바뀔 수 있으므로 섞어 비교하지 마세요.</small>':'')};
@@ -104,7 +111,7 @@
   oldCoach();
   if(S.mode==='comparison'&&!$('#coach').textContent.trim())$('#coach').innerHTML='<div class="coach-inline"><h3>탐구 점검 질문</h3><p>'+esc(coachQuestion(S.lesson))+'</p></div>';
   if(!api.claude){$('#coach-question')?.closest('label')?.remove();$('#ask-coach')?.remove();}
-  $('#coach').insertAdjacentHTML('afterbegin','<p class="learning-common">자료 읽기 도움과 고정 질문은 모두에게 동일합니다. 실제 AI 응답과 구분합니다.</p>');
+  $('#coach').insertAdjacentHTML('afterbegin','<p class="learning-common">자료 해설과 탐구 질문을 참고하세요. 아래의 기본 질문은 미리 작성된 도움말입니다.</p>');
  };
  function baseline(){try{const v=JSON.parse(S.answers.l3baseline||'null');return v&&Number.isInteger(v.day)&&v.day>=0&&v.day<=6&&Number.isFinite(v.capacity)&&v.capacity>=0&&v.capacity<=150&&Number.isFinite(v.efficiency)?v:null}catch{return null}}
  const originalBuilding=buildingView;
@@ -124,13 +131,13 @@
   originalRender();
   if(!D||!CITIES||COUNCIL_PAGE)return;
   if(INQUIRY_PAGE){
-   $('#deliverable').textContent='남길 기록: '+curriculum.lessons[S.lesson].output;
+   $('#deliverable').textContent='활동 결과: '+curriculum.lessons[S.lesson].output;
    if(S.steps[S.lesson]<4){const b=document.createElement('button');b.type='button';b.id='learning-next-data';b.innerHTML='다음 자료 <i data-lucide="arrow-right"></i>';$('.actions').append(b)}
-   if(S.lesson===3&&S.steps[3]===4){const b=document.createElement('button');b.id='learning-core-save';b.innerHTML='<i data-lucide="save"></i> 핵심 학습 기록 보존';$('.actions').prepend(b);$('#next').innerHTML='AI 3D 검증까지 완료 <i data-lucide="check"></i>'}
+   if(S.lesson===3&&S.steps[3]===4){const b=document.createElement('button');b.id='learning-core-save';b.innerHTML='<i data-lucide="save"></i> 작성한 활동 저장';$('.actions').prepend(b);$('#next').innerHTML='AI 3D 검증까지 완료 <i data-lucide="check"></i>'}
    applyBaseline();refreshProgress();
    const optional=$('.council-invite');if(optional){const details=document.createElement('details');details.className='learning-optional';details.innerHTML='<summary>선택 활동 · 시민 설계회의</summary>';optional.replaceWith(details);details.append(optional)}
   }
-  const credit=$('#app-credit');if(credit&&!credit.querySelector('.hnr-credit'))credit.insertAdjacentHTML('beforeend','<span class="hnr-credit"><img src="assets/brand/hnr-tech-mark.webp" alt="HNR TECH"> 학습 보강 '+version+'</span>');
+  const credit=$('#app-credit');if(credit)credit.textContent=curriculum.credit;
   icons();
  };
  // Reset only owned buttons before each render; existing inputs and navigation keep their behavior.
@@ -138,11 +145,11 @@
  render=function(){document.querySelectorAll('#learning-next-data,#learning-core-save').forEach(el=>el.remove());decoratedRender()};
  async function completion(l,core=false){
   flushLearningInputs();const e=finalIssue(l,!core);if(e)return showCruiseRequirement(e);
-  if(l===3&&!core){try{if(!await modelRead())return showCruiseRequirement({step:3,message:'이 기기에 모델 파일이 없습니다. GLB를 다시 가져오거나 핵심 학습 기록만 보존하세요.'})}catch{return showCruiseRequirement({step:3,message:'모델 저장소를 확인하지 못했습니다. 파일을 다시 확인해 주세요.'})}}
+  if(l===3&&!core){try{if(!await modelRead())return showCruiseRequirement({step:3,message:'이 기기에 모델 파일이 없습니다. GLB를 다시 가져오거나 작성한 활동만 저장하세요.'})}catch{return showCruiseRequirement({step:3,message:'모델 저장소를 확인하지 못했습니다. 파일을 다시 확인해 주세요.'})}}
   if(core){answer('l4coreSavedAt',new Date().toISOString());log('core_learning_recorded',{contentVersion:version,aiModelVerified:false})}
   else {const newly=!S.done[l];S.done[l]=true;if(l===3)answer('l4coreSavedAt',new Date().toISOString());if(newly)log('lesson_completed',{contentVersion:version});}
   if(l===0&&S.mapReturn)S.mapReturn.pendingScene='first-record-next-question';save();
-  showModal(core?'핵심 학습 기록을 보존했습니다':'이번 차시의 기록을 확인했습니다','<p>'+esc(curriculum.lessons[l].output)+'</p><p><b>작성 완료는 과학적 정답 인증이 아닙니다.</b> 근거와 설명은 선생님·동료와 검토하세요.</p>'+(core?'<p>AI 생성 모델 검증은 미완료로 남깁니다. 기존 기록은 유지되고 나중에 모델을 가져와 이어갈 수 있습니다.</p>':'')+'<p>'+esc(curriculum.lessons[l].transfer)+'</p><div class="row"><button id="learning-complete-map" class="primary">맵으로 돌아가기</button><button id="learning-export"><i data-lucide="download"></i> 기록 내보내기</button></div><details class="learning-optional"><summary>시간이 남으면 · 시민 설계회의</summary><p>선택 이야기 활동입니다. 오늘의 필수 기록을 대신하지 않습니다. 연구 수업에서는 교사가 정한 같은 운영 조건을 따릅니다.</p><button id="council-start">설계회의 열기</button></details>');icons();
+  showModal(core?'작성한 활동을 저장했습니다':'이번 차시 활동을 마쳤습니다','<p>'+esc(curriculum.lessons[l].output)+'</p><p><b>답을 모두 작성했어요. 내용이 타당한지는 선생님·친구와 함께 확인해 보세요.</b> </p>'+(core?'<p>AI 생성 모델 검증은 미완료로 남깁니다. 기존 기록은 유지되고 나중에 모델을 가져와 이어갈 수 있습니다.</p>':'')+'<p>'+esc(curriculum.lessons[l].transfer)+'</p><div class="row"><button id="learning-complete-map" class="primary">맵으로 돌아가기</button><button id="learning-export"><i data-lucide="download"></i> 기록 내보내기</button></div><details class="learning-optional"><summary>시간이 남으면 · 시민 설계회의</summary><p>선택 이야기 활동입니다. 오늘의 필수 기록을 대신하지 않습니다. 연구 수업에서는 교사가 정한 같은 운영 조건을 따릅니다.</p><button id="council-start">설계회의 열기</button></details>');icons();
  }
  const priorNext=next;
  next=function(){if(!INQUIRY_PAGE||COUNCIL_PAGE)return priorNext();if(S.steps[S.lesson]===4)return completion(S.lesson);return priorNext()};
@@ -184,7 +191,7 @@
  },true);
  const oldExport=exportState;
  exportState=function(){flushLearningInputs();log('learning_version',{contentVersion:version,dataVersion:D.version});oldExport()};
- let reportLogo=new URL('assets/brand/hnr-tech-mark.webp',location.href).href;
+
  const oldReport=reportHTML;
  reportHTML=function(){
   const template=document.createElement('template');template.innerHTML=oldReport();
@@ -192,15 +199,15 @@
   template.content.querySelectorAll('p').forEach(p=>{if(internal.has(p.querySelector('b')?.textContent))p.remove()});
   const experiment=template.content.querySelectorAll('section')[2];
   if(experiment){const table=document.createElement('div');table.innerHTML=trialComparison()+'<p>비교 기준·예상 수정 이력·보관한 실험 묶음은 함께 내보낸 기록 JSON에서 확인합니다. 표의 결과는 실측 부하에 가정을 적용한 계산이며 실제 기술 성능 인증이 아닙니다.</p>';experiment.append(table)}
-  return template.innerHTML+'<section><h2>학습 기록의 구비 상태</h2><p>활동 버전 '+version+' · 자동 과학 채점이 아닙니다.</p>'+curriculum.lessons.map((l,i)=>'<p><b>'+(i+1)+'차시 '+esc(l.question)+'</b><br>'+l.steps.map((s,j)=>esc(s.name)+': '+(stepIssue(i,j)?'보완 필요':'기록 있음')).join(' / ')+'</p>').join('')+'<p>4차시 핵심 기록: '+(!finalIssue(3,false)?'구비됨':'보완 필요')+'<br>AI 생성 모델 검증: '+(S.model&&!finalIssue(3)?'기록 구비됨':'미완료')+'</p><p>기본 모형 검토를 실제 AI 검증으로 간주하지 않습니다. 서버 미연결 공개판의 기록으로 AI 처치 효과를 입증할 수 없습니다.</p><img src="'+esc(reportLogo)+'" alt="HNR TECH" width="64"></section>';
+  return template.innerHTML+'<section><h2>활동 작성 현황</h2><p>활동 버전 '+version+' · 자동 과학 채점이 아닙니다.</p>'+curriculum.lessons.map((l,i)=>'<p><b>'+(i+1)+'차시 '+esc(l.question)+'</b><br>'+l.steps.map((s,j)=>esc(s.name)+': '+(stepIssue(i,j)?'보완 필요':'기록 있음')).join(' / ')+'</p>').join('')+'<p>4차시 핵심 기록: '+(!finalIssue(3,false)?'작성 완료':'보완 필요')+'<br>AI 생성 모델 검증: '+(S.model&&!finalIssue(3)?'작성 완료':'미완료')+'</p><p>기본 모형 검토를 실제 AI 검증으로 간주하지 않습니다. 서버 미연결 공개판의 기록으로 AI 처치 효과를 입증할 수 없습니다.</p></section>';
  };
  const priorBoot=boot;
  boot=async function(){
   await priorBoot();if(!D||!CITIES)return;
   if(S.model)try{if(!await modelRead()){S.model=null;save();if(INQUIRY_PAGE&&!COUNCIL_PAGE)render()}}catch{toast('모델 파일 저장소를 확인하지 못했습니다.')}
   log('learning_session_started',{contentVersion:version,dataVersion:D.version,liveAI:!!api.claude,presentation:!!PRESENTATION});
-  const tools=document.querySelector('.tools');if(tools&&!tools.querySelector('.hnr-header')){const logo=document.createElement('img');logo.src='assets/brand/hnr-tech-mark.webp';logo.alt='HNR TECH';logo.className='hnr-header';tools.prepend(logo)}
-  try{const response=await fetch(reportLogo);if(response.ok)reportLogo=await new Promise((resolve,reject)=>{response.blob().then(blob=>{const reader=new FileReader();reader.onload=()=>resolve(reader.result);reader.onerror=reject;reader.readAsDataURL(blob)},reject)})}catch{}
+
+
  };
  const priorViewer=inquiryModelView;
  let viewerSignature='';

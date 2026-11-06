@@ -47,14 +47,14 @@
   function initialView(e, l) {
     const d = e.draft;
     const available = bridge.state().evidence.filter(x=>x.lesson<=l+1).slice(-100);
-    return `<section class="cq-section"><h2>1. 먼저 예상하기</h2><p>이번 판단의 근거와 예상 결과를 먼저 남깁니다. 선택 자체에는 정답 점수가 없습니다.</p>
+    return `<section class="cq-section"><h2>1. 먼저 예상하기</h2><p>어떤 제안을 선택할지 고르고, 이유와 예상 결과를 적어 보세요. 선택은 채점하지 않습니다.</p>
       <fieldset class="cq-options"><legend>이번 회의의 제안</legend>${E[l].options.map(([id,title,desc])=>{
         let error='';try{M.optionPlan(e.base.settings,l,id)}catch(err){error=err.message}
         return `<label><input type="radio" name="cq-choice" data-cq-draft="choice" value="${id}" ${d.choice===id?'checked':''} ${error?'disabled':''}><span><b>${title}</b><small>${esc(error||desc)}</small></span></label>`;
       }).join('')}</fieldset>
       ${field('prediction','어떤 결과가 생길까? 줄어드는 것과 그대로 남는 것을 예상해 보세요.',d.prediction)}
-      <details open><summary>DATA PASSPORT 근거 연결</summary>${available.length?`<div class="cq-evidence">${available.map(x=>`<label><input type="checkbox" data-cq-evidence="${esc(x.id)}" ${d.evidence.includes(x.id)?'checked':''}><span>${esc(x.label)} · ${esc(n(x.value))} ${esc(x.unit)} (${esc(x.year)})<small>${esc(x.kind)} · ${esc(x.source)}</small></span></label>`).join('')}</div>`:'<p>아직 담은 수치가 없습니다. 탐구로 돌아가 근거를 담거나, 아래에 현재 아는 내용과 더 필요한 자료를 구분해 적으세요.</p>'}
-      ${field('evidenceNote','왜 이 선택인가? 실제 자료로 말할 수 있는 것과 아직 가정인 것을 구분하세요.',d.evidenceNote)}</details>
+      <details open><summary>탐구 기록에서 근거 고르기</summary>${available.length?`<div class="cq-evidence">${available.map(x=>`<label><input type="checkbox" data-cq-evidence="${esc(x.id)}" ${d.evidence.includes(x.id)?'checked':''}><span>${esc(x.label)} · ${esc(n(x.value))} ${esc(x.unit)} (${esc(x.year)})<small>${esc(x.kind)} · ${esc(x.source)}</small></span></label>`).join('')}</div>`:'<p>아직 담은 수치가 없습니다. 탐구로 돌아가 근거를 담거나, 아래에 현재 아는 내용과 더 필요한 자료를 구분해 적으세요.</p>'}
+      ${field('evidenceNote','이 제안을 고른 이유는 무엇인가요? 자료에서 확인한 내용과 아직 확인하지 못한 내용을 나누어 적으세요.',d.evidenceNote)}</details>
       ${confidence('confidence',d.confidence,'지금 설명에 대한 확신 정도')}
       ${button('reveal','예상을 남기고 주민 의견 듣기','message-circle',true)}</section>`;
   }
@@ -99,28 +99,28 @@
   }
   function experimentView(e,l) {
     const d=e.draft,p=d.plan;
-    return `<section class="cq-section"><h2>2. 결과를 의심하고 비교하기</h2><blockquote><b>${E[l].speaker}</b><p>${E[l].surprise}</p></blockquote>
-      <details><summary>처음 예상 보기 · 수정되지 않는 원기록</summary><p>${esc(e.initial.prediction)}</p><p>${esc(e.initial.evidenceNote)}</p><p>확신 ${e.initial.confidence}/5</p></details>
+    return `<section class="cq-section"><h2>2. 조건을 바꾸고 결과 비교하기</h2><blockquote><b>${E[l].speaker}</b><p>${E[l].surprise}</p></blockquote>
+      <details><summary>처음 예상 다시 보기</summary><p>${esc(e.initial.prediction)}</p><p>${esc(e.initial.evidenceNote)}</p><p>확신 ${e.initial.confidence}/5</p></details>
       ${outcome(M.calculate(e.initial.settings),'처음 선택의 모형 결과',l)}
       <h3>비교 실험대</h3><p>${l===0?'관심이 있다면 한 조건을 더 비교하세요.':l===1?'접근 가능해진 사람이 모두 교통수단을 바꾸는 것은 아닙니다. 전환율 조건을 비교해 보세요.':l===2?'정책은 그대로 두고 발전 조건 또는 절감분 재사용률 하나만 바꿔 비교하세요.':'기본 가정 아래 자원 8점 이내의 다른 정책 조합을 적어도 하나 비교하세요.'}</p>
       ${plansForm(p,l)}<div class="cq-controls"><label>비교 조건<select data-cq-draft="context">${Object.entries(M.CONTEXTS).filter(([id])=>l>=2||id==='standard'||l===1&&id==='participation').map(([id,c])=>`<option value="${id}" ${d.context===id?'selected':''}>${c.name}</option>`).join('')}</select></label></div>
       <p id="cq-cost" role="status">현재 설정 자원 ${M.calculate(p).cost}/8점</p>
       <p id="cq-prediction-reference" role="status">${esc(predictionReference(e))}</p>
       ${field('trialPrediction','실험 전 예상 · A에 비해 무엇이 달라질까? 이유는?',d.trialPrediction)}
-      <div class="cq-actions">${button('trial','예상 저장 후 계산','flask-conical',true)}${button('restore','처음 선택의 설정으로','rotate-ccw')}</div><p class="cq-muted">실험 기록 ${e.trials.length}/12. 예산 초과 조합은 기록하지 않습니다.</p>
+      <div class="cq-actions">${button('trial','예상 저장 후 계산','flask-conical',true)}${button('restore','처음 선택의 설정으로','rotate-ccw')}</div><p class="cq-muted">실험 기록 ${e.trials.length}/12. 자원 8점을 넘는 조합은 기록하지 않습니다.</p>
       ${comparison(e)}
       <h2>3. 판단을 유지하거나 수정하기</h2><label class="cq-field">최종 제안으로 삼을 실험<select data-cq-final-trial>${e.trials.map((t,i)=>`<option value="${i}" ${i===(d.finalTrial??0)?'selected':''}>실험 ${i+1} · ${esc(labelPlan(t.settings))}</option>`).join('')}</select></label><p>최종 설계는 모두 <b>기본 가정</b>에서 다시 계산합니다. 다른 조건에서의 결과는 실험 기록에 남습니다.</p>
-      ${field('reason','유지 / 수정한 이유 · 비교한 수치와 이득을 얻거나 놓치는 사람을 포함하세요.',d.reason)}
+      ${field('reason','제안을 유지하거나 바꾼 이유를 쓰세요. 비교한 수치, 도움을 받는 사람과 부담을 질 사람도 함께 설명하세요.',d.reason)}
       ${field('limit','이 모형으로 아직 말할 수 없는 것과 더 필요한 자료는?',d.limit)}
       ${l===3?field('transfer','새 마을에 적용하기 · 외곽 주민 70%인 마을에 같은 결론을 써도 될까요? 바꿀 가정과 추가 자료를 쓰세요.',d.transfer,3):''}
       ${confidence('afterConfidence',d.afterConfidence,'검토 후 설명에 대한 확신 정도')}
-      ${button('finish',l===3?'최종 제안과 조건부 엔딩 남기기':'판단을 확정하고 다음 질문 남기기','check',true)}
+      ${button('finish',l===3?'최종 제안 저장하기':'제안과 설명 저장하기','check',true)}
       <p class="cq-muted">확정한 기록은 덮어쓰지 않습니다. 확신이 낮아지거나 처음 선택을 유지해도 감점하지 않습니다.</p></section>`;
   }
   function finalView(e,l) {
     const f=e.final, end=M.ending(f.settings);
     const changed=M.compare({settings:e.initial.settings,context:'standard'},{settings:f.settings,context:'standard'}).changed;
-    return `<section class="cq-section"><p class="cq-kicker">${l===3?'조건부 엔딩':'회의 기록 완료'} · 순위나 승패 없음</p><h2>${esc(end.title)}</h2>
+    return `<section class="cq-section"><p class="cq-kicker">${l===3?'최종 제안':'회의 기록 완료'} · 순위나 승패 없음</p><h2>${esc(end.title)}</h2>
       ${outcome(end.result,'확정한 제안 · 기본 가정',l)}
       <h3>모형 안에서 기대한 변화</h3><ul>${end.benefits.map(t=>`<li>${esc(t)}</li>`).join('')||'<li>이번에는 기존 조건을 유지했습니다.</li>'}</ul>
       <h3>함께 남은 과제</h3><ul>${end.risks.map(t=>`<li>${esc(t)}</li>`).join('')}</ul>
@@ -137,7 +137,7 @@
       host.innerHTML=`<div class="cq-root"><div class="cq-topline"><span>${l+1}차시 · 시민 설계회의 · ${q.time}</span><a href="assets/council/teacher.html" target="_blank" rel="noopener">교사 연구 안내</a></div>
         <figure class="cq-scene"><img src="${esc(image)}" alt="도시 조사팀의 이야기 장면"><figcaption>가상의 이야기 장면 · 계산 결과의 증거가 아님</figcaption></figure>
         <h1 tabindex="-1" id="cq-heading">${q.title}</h1><p class="cq-speaker">${q.speaker} · 사전 작성된 대사</p><p>${q.story}</p>
-        <div class="cq-base"><b>${e.base.from?e.base.from+'차시에서 가져온 제안':'이전 회의 확정 기록 없음 · 정책 미적용 기준에서 시작'}</b><p>${esc(labelPlan(e.base.settings))}</p><p>미배정 자원 ${8-M.calculate(e.base.settings).cost}/8점 · 건설 전 초안. 실제 통계와 구분한 가상도시입니다.</p></div>
+        <div class="cq-base"><b>${e.base.from?e.base.from+'차시에서 가져온 제안':'이전 회의 확정 기록 없음 · 정책 미적용 기준에서 시작'}</b><p>${esc(labelPlan(e.base.settings))}</p><p>남은 자원 ${8-M.calculate(e.base.settings).cost}/8점 · 건설 전 설계안. 실제 통계와 구분한 가상도시입니다.</p></div>
         <nav class="cq-phases" aria-label="회의 진행"><span ${!e.initial?'aria-current="step"':''}>1 예상</span><span ${e.initial&&!e.final?'aria-current="step"':''}>2 비교·검토</span><span ${e.final?'aria-current="step"':''}>3 제안</span></nav>
       ${assumptions()}${referenceNotice(e)}${sensitivityNotice(e)}${e.final?finalView(e,l):e.initial?experimentView(e,l):initialView(e,l)}
         <p id="cq-error" role="alert" tabindex="-1"></p><footer class="cq-footer">${button('learning','탐구 기록으로','book-open')}${button('map','맵으로 돌아가기','map')}${button('json','전체 기록 내보내기','download')}</footer></div>`;
@@ -204,7 +204,7 @@
       if(!host?.contains(event.target))return;const t=event.target,e=episode();
       if(t.dataset.cqCompare){if(t.dataset.cqCompare==='a')selectedA=Number(t.value);else selectedB=Number(t.value);render();return}
       if(e.final)return;
-      if(t.dataset.cqPlan){const k=t.dataset.cqPlan;e.draft.plan[k]=k==='flex'?t.checked:k==='mobility'?t.value:Number(t.value);const cost=M.calculate(e.draft.plan).cost;host.querySelector('#cq-cost').textContent=`현재 설정 자원 ${cost}/8점${cost>8?' · 예산 초과':''}`;}
+      if(t.dataset.cqPlan){const k=t.dataset.cqPlan;e.draft.plan[k]=k==='flex'?t.checked:k==='mobility'?t.value:Number(t.value);const cost=M.calculate(e.draft.plan).cost;host.querySelector('#cq-cost').textContent=`현재 설정 자원 ${cost}/8점${cost>8?' · 자원 한도 초과':''}`;}
       if(t.hasAttribute('data-cq-final-trial'))e.draft.finalTrial=Number(t.value);
       if(t.dataset.cqEvidence){const ids=new Set(e.draft.evidence);t.checked?ids.add(t.dataset.cqEvidence):ids.delete(t.dataset.cqEvidence);if(ids.size>20){t.checked=false;error('근거는 20개까지 연결할 수 있습니다.');return}e.draft.evidence=[...ids]}
       bridge.save();

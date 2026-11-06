@@ -1,0 +1,15 @@
+/* Same unmodified font files as the teacher deck. See ../fonts/FONT-LICENSES.txt. */
+@font-face{font-family:'EcoHanna';src:url('../fonts/bm-hanna-pro.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'EcoText';src:url('../fonts/pretendard-regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'EcoText';src:url('../fonts/pretendard-semibold.otf') format('opentype');font-weight:600;font-style:normal;font-display:swap}
+:root{--eco-font-heading:'EcoHanna','Malgun Gothic',sans-serif;--eco-font-body:'EcoText','Malgun Gothic',sans-serif}
+body{font-family:var(--eco-font-body)}
+body :is(button,input,select,textarea){font-family:var(--eco-font-body)}
+body :is(h1,h2,h3),body .brand b,body .field,body .initial-thinking legend,body .initial-thinking .choice,body .steps button,body .lesson-tab,body .story-speaker,body .opening-title b{
+ font-family:var(--eco-font-heading);font-weight:400;font-synthesis:none;letter-spacing:0
+}
+body .field :is(small,input,select,textarea),body :is(.mini-table,.legend,.source,.values,.range-label,.save-status),body #timer{font-family:var(--eco-font-body)}
+.initial-thinking legend{font-size:24px;line-height:1.5}
+.initial-thinking .choice{font-size:18px;line-height:1.65}
+.field>small{line-height:1.75}
+.story-body,.dialog-body p{line-height:1.8}
