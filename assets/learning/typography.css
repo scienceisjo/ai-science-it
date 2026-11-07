@@ -1,5 +1,5 @@
 /* Same unmodified font files as the teacher deck. See ../fonts/FONT-LICENSES.txt. */
-@font-face{font-family:'EcoHanna';src:url('../fonts/bm-hanna-pro.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap}
+@font-face{font-family:'EcoHanna';src:url('../fonts/bm-hanna-pro.ttf') format('truetype');font-weight:400;font-style:normal;font-display:swap;unicode-range:U+0000-207F,U+208A-10FFFF}
 @font-face{font-family:'EcoText';src:url('../fonts/pretendard-regular.otf') format('opentype');font-weight:400;font-style:normal;font-display:swap}
 @font-face{font-family:'EcoText';src:url('../fonts/pretendard-semibold.otf') format('opentype');font-weight:600;font-style:normal;font-display:swap}
 :root{--eco-font-heading:'EcoHanna','Malgun Gothic',sans-serif;--eco-font-body:'EcoText','Malgun Gothic',sans-serif}

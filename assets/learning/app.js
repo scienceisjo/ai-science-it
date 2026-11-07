@@ -67,10 +67,6 @@
    const diff=b.co2-a.co2;
    return '<details class="reading-worked" data-learning-help="chart" open><summary>선택한 그래프 함께 읽기</summary><p>가로축 <b>연도</b> · 세로축 <b>연간 배출량(백만 tCO₂/년)</b> · 대상 <b>'+esc(names[S.country])+'</b></p><table class="mini-table"><caption>현재 선택한 실제 자료</caption><tr><th>처음</th><th>나중</th><th>나중−처음</th></tr><tr><td>'+a.year+'년<br>'+fmt(a.co2)+'</td><td>'+b.year+'년<br>'+fmt(b.co2)+'</td><td>'+fmt(diff)+' 백만 tCO₂/년</td></tr></table><p>'+ (a.year===b.year?'같은 연도입니다. 비교할 다른 연도를 선택하세요.':diff>0?'이 기간의 끝값이 시작값보다 큽니다. 모든 해에 계속 증가했다는 뜻인지는 중간의 선도 살펴보세요.':diff<0?'이 기간의 끝값이 시작값보다 작습니다. 감소 원인은 이 선만으로 확정할 수 없습니다.':'두 끝값은 같습니다. 중간에도 변화가 없었는지는 그래프를 더 살펴보세요.')+'</p><p class="small">위 해설을 참고해 자료가 내 생각을 뒷받침하는지 판단해 보세요.</p></details>';
   }
-  if(l===0&&s===3){
-   const r=D.countries[S.country].energy.find(r=>r.year===+S.year);if(!r)return '';
-   return '<details class="reading-worked" data-learning-help="scope" open><summary>같은 나라·연도, 다른 범위</summary><label class="field">비교할 대상'+select('country',Object.entries(names),S.country)+'</label><p>'+esc(names[S.country])+' · '+S.year+'년 · 저장된 OWID 자료</p><div class="values">'+point(names[S.country]+' 저탄소 / 발전량',r.low_carbon_share_elec,'%',S.year,'https://ourworldindata.org/grapher/electricity-mix')+point(names[S.country]+' 저탄소 / 1차에너지',r.low_carbon_share_energy,'%',S.year,'https://ourworldindata.org/energy-mix')+'</div><p>같은 %라도 분모가 다릅니다. 두 값을 더하거나 그 차이를 감축량으로 읽지 않습니다. 아래에서 탄소집약도도 확인할 수 있습니다.</p></details>';
-  }
   if(l===1&&s>=1&&s<=3){
    const c=CITIES.find(c=>c.id===S.city),a=c.total[0],b=c.total.at(-1);
    return '<details class="reading-worked" data-learning-help="city"><summary>'+esc(c.name)+' 자료를 읽는 기준</summary><p><b>'+c.years[0]+'년 '+fmt(a)+' → '+c.years.at(-1)+'년 '+fmt(b)+' tCO₂e/년</b></p><p>두 끝값의 변화는 '+fmt(b-a)+'tCO₂e/년입니다. 표와 그래프가 천 t로 표시되면 1,000으로 나눈 값입니다.</p><p>'+esc(c.boundary)+'</p><p>여기까지는 관찰입니다. 정책의 인과 효과를 입증하려면 다른 조건과 비교 자료가 더 필요합니다.</p></details>';
@@ -100,7 +96,7 @@
   let body=priorContent(l,s);
   if(l===0&&s===0)return body+helpView(l,s);
   if(l===0&&s===4){const list=evidenceList(S.evidence.filter(e=>e.lesson===1));body=body.replace(list,'<details class="learning-bridge"><summary>이번 차시에 모은 근거 '+S.evidence.filter(e=>e.lesson===1).length+'개 다시 읽기</summary>'+list+'</details>')}
-  if(l===3&&s===0)body='<div class="learning-bridge">'+[0,1,2].map((n)=>'<details><summary>'+(n+1)+'차시 핵심 기록</summary>'+[['l1claim','l1reason'],['l2transfer','l2limit'],['l3trialReason','planConditions']][n].map(k=>'<p><b>'+esc(answerLabels[k]||k)+'</b><br>'+esc(S.answers[k]||'아직 기록 없음')+'</p>').join('')+'</details>').join('')+'</div>'+body;
+  if(l===3&&s===0)body='<div class="learning-bridge">'+[0,1,2].map((n)=>'<details><summary>'+(n+1)+'차시 핵심 기록</summary>'+[['l1claim','l1reason'],['l2policy','l2transfer'],['l3trialReason','planConditions']][n].map(k=>'<p><b>'+esc(answerLabels[k]||k)+'</b><br>'+esc(S.answers[k]||'아직 기록 없음')+'</p>').join('')+'</details>').join('')+'</div>'+body;
   if(l===2&&s===4)body=body.replace('앞 차시의 정책 전략과 건물 탐구 결과를 연결합니다.','각 분야는 한 문장씩. 근거가 부족하면 “보류: 필요한 자료”를 적어도 됩니다.');
   return helpView(l,s)+previousWork(l,s)+chartReading(l,s)+body+(s===4?progressView(l)+'<section class="learning-exit"><h3>발표 전, 한 번 더 생각하기</h3><p>'+esc(curriculum.lessons[l].exit)+'</p><p class="small">짝에게 설명해 보세요. 생각이 다르다면 어떤 근거를 썼는지 비교해 보세요.</p></section>':'');
  };
@@ -114,14 +110,6 @@
   $('#coach').insertAdjacentHTML('afterbegin','<p class="learning-common">자료 해설과 탐구 질문을 참고하세요. 아래의 기본 질문은 미리 작성된 도움말입니다.</p>');
  };
  function baseline(){try{const v=JSON.parse(S.answers.l3baseline||'null');return v&&Number.isInteger(v.day)&&v.day>=0&&v.day<=6&&Number.isFinite(v.capacity)&&v.capacity>=0&&v.capacity<=150&&Number.isFinite(v.efficiency)?v:null}catch{return null}}
- const originalBuilding=buildingView;
- buildingView=function(passive=false){
-  const locked=baseline();if(passive&&locked){S.day=locked.day;S.capacity=locked.capacity;}
-  const html=originalBuilding(passive);if(!has(passive?'l3passivePrediction':'l3balancePrediction'))return html;
-  const a=baseline(),ts=trialRows(),b=buildingCalc();
-  const compare=passive?'<section class="learning-baseline"><h3>한 조건만 바꾸는 비교</h3><p>바꿀 것: <b>수요 감소율</b> · 고정할 것: <b>날짜와 태양광 출력</b></p>'+(a?'<p>기준 A: '+esc(a.date)+' / '+a.capacity+'kW / 감소 '+a.efficiency+'%</p><p>현재−A: 소비 '+fmt(b.consumption-a.consumption)+'kWh, 부족 전력 '+fmt(b.imported-a.imported)+'kWh</p><button type="button" id="learning-release-baseline">기준 고정 해제</button>':'<p>먼저 날짜·출력을 정하고 기준 A를 기록하세요. 기록 뒤에는 감소율만 바꿉니다.</p><button type="button" id="learning-set-baseline"><i data-lucide="pin"></i> 현재 조건을 기준 A로 기록·고정</button>')+'</section>':'';
-  return compare+html+(ts.length>=8?'<p class="note">현재 실험 8개를 모두 기록했습니다. '+(trialPair()?'조건이 같은 쌍을 비교하세요.':'통제된 비교가 없으면 기록을 보관한 뒤 새 묶음을 시작하세요.')+'</p><button id="learning-new-trials">기존 묶음 보관 · 새 비교</button>':'');
- };
  function applyBaseline(){
   if(S.lesson!==2||S.steps[2]!==2||!baseline())return;
   for(const k of ['day','capacity']){const el=$('[data-setting="'+k+'"]');if(el){el.disabled=true;el.title='기준 A에 고정된 조건'}}
