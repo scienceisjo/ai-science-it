@@ -46,10 +46,11 @@ dialog{border:1px solid #d0ddd5;padding:0;border-radius:8px;max-width:calc(100vw
 <section id="openingView" class="opening-view" aria-label="탐사 현장 도입" hidden><button id="openingSkip"><i data-lucide="skip-forward"></i>탐사 시작</button><div class="opening-caption"><small id="openingCount"></small><h2 id="openingTitle"></h2><p id="openingText"></p><div class="opening-track"><i id="openingProgress"></i></div></div></section>
 <div id="toast" class="toast hidden" role="status" aria-live="polite"></div><div id="printout" hidden></div><div id="error-banner" hidden></div>
 <script src="vendor/three.min.js"></script><script src="vendor/lucide.min.js"></script><script src="assets/evidence/marine-guide.js"></script><script src="assets/evidence/scaffolds.js"></script>
+<link rel="stylesheet" href="assets/class/link.css"><script src="assets/class/api.js"></script><script src="assets/class/link-core.js"></script><script src="assets/class/link.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id), esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const SAVE='fossil-detectives-v1', params=new URLSearchParams(location.search), isInquiry=location.pathname.endsWith('/inquiry.html')||params.get('view')==='inquiry';
+const SAVE=(window.FossilLink&&FossilLink.keyAtParse())||'fossil-detectives-v1', params=new URLSearchParams(location.search), isInquiry=location.pathname.endsWith('/inquiry.html')||params.get('view')==='inquiry';
 const PRESENTATION=params.get('presentation')==='1';
 const recordStore=()=>PRESENTATION?sessionStorage:localStorage,RECORD_KEY=PRESENTATION?'fossil-presentation-v1':SAVE;
 const fresh=()=>({schema:1,chapter:1,accepted:{},done:{},records:{},intro:{},endings:{},positions:{},sketches:{},visitedWindows:{},settings:{quality:'standard',motion:!matchMedia('(prefers-reduced-motion: reduce)').matches,speed:7},time:Date.now()});
@@ -351,6 +352,7 @@ icons();
 if(isInquiry)renderInquiry();else{initWorld();if(!PRESENTATION&&!state.intro[chapter])openStory();else if(!PRESENTATION&&params.has('return')&&completion(chapter)===4&&!state.endings[chapter])openStory(true);}
 mountFossilPresentation();
 </script>
+<script>window.FossilLink&&FossilLink.boot().then(r=>{if(r!=='reload')FossilLink.init()});</script>
 <script src="../assets/hub/entry.js?v=20261106" data-hub="../hub.html"></script>
 </body></html>
 <link rel="stylesheet" href="assets/evidence/scaffolds.css">

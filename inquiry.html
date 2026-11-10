@@ -66,7 +66,7 @@ body.rpg{overflow:hidden}.rpg>header{position:fixed;inset:0 0 auto;height:64px;z
 <link rel="stylesheet" href="assets/council/style.css">
 <script src="assets/council/model.js"></script><script src="assets/council/app.js"></script>
 <link rel="stylesheet" href="assets/presentation/tools.css"><script src="assets/presentation/tools.js"></script><script src="assets/presentation/landmarks.js"></script><script src="assets/presentation/netzero.js"></script>
-<script src="vendor/three.min.js"></script><script src="vendor/GLTFLoader.js"></script><script src="vendor/GLTFExporter.js"></script><script src="vendor/lucide.min.js"></script><script src="research-client.js"></script>
+<script src="vendor/three.min.js"></script><script src="vendor/GLTFLoader.js"></script><script src="vendor/GLTFExporter.js"></script><script src="vendor/lucide.min.js"></script><script src="research-client.js"></script><link rel="stylesheet" href="assets/class/link.css"><script src="assets/class/api.js"></script><script src="assets/class/link-core.js"></script><script src="assets/class/link.js"></script>
 <script>
 'use strict';
 const INQUIRY_PAGE=location.pathname.endsWith('/inquiry.html');
@@ -94,7 +94,7 @@ const fresh=()=>({schema:SCHEMA,id:crypto.randomUUID(),lesson:0,steps:[0,0,0,0],
 let S=fresh();try{const raw=MAP_PREVIEW===null?JSON.parse(localStorage.getItem(SAVE)):null;if(raw?.schema===SCHEMA)S={...S,...raw}}catch{}
 if(MAP_PREVIEW!==null){S.lesson=MAP_PREVIEW;S.done=[true,true,true,true].map((_,i)=>!PRESENTATION&&i<MAP_PREVIEW);S.rpgAccepted=[false,false,false,false];S.story={version:'eco-archive-story-v1',seen:Object.fromEntries(['arrival-question','archive-assignment','second-look','first-record-next-question','map-opening'].map(k=>[k,'preview'])),reward:null}}
 if(MAP_PREVIEW!==null)try{const temp=JSON.parse(sessionStorage.getItem(PREVIEW_SESSION));if(temp?.schema===SCHEMA&&temp.lesson===MAP_PREVIEW)S={...S,...temp}}catch{}
-let saveTimer;function save(){if(MAP_PREVIEW!==null){$('#save-status').textContent='맵 미리보기 · 저장 안 함';$('#proof-count').textContent=S.evidence.length;return}try{localStorage.setItem(SAVE,JSON.stringify(S));$('#save-status').textContent='저장됨 · 이 기기';}catch{$('#save-status').textContent='저장 공간 부족 · 기록 내보내기 필요';}$('#proof-count').textContent=S.evidence.length;window.Research?.schedule();}
+let saveTimer;function save(){if(MAP_PREVIEW!==null){$('#save-status').textContent='맵 미리보기 · 저장 안 함';$('#proof-count').textContent=S.evidence.length;return}try{localStorage.setItem(SAVE,JSON.stringify(S));$('#save-status').textContent='저장됨 · 이 기기';}catch{$('#save-status').textContent='저장 공간 부족 · 기록 내보내기 필요';}$('#proof-count').textContent=S.evidence.length;window.Research?.schedule();window.ClassLink?.schedule();}
 function log(type,payload={}){S.events.push({time:new Date().toISOString(),lesson:S.lesson+1,step:S.steps[S.lesson],type,...payload});if(S.events.length>10000)S.events.shift();save()}
 function answer(k,v){if(S.answers[k]===v)return;S.revisions.push({time:new Date().toISOString(),key:k,before:S.answers[k]??'',after:v});S.answers[k]=v;log('answer_revision',{key:k})}
 function toast(t){$('#toast').textContent=t;clearTimeout(window.toastTimer);window.toastTimer=setTimeout(()=>$('#toast').textContent='',3500)}
@@ -1001,7 +1001,7 @@ function initScene(){renderer=new THREE.WebGLRenderer({canvas:$('#world-canvas')
  requestAnimationFrame(frame);
 }
 function resizeScene(){if(!renderer)return;const r=$('.world').getBoundingClientRect();if(r.width<1||r.height<1)return;renderer.setSize(r.width,r.height,false);camera.aspect=r.width/r.height;camera.updateProjectionMatrix()}
-async function boot(){try{const storyLoad=fetch('data/story.json').then(r=>r.ok?r.json():null).then(d=>Array.isArray(d?.scenes)?d:null).catch(()=>null);const data=await Promise.all([fetch('data/snapshot.json').then(r=>{if(!r.ok)throw Error('자료 파일 오류');return r.json()}),fetch('data/cities.json').then(r=>r.json())]);[D,CITIES]=data;if(!window.Research?.staticHosting){try{const r=await fetch('/api/status');if(r.ok)api=await r.json()}catch{}}await window.Research?.boot();storyData=await storyLoad;render();try{initScene();initRPG()}catch(e){$('#world-label').textContent='이 기기에서 3D를 열 수 없습니다. 오른쪽에서 모든 자료 탐구를 진행할 수 있습니다.';console.warn('3D unavailable',e.message)}try{window.Research?.init()}catch(e){console.warn('research init',e.message)}storyBoot();if(S.model&&renderer){try{const buf=await modelRead();if(buf)await loadModel(buf);else{S.model=null;save()}}catch{S.model=null;save()}}timerInterval=setInterval(()=>{if(running&&S.seconds[S.lesson]>0){S.seconds[S.lesson]--;updateTimer();if(S.seconds[S.lesson]%10===0)save()}},1000);window.__ECO={getState:()=>structuredClone(S),budget,buildingCalc,getPlayer:()=>player.position.toArray(),data:D,story:()=>structuredClone(storyState()),opening:{seek:t=>{if(opening)opening.time=t},active:()=>!!opening}};}catch(e){$('#content').innerHTML='<div class="note myth">자료를 불러오지 못했습니다. 로컬 서버 주소로 열었는지 확인하세요. '+esc(e.message)+'</div>'}}
+async function boot(){try{const storyLoad=fetch('data/story.json').then(r=>r.ok?r.json():null).then(d=>Array.isArray(d?.scenes)?d:null).catch(()=>null);const data=await Promise.all([fetch('data/snapshot.json').then(r=>{if(!r.ok)throw Error('자료 파일 오류');return r.json()}),fetch('data/cities.json').then(r=>r.json())]);[D,CITIES]=data;if(!window.Research?.staticHosting){try{const r=await fetch('/api/status');if(r.ok)api=await r.json()}catch{}}await window.Research?.boot();await window.ClassLink?.boot();storyData=await storyLoad;render();try{initScene();initRPG()}catch(e){$('#world-label').textContent='이 기기에서 3D를 열 수 없습니다. 오른쪽에서 모든 자료 탐구를 진행할 수 있습니다.';console.warn('3D unavailable',e.message)}try{window.Research?.init()}catch(e){console.warn('research init',e.message)}try{window.ClassLink?.init()}catch(e){console.warn('class init',e.message)}storyBoot();if(S.model&&renderer){try{const buf=await modelRead();if(buf)await loadModel(buf);else{S.model=null;save()}}catch{S.model=null;save()}}timerInterval=setInterval(()=>{if(running&&S.seconds[S.lesson]>0){S.seconds[S.lesson]--;updateTimer();if(S.seconds[S.lesson]%10===0)save()}},1000);window.__ECO={getState:()=>structuredClone(S),budget,buildingCalc,getPlayer:()=>player.position.toArray(),data:D,story:()=>structuredClone(storyState()),opening:{seek:t=>{if(opening)opening.time=t},active:()=>!!opening}};}catch(e){$('#content').innerHTML='<div class="note myth">자료를 불러오지 못했습니다. 로컬 서버 주소로 열었는지 확인하세요. '+esc(e.message)+'</div>'}}
 const RPG_NPCS=['기록관 연구원 서하','도시 정책 연구원 민준','건물 에너지 연구원 지우','도시 설계 연구원 하린'];
 const RPG_COLORS=['#4eaa99','#679dc0','#c9a65d','#a47791'];
 let rpgTargets=[],rpgNearest=null,rpgWalk=null,rpgReady=false,rpgLast=-1;
@@ -2535,7 +2535,7 @@ document.addEventListener('click',e=>{if(!INQUIRY_PAGE)return;const b=e.target.c
 },true);
 async function bootInquiry(){
  try{
-  [D,CITIES]=await Promise.all([fetch('data/snapshot.json').then(r=>r.json()),fetch('data/cities.json').then(r=>r.json())]);await window.Research?.boot();
+  [D,CITIES]=await Promise.all([fetch('data/snapshot.json').then(r=>r.json()),fetch('data/cities.json').then(r=>r.json())]);await window.Research?.boot();await window.ClassLink?.boot();
   const q=new URLSearchParams(location.search),l=Number(q.get('lesson'))-1,s=Number(q.get('step')||0);
   if(!Number.isInteger(l)||l<0||l>3||!Number.isInteger(s)||s<0||s>4||!canVisitLesson(l)){$('.workspace').innerHTML='<div class="scroll"><h1>이 탐구는 아직 열리지 않았어요.</h1><a href="'+mapURL()+'">맵으로 돌아가기</a></div>';return}
   if(!COUNCIL_PAGE&&cruiseEnabled()&&s>S.steps[l]){location.replace(inquiryURL(l,S.steps[l]));return}
@@ -2543,7 +2543,7 @@ async function bootInquiry(){
   if(!window.Research?.staticHosting){try{api=await fetch('/api/status').then(r=>r.json())}catch{}}
   const aside=document.createElement('aside');aside.className='inquiry-coach';aside.setAttribute('aria-label','탐구 코치');aside.append($('#coach'));$('.workspace').append(aside);
   const top=document.createElement('div');top.className='inquiry-head';top.innerHTML='<button id="inquiry-return"><i data-lucide="arrow-left"></i> 맵으로 돌아가기</button><span>NET ZERO ECO-CITY · 탐구 기록</span>';$('.mission-head').prepend(top);
-  render();window.Research?.init();window.__ECO={getState:()=>structuredClone(S),budget,buildingCalc,data:D};
+  render();window.Research?.init();try{window.ClassLink?.init()}catch(e){console.warn('class init',e.message)}window.__ECO={getState:()=>structuredClone(S),budget,buildingCalc,data:D};
   if(!COUNCIL_PAGE&&S.model&&S.lesson===3&&s===3){const buf=await modelRead();if(buf){await loadModel(buf);paintInquiryViewer()}}
   timerInterval=setInterval(()=>{if(running&&S.seconds[S.lesson]>0){S.seconds[S.lesson]--;updateTimer();if(S.seconds[S.lesson]%10===0)save()}},1000);
  }catch(e){$('#content').textContent='탐구 자료를 열지 못했습니다. 새로고침해 주세요.';console.error(e)}
