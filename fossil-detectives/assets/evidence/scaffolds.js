@@ -1,10 +1,13 @@
 'use strict';
 (() => {
- const version='fossil-scaffold-20261012-v1';
+ const version='fossil-scaffold-20261110-v1';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const refs={
   P1:['Shen 외(2018) · 중국 펑라이탄 지층 연구','https://profiles.si.edu/display/sro_149827'],
   P2:['NPS · 대멸종과 생물군 변화','https://www.nps.gov/subjects/fossils/mass-extinctions-through-geologic-time.htm'],
+  P3:['UC 버클리 고생물학 박물관 · 페름기와 판게아','https://ucmp.berkeley.edu/permian/permian.php'],
+  P4:['USGS · 판게아가 갈라진 시기','https://pubs.usgs.gov/gip/dynamic/historical.html'],
+  P5:['UC 버클리 · 화산 활동과 대멸종(시베리아 트랩)','https://evolution.berkeley.edu/mass-extinction/volcanic-activity-and-mass-extinction/'],
   K1:['Schulte 외(2010) · 충돌 증거 검토','https://pubmed.ncbi.nlm.nih.gov/20203042/'],
   K2:['NSF · 충돌 뒤 환경 변화','https://www.nsf.gov/science-matters/moment-changed-earth'],
   T1:['BGS · 삼엽충','https://www.bgs.ac.uk/discovering-geology/fossils-and-geological-time/trilobites/'],
@@ -17,11 +20,11 @@
  const hypotheses=['기후 변화설','수륙 분포 변화설','해양 무산소설','화산 폭발설','소행성 충돌설','복합 원인 / 보류'];
  const hypothesisText=['기온·빙하·해수면의 변화가 생물의 서식 조건을 바꾼다.','대륙과 바다의 배치가 달라져 서식 공간과 해류가 바뀐다.','바닷물에 녹아 있는 산소가 부족해 생존이 어려워진다.','대규모 화산 활동이 기체와 물질을 내보내 기후·바다에 영향을 준다.','큰 천체의 충돌이 대기와 지표의 환경을 급격히 바꾼다.'];
  const cases={
-  permian:{name:'페름기 말',boundary:'고생대 말 → 중생대 초',scope:'약 2억 5200만 년 전 · 중국 펑라이탄 해양 지층 중심',
-   clues:[['P1','화산 기원 물질을 포함한 지층과 해양 화석군의 급격한 소멸이 보고되었다.','화산 활동과 생물 변화의 관련성을 검토할 단서다. 같은 층이라는 사실만으로 전 과정을 입증하지는 못한다.'],['P1','탄소 동위원소 비율의 변동과 해수 온도 지표의 변화가 보고되었다.','바다의 탄소 순환과 온도 조건도 달라졌을 가능성을 살핀다.']],
+  permian:{name:'페름기 말',boundary:'고생대 말 → 중생대 초',scope:'약 2억 5200만 년 전 · 중국 펑라이탄 해양 지층, 판게아, 시베리아 트랩 자료',
+   clues:[['P1','화산 기원 물질을 포함한 지층과 해양 화석군의 급격한 소멸이 보고되었다.','화산 활동과 생물 변화의 관련성을 검토할 단서다. 같은 층이라는 사실만으로 전 과정을 입증하지는 못한다.'],['P1','탄소 동위원소 비율의 변동과 해수 온도 지표의 변화가 보고되었다.','바다의 탄소 순환과 온도 조건도 달라졌을 가능성을 살핀다.'],['P3','페름기가 시작될 무렵(약 2억 9900만 년 전) 대륙 대부분이 모여 초대륙 판게아를 이루었고, 나머지는 하나의 큰 바다였다. 넓은 대륙 안쪽은 건조하고 계절에 따른 차이가 컸을 것으로 추정된다.','수륙 분포 변화설을 검토할 자료다. 대륙의 배치가 서식 환경과 기후를 바꾸었을 수 있다. 다만 판게아는 대멸종(약 2억 5200만 년 전)보다 4천만 년 넘게 앞서 이미 모여 있었다.'],['P4','판게아는 약 2억 2500만~2억 년 전에 갈라지기 시작했다.','페름기 말에는 대륙이 하나로 모여 있었고, 갈라지기 시작한 것은 그 뒤의 일이다. 오래 이어진 수륙 분포만으로 왜 페름기 말에 큰 감소가 일어났는지 설명할 수 있는지 따져 본다.'],['P2','시베리아에서 일어난 대규모 현무암 분출(시베리아 트랩)이 페름기 말 대멸종을 일으킨 방아쇠로 여겨진다. 화산은 이산화 탄소와 이산화 황을 내뿜어 기후 변화와 해양 산성화를 일으킬 수 있다.','화산 폭발설을 검토할 자료다. 화산 기체가 기후와 바다를 바꾸고, 그 변화가 생물 감소로 이어졌는지 다른 자료와 함께 확인한다.'],['P5','시베리아 트랩의 용암은 서유럽만 한 넓이를 1km가 넘는 두께로 덮었고, 대부분이 지질학적으로 짧은 시간(수십만 년 이내)에 흘러나왔다. 용암이 석탄층처럼 유기물이 많은 암석에 닿으면 이산화 탄소·메테인·이산화 황이 많이 나올 수 있다.','이산화 황은 수십 년 정도의 짧은 냉각을, 이산화 탄소와 메테인은 오래 이어지는 온난화를 일으킬 수 있다. 바다가 따뜻해지면 산소가 덜 녹아 산소가 부족해질 수 있다. 화산 폭발설·기후 변화설·해양 무산소설이 서로 이어질 수 있다는 점을 생각한다.']],
    compare:[['환경의 단서','소멸 직전·무렵에도 탄소 순환과 수온 지표가 변동했다.','소멸 직후 이 지역에서 더 큰 수온 상승이 보고되었다.','P1'],['생물의 단서','이 지층에는 여러 페름기형 해양 생물의 기록이 있었다.','조사 지점에서는 페름기형 종이 경계 뒤 살아남은 기록을 찾지 못했다. 다른 지점의 생존 양상은 달랐다.','P1']],
    mechanism:'물의 온도가 바뀌면 생물이 견딜 수 있는 범위를 벗어나거나 필요한 산소를 얻기 어려워질 수 있다. 실제 수온·산소 자료와 생물군별 차이를 더 확인한다.',
-   limit:'펑라이탄 한 지점의 결과를 전 세계 모든 바다에 그대로 적용하지 않는다. 화산·수온·산소 등 여러 과정의 역할을 구분해야 한다.'},
+   limit:'펑라이탄 한 지점의 결과를 전 세계 모든 바다에 그대로 적용하지 않는다. 판게아처럼 오래 이어진 조건과 시베리아 트랩처럼 짧은 시기에 집중된 사건을 구분하고, 화산·수온·산소 등 여러 과정의 역할을 나눠 따져 본다.'},
   cretaceous:{name:'백악기 말',boundary:'중생대 말 → 신생대 초',scope:'약 6600만 년 전 · 칙술루브 충돌과 여러 지역의 경계층 자료',
    clues:[['K1','칙술루브 충돌 구조와 경계층의 이리듐 농도 이상 등 서로 다른 충돌 단서가 확인되었다.','한 단서가 아니라 여러 단서를 연결해 큰 충돌이 있었다는 설명을 검토한다.'],['K2','충돌 물질이 대기 중 햇빛을 줄이고 기온·광합성에 영향을 주는 과정이 연구되었다.','충돌 흔적과 생물 피해 사이를 이어 주는 환경 변화 설명이다. 모든 피해가 같은 과정 때문이라는 뜻은 아니다.']],
    compare:[['환경의 단서','충돌 전에도 지역·시기에 따른 기후 차이가 있었다. 전 세계를 하나의 기온으로 표시하지 않는다.','충돌 직후 먼지·황 성분 입자로 일사량과 기온이 낮아지는 과정이 제안된다. 장기 변화와 구분한다.','K2'],['생물의 단서','새가 아닌 공룡과 여러 생물군의 화석 기록이 있었다.','새가 아닌 공룡 등은 사라졌지만 모든 생물이 멸종한 것은 아니다. 살아남은 일부 집단은 이후 다양해졌다.','P2']],
@@ -29,7 +32,7 @@
    limit:'이리듐 하나로 모든 생물의 사망 원인이나 멸종률을 계산하지 않는다. 충돌 직후의 어두움·냉각을 신생대 전체의 기후라고 쓰지 않는다.'}
  };
  const help=(title,body)=>`<aside class="sc-help"><h3>${title}</h3>${body}</aside>`;
- function glossary(){return `<details class="sc-details"><summary>낯선 증거 용어, 쉬운 말로</summary><dl class="sc-glossary"><dt>탄소 동위원소</dt><dd>같은 탄소이지만 질량이 다른 종류다. 그 비율의 변화는 탄소가 이동하고 순환한 방식의 단서가 된다. 비율 하나가 화산의 지문처럼 원인을 확정하지는 않는다.</dd><dt>해수 온도 지표</dt><dd>옛 바다에 온도계를 꽂아 잰 값이 아니다. 물질의 특성과 온도의 관계를 이용해 과거 온도를 추정하는 간접 단서다.</dd><dt>이리듐 농도 이상</dt><dd>주변 층보다 이리듐이라는 원소가 유난히 많이 검출된 상태다. 충돌 구조·충돌로 생긴 물질 등과 함께 해석한다.</dd><dt>화산 기원 물질</dt><dd>화산에서 나온 재 등이 굳어 지층에 남은 것이다. 화산 활동이 있었다는 근거와, 그것이 멸종을 일으킨 과정의 근거는 구분한다.</dd></dl>${source('P1')} ${source('K1')}</details>`;}
+ function glossary(){return `<details class="sc-details"><summary>낯선 증거 용어, 쉬운 말로</summary><dl class="sc-glossary"><dt>탄소 동위원소</dt><dd>같은 탄소이지만 질량이 다른 종류다. 그 비율의 변화는 탄소가 이동하고 순환한 방식의 단서가 된다. 비율 하나가 화산의 지문처럼 원인을 확정하지는 않는다.</dd><dt>해수 온도 지표</dt><dd>옛 바다에 온도계를 꽂아 잰 값이 아니다. 물질의 특성과 온도의 관계를 이용해 과거 온도를 추정하는 간접 단서다.</dd><dt>이리듐 농도 이상</dt><dd>주변 층보다 이리듐이라는 원소가 유난히 많이 검출된 상태다. 충돌 구조·충돌로 생긴 물질 등과 함께 해석한다.</dd><dt>판게아</dt><dd>여러 대륙이 하나로 모여 있던 초대륙. ‘모든 땅’이라는 뜻이다.</dd><dt>시베리아 트랩</dt><dd>지금의 시베리아에 넓게 쌓인 현무암 지대. 땅의 갈라진 틈에서 용암이 오랫동안 흘러나와 만들어졌다.</dd><dt>화산 기원 물질</dt><dd>화산에서 나온 재 등이 굳어 지층에 남은 것이다. 화산 활동이 있었다는 근거와, 그것이 멸종을 일으킨 과정의 근거는 구분한다.</dd></dl>${source('P1')} ${source('K1')}</details>`;}
  function caseEvidence(id){const c=cases[id];return `<article class="sc-case" data-case="${id}"><h3>${c.name} · ${c.boundary}</h3><p class="sc-scope">${c.scope}</p>${c.clues.map(([r,f,i])=>`<div class="sc-evidence-row"><div><b>자료가 보고한 내용</b><p>${f}</p></div><div><b>함께 읽는 뜻</b><p>${i}</p></div>${source(r)}</div>`).join('')}<p class="sc-limit"><b>여기까지는 아직</b> ${c.limit}</p></article>`;}
  function casesView(){return `<div class="sc-cases">${Object.keys(cases).map((id,i)=>`<details class="sc-details" ${i===0?'open':''}><summary>${cases[id].name} 증거 묶음</summary>${caseEvidence(id)}</details>`).join('')}</div>`;}
  function evidence1(s){
@@ -37,10 +40,10 @@
   return `<h2>같은 증거를 다시 읽고 판단하기</h2>${help('사실 → 뜻 → 내 판단','<ol><li>집중할 사건의 보고 내용을 확인합니다.</li><li>해설을 읽고 내 가설과 연결되는 이유를 생각합니다.</li><li>가설을 유지·수정·보류하고, 아직 필요한 자료를 고릅니다.</li></ol>')}${casesView()}${glossary()}${help('추가 자료를 떠올리는 질문','<p>정확한 시기를 더 알아야 할까? 다른 지역도 같은지 봐야 할까? 생물이 영향을 받은 과정을 더 확인해야 할까? 가장 필요한 하나를 골라 이유를 쓰세요.</p>')}`;
  }
  function forms1(s,h){const {field,selectField,previousRecords}=h;
-  if(s===1)return selectField('집중 사건','집중 조사할 사건',Object.values(cases).map(c=>c.name))+selectField('잠정 가설','지금 자료와 연결해 볼 가설',hypotheses)+field('가설 선택 이유','어떤 단서 때문에 이 가설을 살펴보려 하나요?','[자료 번호]의 ___은 ___와 관련이 있다고 생각한다. 다만 ___은 아직 확인해야 한다.')+`<details class="sc-details"><summary>다른 사건도 검토하기 · 선택 활동 / 이전 기록</summary><p>자료가 부족한 사건은 비워 두거나 보류할 수 있습니다. 다섯 사건의 원인을 모두 맞히는 과제가 아닙니다.</p>${['오르도비스기 말','데본기 후기','페름기 말','트라이아스기 말','백악기 말'].map((e,i)=>selectField('가설 '+(i+1),e,hypotheses,false)).join('')}</details>`;
+  if(s===1)return selectField('집중 사건','집중 조사할 사건',Object.values(cases).map(c=>c.name))+selectField('잠정 가설','지금 자료와 연결해 볼 가설',hypotheses)+field('가설 선택 이유','어떤 단서 때문에 이 가설을 살펴보려 하나요?','[자료 번호]의 ___은 ___와 관련이 있다고 생각한다. 다만 ___은 아직 확인해야 한다.');
   return `<details class="sc-details"><summary>내가 앞에서 세운 가설</summary>${previousRecords(1,2)}</details>`+selectField('심사 사건','집중 심사할 사건',Object.values(cases).map(c=>c.name))+field('자료의 관찰 사실','자료에서 확인한 내용 하나','[P1 또는 K1 등]에 ___이라고 보고되었다. 제공된 해석을 참고해 한 문장으로 정리하세요.')+field('자료의 해석','그 단서는 내 가설과 왜 연결되나요?','___이라면 ___의 변화가 생길 수 있으므로 이 단서는 ___ 가설과 관련된다.')+selectField('판단','다시 검토한 판단',['유지','수정','보류'])+field('판단 이유','판단의 이유와 다음에 볼 자료 하나','___ 때문에 판단을 ___했다. 아직 ___을 모르므로 ___ 자료를 더 보겠다.');
  }
- function timeline(){return help('100cm가 지구 역사 전체라면',`<p><b>1% = 1cm</b>입니다. 예를 들어 수업 자료의 고생대 비율 6.3%를 옮기면 <b>100cm × 6.3 ÷ 100 = 6.3cm</b>입니다.</p><p>자료의 순서: 선캄브리아시대 → 고생대 → 중생대 → 신생대<br>길이: 88.2cm / 6.3cm / 4.1cm / 1.4cm</p><p>네 시대를 25cm씩 놓으면 기간도 같았다고 오해할 수 있습니다. 이 비율은 원안의 반올림 값이며 최신 경계 연대의 정밀 계산값은 아닙니다.</p>`);}
+ function timeline(){return help('100cm가 지구 역사 전체라면',`<p><b>1% = 1cm</b>입니다. 예를 들어 수업 자료의 고생대 비율 6.3%를 옮기면 <b>100cm × 6.3 ÷ 100 = 6.3cm</b>입니다.</p><p>나머지 세 시대도 같은 방법으로 옮기고, 과거에서 현재 방향으로 놓아 보세요. 이 비율은 원안의 반올림 값이며 최신 경계 연대의 정밀 계산값은 아닙니다.</p>`);}
  function clues(){return help('짧게 살았다 = 한 마리의 수명이 짧다?',`<p><b>아닙니다.</b> 여기서는 <b>한 종이 지구 역사에 나타나 사라질 때까지의 기간</b>을 말합니다. 한 마리가 몇 년 살았는지와 다릅니다.</p><dl class="sc-glossary"><dt>표준 화석 · 언제?</dt><dd>지질학적으로 짧은 기간에 살고 널리 분포한 종류는 지층의 시기 비교에 유용합니다. 화석 하나로 정확한 연도를 정한다는 뜻은 아닙니다.</dd><dt>시상 화석 · 어떤 환경?</dt><dd>특정 환경에서 살던 생물은 옛 서식 조건을 추리하는 단서가 됩니다. 산호초를 만드는 산호의 사례를 모든 산호에 적용하지 않습니다.</dd></dl>${source('T2')} ${source('T5')}`);}
  const specimenInfo=[
   ['마디와 몸의 구획','BGS는 삼엽충이 함께 발견되는 암석·화석 등을 근거로 바다에 살던 생물이라고 설명한다.','이 사진의 삼엽충을 해양 생물로 해석하는 데 도움이 된다. 정확한 수심·수온은 사진만으로 정하지 못한다.','T1'],
@@ -60,13 +63,14 @@
  function forms4(s,h){const {field,selectField,input,eras,colors}=h;
   if(s===0)return selectField('집중 경계','이번 모둠이 집중할 경계',Object.values(cases).map(c=>c.boundary))+field('공통 연결','우리 지도의 중심 설명과 아직 빠진 근거','선택한 경계에서 환경은 ___, 생물 기록은 ___이다. [자료 번호]를 연결해 ___을 설명하려 한다. ___은 더 확인해야 한다.')+`<details class="sc-details"><summary>네 시대의 지도 메모 · 이전 기록 / 추가 조사</summary><p>아는 범위만 남깁니다. 선택하지 않은 시대와 자료가 없는 항목은 빈칸이어도 됩니다.</p><div class="evidence-map">${eras.map((e,i)=>`<section class="era-column" style="border-color:${colors[i]}"><h3>${e}</h3>${field(e+' 기록','환경 · 화석 · 변화 · 출처','이 시대 전체가 같은 환경이었다고 일반화하지 않습니다.',false)}</section>`).join('')}</div></details>`;
   if(s===1)return `<div class="field-row">${selectField('시작 시대','경계 전의 시대',eras)}${selectField('다음 시대','경계 뒤의 시대',eras)}</div>`+field('환경 변화','비교 자료에서 환경 조건 하나를 골라 설명','예: 수온 또는 햇빛. 선택한 경계·지역을 밝히고 전후 차이를 쓰세요.')+field('생물 변화','그 경계 전후 생물 기록의 변화','개체 수와 과·종 수를 구분하세요. [자료 번호]에서 확인한 범위만 쓰세요.')+field('인과 근거','환경 → 생존 조건 → 생물 변화, 연결하기','___이 달라지면 생물이 ___하기 어려워질 수 있다. 이를 검토할 자료는 [___]이다.')+selectField('설명 상태','현재 설명의 확실성',['증거로 지지되는 설명','잠정 가설','판단 보류'])+field('설명의 한계','아직 확인해야 할 연결 하나','지역 차이 / 정확한 시기 / 생물군 차이 / 다른 원인 중 하나를 골라 왜 필요한지 설명하세요.');
-  if(s===2)return field('동료의 지지','근거가 충분하다는 의견을 받은 부분','동료가 [자료 번호]와 ___의 연결을 지지했다.')+field('동료 질문','동료에게 받은 질문 하나','예: 이 자료를 다른 바다에도 적용할 수 있나요?')+field('설명 수정','질문을 반영해 바꾼 부분 또는 유지한 이유','처음에는 ___이라고 썼다. 질문을 듣고 ___로 범위를 좁혔다 / ___ 근거로 유지했다.');
+  if(s===2)return field('동료의 지지','근거가 충분하다는 의견을 받은 부분','동료가 [자료 번호]와 ___의 연결을 지지했다.')+field('동료 질문','동료에게 받은 질문 하나','예: 이 자료를 다른 바다에도 적용할 수 있나요?')+field('설명 수정','질문을 반영해 바꾼 부분 또는 유지한 이유, 그리고 다시 확인한 자료','처음에는 ___이라고 썼다. [자료 번호]를 다시 확인하고 ___로 범위를 좁혔다 / ___ 근거로 유지했다.');
   return input('탐구 제목','내 보고서의 질문을 제목으로')+field('시대 선정','이어진 두 시대와 집중 경계, 선정 이유','고생대 말-중생대 초 또는 중생대 말-신생대 초 중 선택한 범위와 이유를 쓰세요.')+field('환경 특징','경계 전후 환경 조건 한 가지','수온·햇빛 등 제공된 자료에서 확인한 조건만. 자료 번호와 지역을 함께 쓰세요.')+field('화석 근거','생물·화석 기록에서 확인한 전후 변화와 출처','___ 기록이 ___로 변했다 [자료 번호]. 3차시 표본 사진을 이 경계의 실제 출토 증거처럼 쓰지 마세요.')+field('변천 설명','환경 변화가 생존에 영향을 주는 과정을 설명','환경 ___ → 생존 조건 ___ → 생물 기록 ___. 앞서 검토하고 수정한 연결을 사용하세요.')+field('결론','화석으로 알게 된 것과 남은 질문','화석은 ___을 설명하는 데 도움이 된다. 그러나 ___은 다른 증거가 필요하다.')+input('마지막 문장','“화석은 과거를 설명하는 ___이다.”');
  }
  function mount(form,chapter,step){
   const caseSelect=form.elements['집중 사건']||form.elements['심사 사건'];
   if(chapter===1&&caseSelect){const showCase=()=>{const id=Object.keys(cases).find(k=>cases[k].name===caseSelect.value);if(!id)return;form.querySelectorAll('.sc-cases .sc-case[data-case]').forEach(el=>{el.parentElement.open=el.dataset.case===id;});};caseSelect.addEventListener('change',showCase);showCase();}
-  if(chapter===2&&step===1){const b=document.createElement('button');b.type='button';b.className='sc-import';b.innerHTML='<i data-lucide="arrow-down-to-line"></i>자료의 순서·길이 가져오기';b.title='제공된 수치만 입력합니다. 해석은 직접 작성합니다.';form.querySelector('[name="순서 0"]').closest('.field').before(b);b.onclick=()=>{const names=['선캄브리아시대','고생대','중생대','신생대'],vals=[88.2,6.3,4.1,1.4];for(let i=0;i<4;i++){form.elements['순서 '+i].value=names[i];form.elements['길이 '+i].value=vals[i];}b.dispatchEvent(new Event('input',{bubbles:true}));};}
+  // P7: start the era pair from the boundary chosen in 4-1 (the save check still requires adjacent eras)
+  if(chapter===4&&step===1){const a=form.elements['시작 시대'],b=form.elements['다음 시대'],chosen=typeof state!=='undefined'?state.records['4-0']?.['집중 경계']:'',pair={'고생대 말 → 중생대 초':['고생대','중생대'],'중생대 말 → 신생대 초':['중생대','신생대']}[chosen];if(a&&b&&pair&&!a.value&&!b.value){a.value=pair[0];b.value=pair[1];form.dispatchEvent(new Event('change'));}if(pair){const note=document.createElement('p');note.className='smallprint';note.textContent='앞 활동 「지구 기록 통합」에서 고른 경계('+chosen+')에 맞춰 두 시대를 넣었습니다.';a?.closest('.field-row')?.after(note);}}
  }
  function hintsFor(c,s,fallback){return ({
   '1-1':['한 사건을 고르고, 보고된 단서 하나가 어떤 가설과 연결되는지 찾아봐.','원인의 이름보다 “이 단서가 왜 관련 있는가”를 설명해 줘.','아직 근거가 부족하면 보류할 수 있어. 다음에 확인할 자료를 하나 골라 줘.'],

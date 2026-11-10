@@ -8,7 +8,7 @@ window.CLASSROOM_COURSES={
   assessment:'관찰과 해석의 구분, 출처가 있는 근거, 한계와 수정 이유를 확인합니다. 원안의 서론 7·본론 15·결론 8점은 담당 교사의 세부 채점표와 함께 적용합니다. 게임 속도·힌트 사용은 평가 점수가 아닙니다.',
   lessons:[
    {title:'다섯 번의 침묵',image:'assets/story/chapter-1.webp',place:'지구 생명 기록관',question:'생물의 기록이 줄었다. 오류일까, 실제 사건일까?',incident:'ECHO가 다섯 개의 이상 구간을 발견했다. 첫 임무는 원인 맞히기가 아니다.',
-    evidenceTitle:'먼저, 그래프가 세는 대상을 확인하자',photo:'assets/evidence/marine-families.png',photoAlt:'해양 생물 과의 수 그래프',credit:'© The Field Museum · CC BY-NC · 원본 그대로',evidenceSource:'https://silurian-reef.fieldmuseum.org/narrative/474',
+    evidenceTitle:'먼저, 그래프가 나타내는 것을 확인하자',photo:'assets/evidence/marine-families.png',photoAlt:'해양 생물 과의 수 그래프',credit:'© The Field Museum · CC BY-NC · 원본 그대로',evidenceSource:'https://silurian-reef.fieldmuseum.org/narrative/474',
     prompts:[['관찰','어느 구간에서 무엇이 줄었는가?'],['해석','이 변화와 연결할 가설은 무엇인가?'],['검증','원인을 설명하려면 어떤 자료가 더 필요한가?']],
     caution:'해양 생물 과의 수는 개체 수나 지구의 모든 종 수가 아니다.',steps:['감소 구간 확인','다섯 가설 검토','한 사건의 증거 심사','모둠 30초 보고'],times:['10분','12분','15분','8분'],output:'확인한 사실 + 잠정 설명 + 추가 확인 사항',artifact:'대멸종 사건 기록지',handoff:'오늘의 가설은 4차시에서 다시 검토할 근거가 된다.',exit:'“그래프에서 본 것”과 “그 원인”을 구분했는가?',
     notes:['40초. ECHO의 오류 경고를 읽고 “자료 오류인지 실제 사건인지는 아직 모릅니다”라고 말합니다. 학생 한 명의 예상을 듣되 원인을 정답처럼 확정하지 않습니다.','65초. 그래프를 확대해 가로축 방향과 세로축을 함께 짚습니다. 과는 분류 단계입니다. 화살표에는 캄브리아기 감소도 있어 화살표 개수와 5대 대멸종의 수를 같게 세지 않게 합니다. 원인 설명은 다음 증거 심사에서 합니다.','55초. 10·12·15·8분의 네 활동을 안내합니다. 지도에서 다음 장소로 이동하거나 수업 진행이 늦으면 교사 안내의 자료 직행 링크를 사용합니다. 가설은 서로 배타적인 정답이 아닙니다.','50초. 네 역할을 정하고 다음 차시에 바꾼다고 안내합니다. 마지막 산출물에는 사실·설명·추가 확인이 모두 있어야 합니다. 판단 보류도 근거가 있으면 수사 기록입니다.','30초. ECHO에게 사건 파일을 받은 뒤 첫 조사로 이동합니다. 종료 전 수사 기록 JSON을 내보내 학교가 정한 제출 경로로 받습니다. 이 4분 도입은 원안의 0~5분 안에 포함합니다.']},
