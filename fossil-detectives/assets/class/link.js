@@ -50,6 +50,20 @@ window.FossilLink = (() => {
       const answers = Object.values(state.records || {}).reduce((n, r) => n + Object.entries(r || {}).filter(([k, v]) => k !== '자료 버전' && typeof v === 'string' && v.trim()).length, 0);
       return { done: per.reduce((a, b) => a + b, 0), total: 16, lessons: per, answers };
     },
+    // 연구 요약(선생님 화면용): 완료 단계, 채운 칸·글자 수, 스케치·복원 창 수
+    research() {
+      let filled = 0, chars = 0;
+      for (const rec of Object.values(state.records || {})) for (const [f, v] of Object.entries(rec || {})) {
+        if (f === '자료 버전' || typeof v !== 'string' || !v.trim()) continue;
+        filled++; chars += v.replace(/\s/g, '').length;
+      }
+      return {
+        steps: Object.keys(state.done || {}).filter(k => state.done[k]),
+        filled, chars,
+        sketches: Object.values(state.sketches || {}).filter(s => Array.isArray(s) && s.length).length,
+        windows: Object.keys(state.visitedWindows || {}).length
+      };
+    },
     position() {
       if (inquiry()) return { lesson: chapter, step: inquiryStep, place: 'inquiry' };
       const active = CHAPTERS[chapter].steps.findIndex((_, s) => !state.done[key(chapter, s)]);

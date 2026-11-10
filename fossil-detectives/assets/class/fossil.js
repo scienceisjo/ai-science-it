@@ -54,6 +54,18 @@
       { id: 'step-1', step: 0 }, { id: 'step-2', step: 1 }, { id: 'step-3', step: 2 }, { id: 'step-4', step: 3 }
     ],
     stepSuffix: ' 장소',
+    otherDemo: { label: 'NET ZERO ECO-CITY 예시 수업', href: '../dashboard.html?demo=1' },
+    // 연구 지표(학생별 기록·반 전체 지표). 횟수·시간은 점수에 넣지 않는다(루브릭 운영 유의사항)
+    recordRoot: ['records'],
+    answerOf: (root, key) => { const m = /^(\d-\d)\|(.+)$/.exec(key); return m && root && root[m[1]] ? root[m[1]][m[2]] : undefined; },
+    choiceKeys: ['1-0|대상', '1-1|집중 사건', '1-1|잠정 가설', '1-2|판단', '2-2|자료 A', '2-2|자료 B', '4-1|설명 상태'],
+    transitionKey: null,
+    columns: [
+      { id: 'time', label: '학습 시간', unit: '분', get: r => Math.round(Object.values((r && r.active) || {}).reduce((a, b) => a + (Number(b) || 0), 0) / 60), title: '화면이 보이고 조작이 있던 시간(선생님이 멈춘 시간 빼고)' },
+      { id: 'filled', label: '쓴 칸', get: r => r.filled, title: '글을 쓰거나 고른 탐구 칸 수' },
+      { id: 'chars', label: '쓴 글자', get: r => r.chars, title: '탐구 칸 글자 수(띄어쓰기 빼고)' },
+      { id: 'sketches', label: '스케치', get: r => r.sketches, title: '표본 스케치를 남긴 수' }
+    ],
     slideURL: (lesson, page) => 'teacher.html?lesson=' + lesson + '&s=1&k=last&p=' + (page + 1),
     // 체험 화면(?demo=1)의 가짜 학생 기록
     demoRecord(i, lesson, step) {
@@ -62,7 +74,12 @@
         '1-0': { '대상': pick(['과(family)의 수', '종의 수', '과(family)의 수']), '감소 구간': pick(['페름기 말에 400여 과에서 200과 정도로 줄었다.', '세 번째 화살표 부근에서 크게 줄었다.', '']), '감소 구간과 원인': pick(['감소 구간은 총 5구간으로, 감소한 원인은 화산 활동으로 추정된다.', '감소 구간은 총 5구간이고 원인은 아직 모르겠다.', '']) },
         '1-1': { '집중 사건': '페름기 말', '가설 선택 이유': pick(['시베리아 트랩 자료가 같은 시기라서.', '해수 온도 자료가 함께 바뀌어서.', '']) }
       };
-      return { schema: 1, chapter: lesson, accepted: { 1: true }, done: step > 0 ? { '1-0': true } : {}, records, demo: true };
+      records['1-1']['잠정 가설'] = pick(['화산 활동', '해수 온도 변화', '산소 부족', '화산 활동']);
+      records['1-2'] = { '판단': pick(['지지한다', '보류한다', '지지한다', '수정한다']) };
+      const done = {}, active = {};
+      for (let s = 0; s <= step && s < 4; s++) { if (s < step || i % 2) done['1-' + s] = true; active['1-' + s] = 200 + ((i * 41 + s * 59) % 380); }
+      return { schema: 1, chapter: lesson, accepted: { 1: true }, done, records, demo: true,
+        research: { v: 1, active, steps: Object.keys(done), filled: 3 + i % 6, chars: 80 + (i * 53) % 360, sketches: i % 3, windows: 0 } };
     },
     ownText(v) { return v == null ? '' : typeof v === 'string' ? v.trim() : typeof v === 'object' ? JSON.stringify(v) : String(v); },
     evidenceCount() { return 0; }

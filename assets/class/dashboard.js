@@ -13,6 +13,7 @@
   const AUTH_KEY = 'asi_teacher_' + P.id, RECENT_KEY = 'asi_teacher_recent_' + P.id;
   const LEVELS = ['A', 'B', 'C', 'D', 'E'];
   const ONLINE_MS = 25000, STUCK_MS = 10 * 60000;
+  const TABS = [['live', '수업 화면'], ['students', '학생별 기록'], ['answers', '답 모아보기'], ['scores', '채점표'], ['class', '반 전체 지표'], ['settings', '방 설정']];
   const STEPS = P.stepCount || 5, TOTAL = STEPS * 4, RANGE = [...Array(STEPS).keys()];
 
   let auth = null, ov = null, tab = 'live', pollTimer = 0, polling = false, serverSkew = 0;
@@ -122,7 +123,11 @@
     return u.href;
   }
   function renderShell() {
-    $('#app').innerHTML = (DEMO ? '<div class="demo-bar">체험 화면입니다. 가짜 학생 28명이 움직이고, 버튼을 눌러도 실제 서버에는 아무것도 저장하지 않아요. <a href="' + location.pathname + '">진짜 방 열기</a></div>' : '')
+    const SAMPLE = DEMO && (window.ASI_SAMPLES || {})[P.id];
+    $('#app').innerHTML = (DEMO ? '<div class="demo-bar">' + (SAMPLE
+      ? '<b>예시 수업</b> · 가상 학생 ' + SAMPLE.students.length + '명이 ' + esc(SAMPLE.scene) + '인 장면이에요(실제 학생 기록 아님). 버튼을 눌러도 실제 서버에는 저장하지 않아요. 아래 탭을 왼쪽부터 하나씩 눌러 보세요.'
+      : '체험 화면입니다. 가짜 학생 28명이 움직이고, 버튼을 눌러도 실제 서버에는 아무것도 저장하지 않아요.')
+      + (P.otherDemo ? ' <a href="' + P.otherDemo.href + '">' + esc(P.otherDemo.label) + '</a> ·' : '') + ' <a href="' + location.pathname + '">진짜 방 열기</a></div>' : '')
       + '<header class="top"><span class="app-name">' + esc(P.name) + ' 수업 화면</span>'
       + '<span class="room" id="room-title"></span>'
       + '<span class="count" id="count"></span>'
@@ -141,9 +146,11 @@
       + '</div>'
       + '<div class="screen-strip" id="screen-strip" hidden></div>'
       + '<nav class="tabs" role="tablist">'
-      + [['live', '수업 화면'], ['answers', '답 모아보기'], ['scores', '채점표'], ['settings', '방 설정']].map(([k, t]) => '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (k === tab) + '">' + t + '</button>').join('')
+      + TABS.map(([k, t]) => '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (k === tab) + '">' + t + '</button>').join('')
       + '</nav>'
       + '<section class="panel" id="p-live"><div class="live"><div><div class="tiles" id="tiles"></div></div><aside class="side" id="side"></aside></div></section>'
+      + '<section class="panel" id="p-students" hidden></section>'
+      + '<section class="panel" id="p-class" hidden></section>'
       + '<section class="panel" id="p-answers" hidden></section>'
       + '<section class="panel" id="p-scores" hidden></section>'
       + '<section class="panel" id="p-settings" hidden></section>'
@@ -158,6 +165,7 @@
     $('#hide-names').onchange = e => {
       hideNames = e.target.checked;
       if (tab === 'live' && ov) renderLive(); else if (tab === 'answers' && answersCache) drawAnswers(); else if (tab === 'scores' && scores) drawScores(); else if (tab === 'settings') renderSettings();
+      else if (tab === 'students') renderStudents(); else if (tab === 'class') renderClass();
     };
     $('#btn-pause').onclick = () => setLive({ paused: !(ov && ov.live.paused) });
     $('#btn-screen').onclick = openScreenPicker;
@@ -183,11 +191,13 @@
   function showTab(k) {
     tab = k;
     $$('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === k)));
-    ['live', 'answers', 'scores', 'settings'].forEach(x => { $('#p-' + x).hidden = x !== k; });
+    TABS.forEach(([x]) => { $('#p-' + x).hidden = x !== k; });
     if (k === 'answers') renderAnswers();
     if (k === 'scores') loadScores();
     if (k === 'settings') renderSettings();
-    if (k !== 'scores') closeDrawer();
+    if (k === 'students') renderStudents(true);
+    if (k === 'class') renderClass(true);
+    if (k !== 'scores' && k !== 'students') closeDrawer();
   }
 
   // ---------- 3초마다 ----------
@@ -656,6 +666,247 @@
     };
   }
 
+  // ---------- 학생별 기록·반 전체 지표(연구용) ----------
+  // 학습 시간·횟수는 학습 과정을 보는 참고 자료이고 점수에 넣지 않는다(두 루브릭의 운영 유의사항).
+  let rs = null, rsSort = { id: 'no', dir: 1 }, pseudo = true;
+  const SEQ = ['#f1f5f4', '#dcefe6', '#b9dfcd', '#82bda4', '#56a68b', '#2f8a70', '#1a6b57', '#0d4339'];   // 초록 한 색 진하기(0 → 많음)
+  const ORD = { A: '#0d4339', B: '#1a6b57', C: '#2f8a70', D: '#56a68b', E: '#82bda4' };                // 단계 A~E(대비 검사 통과)
+  const seqColor = f => SEQ[Math.max(0, Math.min(SEQ.length - 1, Math.round((f || 0) * (SEQ.length - 1))))];
+  const seqInk = f => (f || 0) > 0.6 ? '#fff' : 'var(--ink)';
+  const fmtNum = v => (v == null || v === '' || isNaN(v)) ? '-' : String(Math.round(Number(v) * 10) / 10);
+  const mean = a => a.length ? a.reduce((x, y) => x + y, 0) / a.length : 0;
+  const minutesOf = r => Math.round(Object.values((r && r.active) || {}).reduce((a, b) => a + (Number(b) || 0), 0) / 60);
+  const doneSet = r => new Set(Array.isArray(r && r.steps) ? r.steps : []);
+  const blankish = v => v == null || (typeof v === 'string' && !v.trim());
+  async function loadResearch(force) {
+    if (rs && !force && Date.now() - rs.at < 20000) return rs;
+    const [res, roots, sc] = await Promise.all([
+      call('asi_teacher_answers', { p_path: ['research'] }),
+      call('asi_teacher_answers', { p_path: P.recordRoot }),
+      call('asi_teacher_scores').catch(() => null)
+    ]);
+    if (sc) scores = sc;
+    rs = { at: Date.now(), research: new Map(res.map(r => [r.student_id, r.value && typeof r.value === 'object' ? r.value : {}])),
+      roots: new Map(roots.map(r => [r.student_id, r.value || {}])), saved: new Map(res.map(r => [r.student_id, r.updated_at])) };
+    return rs;
+  }
+  const R = id => (rs && rs.research.get(id)) || {};
+  const answerOf = (id, key) => P.answerOf(rs && rs.roots.get(id), key);
+  const shortText = (t, n) => { t = String(t == null ? '' : t); return t.length > n ? t.slice(0, n - 1) + '…' : t; };
+  // 가명: 학번 순서대로 S01, S02… (내보내기마다 같은 번호)
+  const pseudoId = s => 'S' + String((ov ? ov.students.slice().sort((a, b) => a.student_no < b.student_no ? -1 : 1).findIndex(x => x.id === s.id) : 0) + 1).padStart(2, '0');
+
+  async function renderStudents(force) {
+    const box = $('#p-students');
+    if (!rs) box.innerHTML = '<div class="empty">불러오는 중…</div>';
+    try { await loadResearch(force); } catch (e) { box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; return; }
+    if (tab !== 'students') return;
+    const list = (ov ? ov.students : []).slice();
+    if (!list.length) { box.innerHTML = '<div class="empty">아직 들어온 학생이 없어요.</div>'; return; }
+    const val = (s, id) => {
+      if (id === 'no') return s.student_no;
+      if (id === 'done') return doneSet(R(s.id)).size;
+      if (id === 'score') return (scores || []).filter(x => x.student_id === s.id && LEVELS.includes(x.level)).length;
+      if (id === 'saved') return rs.saved.get(s.id) || '';
+      const c = P.columns.find(x => x.id === id); return c ? (Number(c.get(R(s.id))) || 0) : 0;
+    };
+    list.sort((a, b) => { const x = val(a, rsSort.id), y = val(b, rsSort.id); return (x < y ? -1 : x > y ? 1 : 0) * rsSort.dir; });
+    const minis = s => { const d = doneSet(R(s.id)); return [1, 2, 3, 4].map(l => { const n = RANGE.filter(st => d.has(l + '-' + st)).length; return '<span class="mini" style="background:' + seqColor(n / STEPS) + ';color:' + seqInk(n / STEPS) + '" data-tip="' + l + '차시 ' + n + '/' + STEPS + '단계 기록">' + n + '</span>'; }).join(''); };
+    const head = [['no', '학번·이름'], ['done', '진행(차시별 단계)', '차시마다 기록이 갖춰진 단계 수']].concat(P.columns.map(c => [c.id, c.label + (c.unit ? '(' + c.unit + ')' : ''), c.title])).concat([['score', '채점 확정'], ['saved', '마지막 저장']]);
+    box.innerHTML = '<div class="score-tools"><span>학생마다 진행과 학습 기록을 한 줄로 봅니다. 줄을 누르면 자세히 열려요. 제목을 누르면 그 순서로 정렬해요. 시간·횟수는 학습 과정을 보는 참고 자료이고 점수에 넣지 않아요.</span><span class="grow"></span><button type="button" id="rs-reload">새로 불러오기</button></div>'
+      + '<div class="score-wrap"><table class="scores rs-table"><thead><tr>' + head.map(([id, t, title]) => '<th class="' + (id === 'no' ? 'l' : '') + '"><button type="button" class="sort" data-sort="' + id + '"' + (title ? ' title="' + esc(title) + '"' : '') + ' aria-sort="' + (rsSort.id === id ? (rsSort.dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + esc(t) + (rsSort.id === id ? (rsSort.dir > 0 ? ' ↑' : ' ↓') : '') + '</button></th>').join('') + '</tr></thead><tbody>'
+      + list.map(s => {
+        const r = R(s.id), has = Object.keys(r).length > 0;
+        return '<tr data-student="' + s.id + '" tabindex="0"><td class="l">' + esc(label(s)) + '</td><td><span class="minis">' + minis(s) + '</span></td>'
+          + P.columns.map(c => '<td>' + (has ? fmtNum(c.get(r)) : '<span class="muted">-</span>') + '</td>').join('')
+          + '<td>' + val(s, 'score') + '/' + P.rubric.length + '</td><td class="muted">' + esc(fmtTime(rs.saved.get(s.id))) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+    $('#rs-reload').onclick = () => renderStudents(true);
+    $$('[data-sort]', box).forEach(b => b.onclick = () => { const id = b.dataset.sort; rsSort = rsSort.id === id ? { id, dir: -rsSort.dir } : { id, dir: id === 'no' ? 1 : -1 }; renderStudents(); });
+    $$('tr[data-student]', box).forEach(tr => { tr.onclick = () => openStudent(+tr.dataset.student); tr.onkeydown = e => { if (e.key === 'Enter') openStudent(+tr.dataset.student); }; });
+  }
+
+  async function openStudent(sid) {
+    const d = $('#drawer'), s = ov && ov.students.find(x => x.id === sid);
+    if (!s) return;
+    drawerAt = { sid, el: '' };
+    d.hidden = false;
+    d.innerHTML = '<header><h2>' + esc(label(s)) + '</h2><button type="button" data-x>닫기</button></header><div class="body"><p class="muted">기록을 불러오는 중…</p></div>';
+    $('[data-x]', d).onclick = closeDrawer;
+    let rec;
+    try { rec = await studentRecord(sid); } catch (e) { $('.body', d).innerHTML = '<p>' + esc(e.message) + '</p>'; return; }
+    if (!drawerAt || drawerAt.sid !== sid) return;
+    const data = rec.data || {}, r = (data.research && typeof data.research === 'object') ? data.research : R(sid), done = doneSet(r);
+    const grid = '<table class="steps-grid"><thead><tr><th></th>' + RANGE.map(i => '<th>' + (i + 1) + '단계</th>').join('') + '</tr></thead><tbody>'
+      + [1, 2, 3, 4].map(l => '<tr><th>' + l + '차시</th>' + RANGE.map(st => {
+        const k = l + '-' + st, ok = done.has(k), m = Math.round(((r.active || {})[k] || 0) / 60);
+        return '<td class="' + (ok ? 'ok' : '') + '" data-tip="' + esc(l + '-' + (st + 1) + ' ' + P.steps[l - 1][st] + ' · ' + (ok ? '기록 있음' : '기록 없음') + ' · ' + m + '분') + '"><span>' + (ok ? '기록' : '·') + '</span><small>' + (m ? m + '분' : '') + '</small></td>';
+      }).join('') + '</tr>').join('') + '</tbody></table>';
+    const sections = ['<section><h3>차시별 단계 <span class="muted">(기록이 갖춰진 단계와 머문 시간)</span></h3>' + grid + '<p class="muted" style="font-size:12px;margin:4px 0 0">학습 시간 ' + minutesOf(r) + '분 · 마지막 저장 ' + esc(fmtTime(rec.updated_at)) + '</p></section>'];
+    if (P.columns.length) sections.push('<section><h3>학습 기록 요약</h3><dl class="kv">' + P.columns.map(c => '<dt title="' + esc(c.title || '') + '">' + esc(c.label) + '</dt><dd>' + fmtNum(c.get(r)) + (c.unit ? c.unit : '') + '</dd>').join('') + '</dl></section>');
+    // 처음 답과 지금 답(판단 수정)
+    const first = r.first && typeof r.first === 'object' ? r.first : {};
+    const root = P.answerOf ? (P.recordRoot[0] === 'answers' ? data.answers : data.records) : null;
+    const firstRows = Object.keys(first).filter(k => first[k]).map(k => {
+      const now = P.answerOf(root, k), same = String(now || '').trim() === String(first[k]).trim();
+      return '<div class="ans"><b>' + esc(P.labels[k] || k) + (same ? ' · 그대로' : ' · 바뀜') + '</b><p><span class="muted">처음</span> ' + esc(shortText(first[k], 140)) + '</p>' + (same ? '' : '<p><span class="muted">지금</span> ' + esc(shortText(P.ownText(now) || '(비움)', 140)) + '</p>') + '</div>';
+    });
+    if (firstRows.length) sections.push('<section><h3>처음 답과 지금 답</h3>' + firstRows.join('') + '</section>');
+    // 답을 고친 칸
+    const revs = Array.isArray(data.revisions) ? data.revisions : [];
+    const byKey = {};
+    for (const v of revs) { const b = String(v.before || '').trim(), a = String(v.after || '').trim(); if (!b || a === b) continue; (byKey[v.key] = byKey[v.key] || []).push(v); }
+    const revKeys = Object.keys(byKey).sort((a, b) => byKey[b].length - byKey[a].length);
+    if (revKeys.length) sections.push('<section><h3>답을 고친 칸 ' + revKeys.length + '개</h3>' + revKeys.slice(0, 12).map(k => {
+      const list = byKey[k], firstBefore = P.ownText(list[0].before), last = P.ownText(list[list.length - 1].after);
+      return '<details class="ans"><summary><b>' + esc(P.labels[k] || k) + '</b> <span class="muted">' + list.length + '번 · 마지막 ' + esc(fmtTime(list[list.length - 1].time)) + '</span></summary><p><span class="muted">고치기 전</span> ' + esc(shortText(firstBefore, 300)) + '</p><p><span class="muted">마지막</span> ' + esc(shortText(last || '(비움)', 300)) + '</p></details>';
+    }).join('') + '</section>');
+    // 담은 근거
+    const ev = Array.isArray(data.evidence) ? data.evidence : [];
+    if (ev.length) sections.push('<section><h3>담은 근거 ' + ev.length + '개</h3><ul class="plain">' + ev.slice(0, 20).map(e => '<li>' + esc((e.id ? e.id + ' ' : '') + (e.label || '') + ': ' + (e.value != null ? e.value : '') + ' ' + (e.unit || '') + (e.year ? ' (' + e.year + ')' : '') + (e.kind ? ' · ' + e.kind : '')) + '</li>').join('') + '</ul></section>');
+    // AI 코치 질문
+    const chat = Array.isArray(data.chat) ? data.chat : [];
+    if (chat.length) sections.push('<section><h3>AI 코치에게 물은 것 ' + chat.length + '번</h3><ul class="plain">' + chat.slice(-10).map(c => '<li>' + esc(shortText(c.question || '', 120)) + '</li>').join('') + '</ul></section>');
+    // 화석: 단계별 쓴 칸
+    if (data.records && typeof data.records === 'object' && P.id === 'fossil') {
+      const rows = Object.keys(data.records).sort().map(k => { const recd = data.records[k] || {}; const n = Object.entries(recd).filter(([f, v]) => f !== '자료 버전' && typeof v === 'string' && v.trim()).length; const [l, st] = k.split('-').map(Number); return '<li>' + esc(l + '-' + (st + 1) + ' ' + (P.steps[l - 1] ? P.steps[l - 1][st] : '') + ': 쓴 칸 ' + n + '개') + '</li>'; });
+      if (rows.length) sections.push('<section><h3>탐구 칸</h3><ul class="plain">' + rows.join('') + '</ul></section>');
+    }
+    // 채점
+    const sc = rec.scores || [];
+    sections.push('<section><h3>채점</h3><dl class="kv">' + P.rubric.map(el => { const x = sc.find(v => v.element === el.id) || {}; return '<dt>' + esc((el.no || el.id) + ' ' + el.name) + '</dt><dd>' + (LEVELS.includes(x.level) ? x.level + ' ' + el.points[x.level] + '점' : x.level === 'U' ? '미확인' : '-') + (x.ai_level ? ' <span class="muted">AI 제안 ' + esc(x.ai_level) + '</span>' : '') + '</dd>'; }).join('') + '</dl></section>');
+    d.innerHTML = '<header><h2>' + esc(label(s)) + '</h2><button type="button" data-x>닫기</button></header><div class="body">' + sections.join('') + '</div>';
+    $$('[data-x]', d).forEach(b => b.onclick = closeDrawer);
+  }
+
+  async function renderClass(force) {
+    const box = $('#p-class');
+    if (!rs) box.innerHTML = '<div class="empty">불러오는 중…</div>';
+    try { await loadResearch(force); } catch (e) { box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; return; }
+    if (tab !== 'class') return;
+    const list = ov ? ov.students : [], n = list.length;
+    if (!n) { box.innerHTML = '<div class="empty">아직 들어온 학생이 없어요.</div>'; return; }
+    const who = arr => arr.length ? arr.map(s => label(s)).join(', ') : '없음';
+    // 한눈 숫자
+    const doneN = list.map(s => doneSet(R(s.id)).size), mins = list.map(s => minutesOf(R(s.id)));
+    const stats = [['학생', n + '명', '접속 ' + list.filter(online).length + '명'], ['평균 진행', fmtNum(mean(doneN)) + ' / ' + TOTAL + '단계', '기록이 갖춰진 단계'], ['평균 학습 시간', Math.round(mean(mins)) + '분', '조작이 있던 시간']];
+    const tk = P.transitionKey;
+    let trans = null;
+    if (tk) {
+      const pairs = list.map(s => ({ s, a: String((R(s.id).first || {})[tk] || '').trim(), b: String(answerOf(s.id, tk) || '').trim() })).filter(x => x.a && x.b);
+      const changed = pairs.filter(x => x.a !== x.b);
+      stats.push(['처음 생각을 바꾼 학생', changed.length + '명', '처음 생각을 고른 ' + pairs.length + '명 중']);
+      trans = { pairs, changed };
+    }
+    if (P.columns.some(c => c.id === 'evidenceReal')) stats.push(['실제 수치 근거 2개 이상', list.filter(s => (R(s.id).evidenceReal || 0) >= 2).length + '명', '①② 근거 기준 참고']);
+    const statHTML = '<div class="stats">' + stats.map(([t, v, sub]) => '<div class="stat"><span class="stat-label">' + esc(t) + '</span><b>' + esc(v) + '</b><span class="muted">' + esc(sub) + '</span></div>').join('') + '</div>';
+    // 단계별 기록·머문 시간(병목)
+    const heat = '<table class="heat"><thead><tr><th></th>' + RANGE.map(i => '<th>' + (i + 1) + '단계</th>').join('') + '</tr></thead><tbody>' + [1, 2, 3, 4].map(l => '<tr><th>' + l + '차시</th>' + RANGE.map(st => {
+      const k = l + '-' + st, ok = list.filter(s => doneSet(R(s.id)).has(k)), stayed = list.map(s => ((R(s.id).active || {})[k] || 0)).filter(x => x > 0);
+      const f = ok.length / n, m = Math.round(mean(stayed) / 60);
+      const not = list.filter(s => !doneSet(R(s.id)).has(k) && ((R(s.id).active || {})[k] || 0) > 0);
+      return '<td style="background:' + seqColor(f) + ';color:' + seqInk(f) + '" data-tip="' + esc(l + '-' + (st + 1) + ' ' + P.steps[l - 1][st] + ' · 기록 있음 ' + ok.length + '명 · 머문 학생 평균 ' + m + '분' + (not.length ? ' · 머물렀지만 기록 없음: ' + who(not) : '')) + '"><b>' + ok.length + '</b><small>' + (stayed.length ? m + '분' : '') + '</small></td>';
+    }).join('') + '</tr>').join('') + '</tbody></table>';
+    const sections = [statHTML,
+      '<section class="cls"><h3>단계별 기록과 머문 시간</h3><p class="muted">칸 숫자는 기록이 갖춰진 학생 수, 작은 글씨는 그 단계에 머문 학생들의 평균 시간이에요. 진한 칸일수록 많이 끝냈어요. 칸에 마우스를 올리면 머물렀지만 기록이 없는 학생이 보여요.</p>' + heat + '</section>'];
+    // 처음 생각 → 지금 생각
+    if (trans && trans.pairs.length) {
+      const opts = [...new Set(trans.pairs.map(x => x.a).concat(trans.pairs.map(x => x.b)))];
+      const max = Math.max(1, ...opts.flatMap(a => opts.map(b => trans.pairs.filter(x => x.a === a && x.b === b).length)));
+      sections.push('<section class="cls"><h3>처음 생각 → 지금 생각 <span class="muted">(' + esc(P.labels[tk] || tk) + ')</span></h3><p class="muted">줄은 처음 고른 생각, 칸은 지금 생각이에요. 대각선 밖 칸이 생각을 바꾼 학생이에요.</p><div class="score-wrap"><table class="heat trans"><thead><tr><th class="l">처음 \\ 지금</th>' + opts.map(b => '<th title="' + esc(b) + '">' + esc(shortText(b, 22)) + '</th>').join('') + '</tr></thead><tbody>'
+        + opts.map(a => '<tr><th class="l" title="' + esc(a) + '">' + esc(shortText(a, 30)) + '</th>' + opts.map(b => { const c = trans.pairs.filter(x => x.a === a && x.b === b); const f = c.length / max; return '<td class="' + (a === b ? 'diag' : '') + '" style="background:' + (c.length ? seqColor(0.15 + f * 0.85) : '#fff') + ';color:' + seqInk(c.length ? 0.15 + f * 0.85 : 0) + '" data-tip="' + esc(c.length + '명' + (c.length ? ': ' + who(c.map(x => x.s)) : '')) + '"><b>' + (c.length || '') + '</b></td>'; }).join('') + '</tr>').join('') + '</tbody></table></div></section>');
+    }
+    // 선택형 답 분포
+    const dist = P.choiceKeys.map(k => {
+      const vals = list.map(s => ({ s, v: answerOf(s.id, k) })).filter(x => !blankish(x.v)).map(x => ({ s: x.s, v: String(x.v).trim() }));
+      if (!vals.length) return '';
+      const groups = {}; vals.forEach(x => (groups[x.v] = groups[x.v] || []).push(x.s));
+      const rows = Object.entries(groups).sort((a, b) => b[1].length - a[1].length);
+      if (rows.length > 8) return '';   // 서술형은 「답 모아보기」에서
+      return '<div class="dist"><h4>' + esc(P.labels[k] || k) + ' <span class="muted">답한 학생 ' + vals.length + '명</span></h4>' + rows.map(([v, ss]) => '<div class="hbar" data-tip="' + esc(ss.length + '명: ' + who(ss)) + '"><span class="lbl" title="' + esc(v) + '">' + esc(shortText(v, 40)) + '</span><span class="track"><i style="width:' + Math.round(ss.length / n * 100) + '%"></i></span><span class="num">' + ss.length + '명</span></div>').join('') + '</div>';
+    }).filter(Boolean);
+    if (dist.length) sections.push('<section class="cls"><h3>선택형 답의 분포</h3><p class="muted">막대 길이는 반 전체 ' + n + '명 대비예요. 막대에 마우스를 올리면 그 답을 고른 학생이 보여요.</p><div class="dists">' + dist.join('') + '</div></section>');
+    // 학습 과정 분포(횟수 열)
+    const hist = P.columns.filter(c => !['time', 'chars'].includes(c.id)).map(c => {
+      const vals = list.map(s => ({ s, v: Number(c.get(R(s.id))) || 0 }));
+      if (vals.every(x => x.v === 0)) return '<div class="dist"><h4 title="' + esc(c.title || '') + '">' + esc(c.label) + '</h4><p class="muted" style="margin:0;font-size:12.5px">아직 기록 없음</p></div>';
+      const buckets = [['0', x => x === 0], ['1', x => x === 1], ['2', x => x === 2], ['3~4', x => x >= 3 && x <= 4], ['5 이상', x => x >= 5]];
+      return '<div class="dist"><h4 title="' + esc(c.title || '') + '">' + esc(c.label) + ' <span class="muted">평균 ' + fmtNum(mean(vals.map(x => x.v))) + '</span></h4>' + buckets.map(([t, f]) => { const ss = vals.filter(x => f(x.v)).map(x => x.s); return '<div class="hbar" data-tip="' + esc(t + ': ' + ss.length + '명' + (ss.length ? ' · ' + who(ss) : '')) + '"><span class="lbl">' + t + '</span><span class="track"><i style="width:' + Math.round(ss.length / n * 100) + '%"></i></span><span class="num">' + ss.length + '명</span></div>'; }).join('') + '</div>';
+    });
+    if (hist.length) sections.push('<section class="cls"><h3>학습 과정 <span class="muted">(점수에 넣지 않는 참고 자료)</span></h3><div class="dists">' + hist.join('') + '</div></section>');
+    // 채점 분포
+    const sc = scores || [];
+    const rub = P.rubric.map(el => {
+      const lv = x => (sc.find(v => v.student_id === x.id && v.element === el.id) || {}).level;
+      const parts = LEVELS.map(L => [L, list.filter(s => lv(s) === L)]).concat([['U', list.filter(s => lv(s) === 'U')], ['-', list.filter(s => !lv(s))]]);
+      const both = sc.filter(v => v.element === el.id && LEVELS.includes(v.level) && LEVELS.includes(v.ai_level));
+      const same = both.filter(v => v.level === v.ai_level).length;
+      return '<div class="stackrow"><span class="lbl">' + esc((el.no || el.id) + ' ' + el.name) + '</span><span class="stack">' + parts.filter(p => p[1].length).map(([L, ss]) => '<i style="width:' + (ss.length / n * 100) + '%;background:' + (ORD[L] || (L === 'U' ? '#c3d0d0' : '#e7eded')) + '" data-tip="' + esc((L === '-' ? '아직 정하지 않음' : L === 'U' ? '미확인' : L + ' ' + el.points[L] + '점') + ' · ' + ss.length + '명' + (ss.length && L !== '-' ? ': ' + who(ss) : '')) + '"></i>').join('') + '</span><span class="num">확정 ' + parts.slice(0, 5).reduce((a, p) => a + p[1].length, 0) + '/' + n + (both.length ? ' · AI 제안과 같은 판정 ' + same + '/' + both.length : '') + '</span></div>';
+    }).join('');
+    sections.push('<section class="cls"><h3>채점 분포</h3><div class="legend">' + LEVELS.map(L => '<span><i style="background:' + ORD[L] + '"></i>' + L + '</span>').join('') + '<span><i style="background:#c3d0d0"></i>미확인</span><span><i style="background:#e7eded;border:1px solid var(--line2)"></i>아직 안 정함</span></div>' + rub + '</section>');
+    // 내보내기
+    sections.push('<section class="cls"><h3>연구용 내보내기</h3><p class="muted">연구회와 나눌 때는 가명(S01, S02…)으로 내보내세요. 학생이 글 안에 직접 쓴 이름은 지워지지 않아요.</p><div class="row-tools"><label class="switch"><input type="checkbox" id="ex-pseudo"' + (pseudo ? ' checked' : '') + '> 가명으로(학번·이름 빼기)</label><button type="button" id="ex-csv">학생별 지표 내려받기(CSV)</button><button type="button" id="ex-json">기록 전체 내려받기(JSON)</button><button type="button" id="cls-reload">새로 불러오기</button></div></section>');
+    box.innerHTML = sections.join('');
+    $('#ex-pseudo').onchange = e => { pseudo = e.target.checked; };
+    $('#ex-csv').onclick = exportResearchCSV;
+    $('#ex-json').onclick = exportResearchJSON;
+    $('#cls-reload').onclick = () => renderClass(true);
+  }
+
+  function download(name, text, type) {
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(new Blob([text], { type }));
+    a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  }
+  const stamp = () => (ov ? ov.room.title : '') + '_' + new Date().toISOString().slice(0, 10);
+  function exportResearchCSV() {
+    const list = (ov ? ov.students : []).slice().sort((a, b) => a.student_no < b.student_no ? -1 : 1);
+    const q = v => '"' + String(v == null ? '' : v).replace(/"/g, '""') + '"';
+    const tk = P.transitionKey;
+    const head = (pseudo ? ['가명'] : ['가명', '학번', '이름']).concat(['기록 단계 수'], [1, 2, 3, 4].map(l => l + '차시 단계'), ['학습 시간(분)'], [1, 2, 3, 4].map(l => l + '차시 시간(분)'),
+      P.columns.filter(c => c.id !== 'time').map(c => c.label), tk ? ['처음 생각', '지금 생각'] : [], P.choiceKeys.filter(k => k !== tk).map(k => P.labels[k] || k),
+      P.rubric.flatMap(r => [(r.no || r.id) + ' 단계', (r.no || r.id) + ' 점수', (r.no || r.id) + ' AI 제안']), ['합계', '마지막 저장']);
+    const rows = list.map(s => {
+      const r = R(s.id), d = doneSet(r), act = r.active || {}, t = totalOf(s.id);
+      const lm = l => Math.round(Object.entries(act).filter(([k]) => k.startsWith(l + '-')).reduce((a, [, v]) => a + (Number(v) || 0), 0) / 60);
+      return (pseudo ? [pseudoId(s)] : [pseudoId(s), s.student_no, s.name]).concat([d.size], [1, 2, 3, 4].map(l => RANGE.filter(st => d.has(l + '-' + st)).length), [minutesOf(r)], [1, 2, 3, 4].map(lm),
+        P.columns.filter(c => c.id !== 'time').map(c => fmtNum(c.get(r))), tk ? [(r.first || {})[tk] || '', answerOf(s.id, tk) || ''] : [], P.choiceKeys.filter(k => k !== tk).map(k => answerOf(s.id, k) || ''),
+        P.rubric.flatMap(el => { const x = (scores || []).find(v => v.student_id === s.id && v.element === el.id) || {}; return [x.level === 'U' ? '미확인' : (x.level || ''), LEVELS.includes(x.level) ? el.points[x.level] : '', x.ai_level || '']; }),
+        [t.sum, rs.saved.get(s.id) || '']);
+    });
+    download('학생별지표_' + stamp() + (pseudo ? '_가명' : '') + '.csv', '﻿' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
+  }
+  async function exportResearchJSON() {
+    const list = (ov ? ov.students : []).slice().sort((a, b) => a.student_no < b.student_no ? -1 : 1);
+    const btn = $('#ex-json'); btn.disabled = true; btn.textContent = '모으는 중…';
+    try {
+      const out = [];
+      for (const s of list) {
+        const rec = await studentRecord(s.id), data = Object.assign({}, rec.data || {});
+        delete data._sync;
+        const sc = (rec.scores || []).map(x => ({ element: x.element, level: x.level, ai_level: x.ai_level }));
+        out.push(Object.assign(pseudo ? { id: pseudoId(s) } : { id: pseudoId(s), student_no: s.student_no, name: s.name }, { progress: rec.progress, updated_at: rec.updated_at, record: data, scores: sc }));
+      }
+      download('기록전체_' + stamp() + (pseudo ? '_가명' : '') + '.json', JSON.stringify({ program: P.id, room: ov ? ov.room.title : '', exported_at: new Date().toISOString(), pseudonymized: pseudo, students: out }, null, 1), 'application/json');
+    } catch (e) { toast(e.message); }
+    finally { btn.disabled = false; btn.textContent = '기록 전체 내려받기(JSON)'; }
+  }
+
+  // 마우스를 올리면 뜨는 작은 설명(그래프 칸·막대)
+  (() => {
+    let tip = null;
+    document.addEventListener('mouseover', e => {
+      const t = e.target.closest && e.target.closest('[data-tip]');
+      if (!t) { if (tip) tip.hidden = true; return; }
+      if (!tip) { tip = document.createElement('div'); tip.id = 'tip'; tip.setAttribute('role', 'tooltip'); document.body.append(tip); }
+      tip.textContent = t.dataset.tip; tip.hidden = false;
+      const r = t.getBoundingClientRect(), w = Math.min(320, innerWidth - 16);
+      tip.style.maxWidth = w + 'px';
+      tip.style.left = Math.max(8, Math.min(innerWidth - w - 8, r.left)) + 'px';
+      tip.style.top = (r.bottom + 6 + 80 > innerHeight ? r.top - 6 - tip.offsetHeight : r.bottom + 6) + 'px';
+    });
+  })();
+
   // ---------- 방 설정 ----------
   function renderSettings() {
     const box = $('#p-settings'), r = ov ? ov.room : { title: auth.title, school: auth.school };
@@ -688,24 +939,48 @@
   async function demo() {
     const srv = ASIMock.createServer();
     ASI.setTransport(srv.transport);
-    const room = await rpc('asi_create_room', { p_program: P.id, p_title: '체험 · 1학년 3반', p_school: '연구회 체험', p_pass: 'demo-only' });
-    await rpc('asi_teacher_live', { p_tok: room.token, p_patch: { open_lessons: [1, 2] } });
+    // 예시 수업(sample-*.js)이 있으면 그 학생·기록·채점·AI 정리로, 없으면 간단한 가짜 학생으로
+    const SAMPLE = (window.ASI_SAMPLES || {})[P.id];
+    const title = SAMPLE ? SAMPLE.title : '체험 · 1학년 3반', school = SAMPLE ? SAMPLE.school : '연구회 체험';
+    const room = await rpc('asi_create_room', { p_program: P.id, p_title: title, p_school: school, p_pass: 'demo-only' });
+    await rpc('asi_teacher_live', { p_tok: room.token, p_patch: { open_lessons: SAMPLE ? SAMPLE.openLessons : [1, 2] } });
     const names = ['김하늘', '이도윤', '박서연', '최지호', '정하린', '강민준', '조유나', '윤시우', '장예린', '임건우', '한소율', '오준서', '서다은', '신우진', '권나연', '황태윤', '안채원', '송현우', '전지안', '홍승민', '유서아', '고은호', '문가은', '양도현', '손지유', '배재윤', '백하은', '허주원'];
-    const toks = [];
-    for (let i = 0; i < names.length; i++) {
-      const no = '103' + String(i + 1).padStart(2, '0');
-      const j = await rpc('asi_join', { p_code: room.code, p_no: no, p_name: names[i] });
+    const roster = SAMPLE ? SAMPLE.students : names.map((name, i) => {
       const lesson = i % 9 === 0 ? 2 : 1, step = (i * 3) % STEPS;
-      await rpc('asi_save', { p_token: j.token, p_data: P.demoRecord(i, lesson, step), p_progress: { done: Math.min(TOTAL, step + (lesson - 1) * STEPS + (i % 3)), total: TOTAL }, p_base_rev: 0 });
-      toks.push({ token: j.token, lesson, step, place: 'map', after: j.last_command_id, live: -1, away: i === 7 || i === 19 });
+      return { no: '103' + String(i + 1).padStart(2, '0'), name, lesson, step, place: 'map', away: i === 7 || i === 19, help: i === 11,
+        record: P.demoRecord(i, lesson, step), progress: { done: Math.min(TOTAL, step + (lesson - 1) * STEPS + (i % 3)), total: TOTAL } };
+    });
+    const toks = [], idOf = {};
+    for (const st of roster) {
+      const j = await rpc('asi_join', { p_code: room.code, p_no: st.no, p_name: st.name });
+      await rpc('asi_save', { p_token: j.token, p_data: st.record, p_progress: st.progress, p_base_rev: 0 });
+      const sid = srv.db.students.find(x => x.token === j.token).id;
+      idOf[st.no] = sid;
+      if (st.group) await rpc('asi_teacher_set_student', { p_tok: room.token, p_student_id: sid, p_name: null, p_group: st.group });
+      toks.push({ token: j.token, lesson: st.lesson, step: st.step, place: st.place || 'map', home: st.place || 'map', after: j.last_command_id, live: -1, away: !!st.away });
+      if (st.help) await rpc('asi_help', { p_token: j.token, p_on: true });
     }
-    // 가짜 학생 움직이기: 2초마다 신호, 선생님 명령을 따르는 척
+    if (SAMPLE) {
+      // 선생님이 확정한 단계와 AI 제안(점수는 선생님 칸만), AI 정리 예시
+      for (const s of SAMPLE.scores || []) await rpc('asi_teacher_score', { p_tok: room.token, p_student_id: idOf[s.no], p_element: s.el, p_level: s.level, p_note: s.note || '' });
+      for (const a of SAMPLE.ai || []) {
+        let sc = srv.db.scores.find(x => x.student_id === idOf[a.no] && x.element === a.el);
+        if (!sc) { sc = { id: srv.db.scores.length + 1000, room_id: srv.db.rooms[0].id, student_id: idOf[a.no], element: a.el, level: null, note: '', decided_at: null, updated_at: new Date().toISOString() }; srv.db.scores.push(sc); }
+        Object.assign(sc, { ai_level: a.level, ai_evidence: a.evidence, ai_model: '예시', ai_at: new Date().toISOString() });
+      }
+      for (const n of SAMPLE.notes || []) {
+        const map = no => idOf[no];
+        const res = Object.assign({}, n.result, { groups: n.result.groups.map(g => Object.assign({}, g, { members: g.members.map(map), example: map(g.example) })), unclear: (n.result.unclear || []).map(map) });
+        srv.db.notes.push({ room_id: srv.db.rooms[0].id, scope: n.scope, result: res, n_answers: n.n_answers, model: '예시', created_at: new Date(Date.now() - 20 * 60000).toISOString() });
+      }
+    }
+    // 가짜 학생 움직이기: 2초마다 신호, 선생님 명령을 따르는 척(예시 수업은 단계를 바꾸지 않고 장소만 조금씩)
     const places = P.places.map(p => p.id).concat(['map', 'inquiry', 'inquiry']);
     const tickAll = async () => {
       for (const [i, t] of toks.entries()) {
         if (t.away) continue;
-        if (Math.random() < 0.08) t.place = places[Math.floor(Math.random() * places.length)];
-        if (Math.random() < 0.015 && t.step < STEPS - 1) t.step++;
+        if (Math.random() < 0.06) t.place = SAMPLE ? (Math.random() < 0.6 ? t.home : 'step-' + (t.step + 1)) : places[Math.floor(Math.random() * places.length)];
+        if (!SAMPLE && Math.random() < 0.015 && t.step < STEPS - 1) t.step++;
         const r = await rpc('asi_tick', { p_token: t.token, p_lesson: t.lesson, p_step: t.step, p_place: t.place, p_after: t.after, p_live_rev: t.live });
         t.live = r.live_rev;
         for (const c of r.commands) {
@@ -713,13 +988,11 @@
           if (c.kind === 'gather' || c.kind === 'teleport') { t.place = c.payload.place; if (c.payload.lesson) t.lesson = c.payload.lesson; }
           if (c.kind === 'open_step') { t.lesson = c.payload.lesson; t.step = c.payload.step; t.place = 'inquiry'; }
         }
-        if (i === 4 && Math.random() < 0.05) await rpc('asi_help', { p_token: t.token, p_on: true });
       }
     };
-    await rpc('asi_help', { p_token: toks[11].token, p_on: true });
     await tickAll();
     setInterval(tickAll, 2000);
-    start({ token: room.token, code: room.code, title: '체험 · 1학년 3반', school: '연구회 체험' });
+    start({ token: room.token, code: room.code, title, school });
   }
 
   // ---------- 시작 ----------

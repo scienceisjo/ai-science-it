@@ -31,6 +31,9 @@ window.ASILink = (() => {
     let live = {}, liveRev = -1, lastCmd = null, locked = false, offline = false, helpAt = null, skew = 0;
     let skipped = false, sendTimer = 0, inflight = false, firstDirty = 0, changes = 0, lastSig = '', lastSent = 0, tooBig = false, conflict = null, lastSavedAt = null;
     let helpLocalAt = 0, tickTimer = 0, ticking = false, bypass = false, clockTimer = 0;
+    // 연구 요약: 학습 시간(조작이 있던 시간만, 멈춤·설명 화면은 뺌)과 앱이 세는 횟수. 횟수는 기기를 바꿔도 줄지 않게 서버 값과 큰 쪽을 쓴다
+    let timeAcc = {}, lastInput = Date.now(), lastTimeTick = 0, prevResearch = {};
+    ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(ev => window.addEventListener(ev, () => { lastInput = Date.now(); }, { passive: true, capture: true }));
 
     const eligible = () => { try { return !!window.ASI && A.eligible(); } catch (e) { return false; } };
     const keyFor = (code, no) => A.keyPrefix + code + '_' + no;
@@ -43,7 +46,7 @@ window.ASILink = (() => {
     }
     function readLocal(k) { try { const v = JSON.parse(localStorage.getItem(k)); return v && A.validRecord(v) ? v : null; } catch (e) { return null; } }
     // 서버 기록에서 학생 앱이 쓰지 않는 칸을 뺀다
-    function strip(d) { const o = Object.assign({}, d || {}); delete o.studentWritten; delete o._sync; return o; }
+    function strip(d) { const o = Object.assign({}, d || {}); delete o.studentWritten; delete o._sync; delete o.research; return o; }
     function useRecord(d) {
       const rec = A.makeRecord(d ? strip(d) : null);
       A.setRecord(rec);
@@ -58,7 +61,7 @@ window.ASILink = (() => {
     }
     function sigOf(d) {
       const o = Object.assign({}, d || {});
-      delete o._sync; delete o.studentWritten;
+      delete o._sync; delete o.studentWritten; delete o.research;
       for (const k of A.volatileKeys || []) delete o[k];
       const s = stable(o);
       let h = 2166136261;
@@ -91,6 +94,7 @@ window.ASILink = (() => {
         A.useKey(key);
         sync = Object.assign({ rev: 0, dirty: false }, store.get(key + '_sync', {}));
         lastCmd = store.get(key + '_cmd', null);
+        timeAcc = store.get(key + '_time', {}) || {};
         const local = readLocal(key);
         let server = null;
         try { server = await ASI.rpc('asi_load', { p_token: ses.token }, { timeout: 6000 }); }
@@ -98,6 +102,11 @@ window.ASILink = (() => {
         let replaced = false;
         if (server) {
           const sd = server.data && typeof server.data === 'object' ? server.data : null;
+          if (sd && sd.research && typeof sd.research === 'object') {
+            prevResearch = sd.research;
+            const act = sd.research.active || {};
+            for (const k of Object.keys(act)) if (typeof act[k] === 'number') timeAcc[k] = Math.max(timeAcc[k] || 0, act[k]);
+          }
           if (sd && server.rev > 0) {
             const own = sd._sync && sd._sync.device === device;
             if (local && sync.dirty && (sync.rev === server.rev || own)) { if (!A.lateBoot) useRecord(local); sync.rev = server.rev; }
@@ -152,6 +161,7 @@ window.ASILink = (() => {
     function payload() {
       const d = Object.assign({}, A.getRecord());
       A.trim(d, 0);
+      d.research = research();
       d._sync = { device, at: new Date().toISOString(), v: 1 };
       for (let level = 1; level <= 2 && JSON.stringify(d).length > MAX_CHARS; level++) A.trim(d, level);
       return JSON.stringify(d).length > MAX_CHARS ? null : d;
@@ -225,6 +235,7 @@ window.ASILink = (() => {
       try {
         if (Date.now() - initAt > 1500 && A.applyGoto) A.applyGoto();
         const pos = position();
+        countTime(pos);
         const sentAt = Date.now();
         const r = await ASI.rpc('asi_tick', { p_token: ses.token, p_lesson: pos.lesson, p_step: pos.step, p_place: pos.place, p_after: lastCmd == null ? 0 : lastCmd, p_live_rev: liveRev }, { timeout: 8000 });
         if (offline) { offline = false; queueSend(0); }
@@ -245,6 +256,23 @@ window.ASILink = (() => {
         status();
         if (on) tickTimer = setTimeout(tick, document.hidden ? 10000 : 2000);
       }
+    }
+    // 2초 신호마다: 화면이 보이고, 90초 안에 조작이 있었고, 선생님 화면이 떠 있지 않을 때만 그 차시-단계의 학습 시간에 더한다
+    function countTime(pos) {
+      const now = Date.now(), dt = lastTimeTick ? Math.min(10, (now - lastTimeTick) / 1000) : 0;
+      lastTimeTick = now;
+      if (!dt || document.hidden || now - lastInput > 90000 || liveShown() || pos.lesson == null) return;
+      const k = pos.lesson + '-' + (pos.step == null ? 0 : pos.step);
+      timeAcc[k] = Math.round(((timeAcc[k] || 0) + dt) * 10) / 10;
+      store.set(key + '_time', timeAcc);
+    }
+    function research() {
+      let r = {};
+      try { r = (A.research && A.research()) || {}; } catch (e) {}
+      // 세는 값은 줄어들지 않게(다른 기기로 옮기면 기기 안 클릭 기록이 짧아지므로)
+      for (const k of Object.keys(prevResearch)) if (typeof prevResearch[k] === 'number' && typeof r[k] === 'number' && prevResearch[k] > r[k]) r[k] = prevResearch[k];
+      if (prevResearch.first && typeof prevResearch.first === 'object') r.first = Object.assign({}, r.first || {}, prevResearch.first);   // 처음 답은 먼저 남은 쪽
+      return Object.assign({ v: 1, active: Object.assign({}, timeAcc) }, r);
     }
     function position() {
       let p = {};

@@ -163,6 +163,63 @@ table.scores .total{font-weight:700;font-variant-numeric:tabular-nums}
 .drawer footer{display:flex;gap:8px;padding:10px 16px;border-top:1px solid var(--line)}
 .drawer footer .grow{flex:1}
 
+/* 학생별 기록 */
+.rs-table tbody tr{cursor:pointer}
+.rs-table tbody tr:hover{background:#f3f8f6}
+.rs-table tbody tr:focus-visible{outline:2px solid var(--green);outline-offset:-2px}
+.rs-table td{font-variant-numeric:tabular-nums}
+button.sort{border:0;background:none;padding:0;min-height:0;font-weight:600;color:inherit}
+.minis{display:inline-flex;gap:2px}
+.mini{display:inline-block;width:20px;height:18px;line-height:18px;border-radius:3px;font-size:11px;font-weight:700;text-align:center}
+.steps-grid{border-collapse:separate;border-spacing:2px;width:100%;font-size:12px}
+.steps-grid th{color:var(--muted);font-weight:600}
+.steps-grid td{background:#f1f5f4;border-radius:4px;text-align:center;padding:4px 2px;color:var(--grey)}
+.steps-grid td.ok{background:var(--green2);color:var(--green);font-weight:700}
+.steps-grid td small{display:block;font-weight:400;color:var(--ink2);font-size:11px;min-height:14px}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;margin:0;font-size:13px}
+.kv dt{color:var(--muted)}.kv dd{margin:0;font-variant-numeric:tabular-nums}
+ul.plain{margin:0;padding-left:18px;font-size:13px;line-height:1.6}
+details.ans summary{cursor:pointer}
+.drawer details.ans summary b{display:inline}
+
+/* 반 전체 지표 */
+.stats{display:flex;flex-wrap:wrap;border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#fff;margin-bottom:12px}
+.stat{flex:1 1 160px;display:grid;gap:1px;padding:10px 14px;border-right:1px solid var(--line)}
+.stat:last-child{border-right:0}
+.stat-label{font-size:12.5px;color:var(--ink2)}
+.stat b{font-size:22px;font-variant-numeric:tabular-nums;line-height:1.25}
+.stat .muted{font-size:12px}
+section.cls{background:#fff;border-top:1px solid var(--line);padding:12px 0 14px;margin-bottom:6px}
+section.cls h3{font-size:15px;margin-bottom:2px}
+section.cls>p.muted{margin:0 0 8px;font-size:12.5px}
+table.heat{border-collapse:separate;border-spacing:2px;font-size:13px;font-variant-numeric:tabular-nums}
+table.heat th{color:var(--muted);font-weight:600;padding:2px 6px;text-align:center;white-space:nowrap}
+table.heat th.l{text-align:left}
+table.heat td{min-width:72px;height:44px;text-align:center;border-radius:4px;padding:2px 6px;cursor:default}
+table.heat td b{display:block;font-size:15px}
+table.heat td small{display:block;font-size:11px;opacity:.85;min-height:13px}
+table.trans td{min-width:64px;height:34px}
+table.trans td.diag{box-shadow:inset 0 0 0 1px var(--line2)}
+.dists{display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));gap:12px 24px}
+.dist h4{font-size:13px;margin:0 0 4px;font-weight:700}
+.hbar{display:grid;grid-template-columns:minmax(120px,1.4fr) 2fr 44px;gap:8px;align-items:center;font-size:12.5px;padding:2px 0}
+.hbar .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:var(--ink2)}
+.hbar .track{height:10px;background:linear-gradient(to right,#edf2f2 1px,transparent 1px) 0 0/25% 100%}
+.hbar .track i{display:block;height:100%;background:var(--green);border-radius:0 4px 4px 0;min-width:3px}
+.hbar .track i[style^="width:0%"]{display:none}
+.hbar .num{text-align:right;font-variant-numeric:tabular-nums;color:var(--ink2)}
+.legend{display:flex;gap:12px;flex-wrap:wrap;font-size:12.5px;color:var(--ink2);margin:4px 0 8px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:4px;vertical-align:-2px}
+.stackrow{display:grid;grid-template-columns:minmax(160px,220px) 1fr auto;gap:10px;align-items:center;font-size:12.5px;padding:3px 0}
+.stackrow .lbl{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stack{display:flex;gap:2px;height:14px}
+.stack i{display:block;height:100%}
+.stack i:last-child{border-radius:0 4px 4px 0}
+.stackrow .num{color:var(--muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.row-tools{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#tip{position:fixed;z-index:70;background:var(--ink);color:#fff;font-size:12.5px;line-height:1.5;padding:6px 9px;border-radius:5px;pointer-events:none}
+#tip[hidden]{display:none}
+
 /* 방 설정 */
 .settings{display:grid;grid-template-columns:minmax(280px,380px) 1fr;gap:16px;align-items:start}
 .settings section{background:#fff;border:1px solid var(--line);border-radius:8px;padding:14px 16px;display:grid;gap:10px}

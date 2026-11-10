@@ -23,8 +23,10 @@
     planConditions: '기술 선택의 근거·필요 조건·예상 한계', l4priority: '최종 도시에서 우선할 문제와 근거',
     l4tradeoff: '최종 조합의 선택 이유와 포기한 것', l4equity: '시민의 편익·부담과 추가 자료', cityPrompt: '도시 전체 설계 프롬프트',
     promptRevision: '프롬프트에서 수정한 내용과 이유', l4model: '계획의 어떤 요소를 어떻게 표현했나요?', l4error: '발견한 오류·누락·한계',
-    l4fix: '수정한 점과 남은 한계', l4speech: '발표 · 우리 도시를 데이터로 설명하기', l4peerQA: '친구가 한 질문과 내 대답'
+    l4fix: '수정한 점과 남은 한계', l4speech: '발표 · 우리 도시를 데이터로 설명하기', l4peerQA: '친구가 한 질문과 내 대답',
+    l2aiChoice: 'AI 추천 문장에 대한 판단'
   };
+  const minutes = r => Math.round(Object.values((r && r.active) || {}).reduce((a, b) => a + (Number(b) || 0), 0) / 60);
   const lessonNames = ['왜 필요한가', '도시의 전략', '에너지와 탄소', '설계와 검증'];
   const steps = L ? L.lessons.map(l => l.steps.map(s => s.name)) : [[], [], [], []];
   const questions = L ? L.lessons.flatMap((l, li) => l.steps.flatMap((s, si) => s.keys.map(k => ({
@@ -105,6 +107,21 @@
       { id: 'step-1', step: 0 }, { id: 'step-2', step: 1 }, { id: 'step-3', step: 2 }, { id: 'step-4', step: 3 }, { id: 'step-5', step: 4 }
     ],
     stepCount: 5, stepSuffix: ' 시설',
+    otherDemo: { label: '화석 수사대 예시 수업', href: 'fossil-detectives/dashboard.html?demo=1' },
+    // 연구 지표(학생별 기록·반 전체 지표). 횟수·시간은 점수에 넣지 않는다(루브릭 운영 유의사항)
+    recordRoot: ['answers'],
+    answerOf: (root, key) => root ? root[key] : undefined,
+    choiceKeys: ['l1initial', 'l1literacyA', 'l1literacyB', 'l2aiChoice', 'l3balancePrediction', 'l3passivePrediction'],
+    transitionKey: 'l1initial',
+    columns: [
+      { id: 'time', label: '학습 시간', unit: '분', get: minutes, title: '화면이 보이고 조작이 있던 시간(선생님이 멈춘 시간 빼고)' },
+      { id: 'chars', label: '직접 쓴 글자', get: r => r.chars, title: '가져온 근거 덩어리를 뺀 학생 글자 수' },
+      { id: 'revisions', label: '답 고친 횟수', get: r => r.revisions, title: '이미 쓴 답을 다시 고친 횟수' },
+      { id: 'evidenceReal', label: '실제 수치 근거', get: r => r.evidenceReal, title: '담은 근거 가운데 실제 자료' },
+      { id: 'inserted', label: '근거 가져오기', get: r => r.inserted, title: '담은 수치를 답 칸에 가져온 횟수' },
+      { id: 'help', label: '학습하기·도움', get: r => (r.textbookOpen || 0) + (r.help || 0), title: '학습하기를 연 횟수 + 도움말을 연 횟수' },
+      { id: 'ai', label: 'AI 코치 질문', get: r => r.ai, title: 'AI 코치에게 물은 횟수(서버에 AI 가 연결된 경우만)' }
+    ],
     slideURL: (lesson, page) => 'teacher.html?lesson=' + lesson + '&s=1&k=last&p=' + (page + 1),
     // 체험 화면(?demo=1)의 가짜 학생 기록
     demoRecord(i, lesson, step) {
@@ -117,7 +134,16 @@
       };
       const answers = {};
       for (const [k, arr] of Object.entries(sample)) { const v = arr[(i + k.length) % arr.length]; if (v) answers[k] = v; }
-      return { schema: 1, lesson: lesson - 1, steps: [step, 0, 0, 0], answers, evidence: [], demo: true };
+      const lit = ['이 자료로 바로 확인할 수 있다', '자료가 더 있어야 판단할 수 있다'];
+      answers.l1literacyA = lit[i % 3 === 0 ? 1 : 0]; if (i % 4) answers.l1literacyB = lit[i % 5 === 0 ? 0 : 1];
+      if (i % 2) answers.l2aiChoice = ['받아들인다', '보류한다 · 판단할 자료가 더 필요하다', '받아들이지 않는다'][i % 3];
+      const done = [], active = {};
+      for (let s = 0; s <= step; s++) { if (s < step || i % 2) done.push('1-' + s); active['1-' + s] = 180 + ((i * 37 + s * 53) % 420); }
+      if (lesson === 2) { for (let s = 0; s < 5; s++) done.push('1-' + s); done.push('2-0'); active['2-0'] = 240; }
+      const initial = sample.l1initial[(i + 9 + (i % 3 === 1 ? 1 : 0)) % 3];   // 세 명 중 한 명은 처음 생각을 고친 것으로
+      return { schema: 1, lesson: lesson - 1, steps: [step, 0, 0, 0], answers, evidence: [], demo: true,
+        research: { v: 1, active, steps: done, chars: 60 + (i * 47) % 400, revisions: i % 4, revisedKeys: i % 3, first: { l1initial: initial },
+          evidence: 1 + i % 4, evidenceReal: i % 4, inserted: i % 3, textbookOpen: i % 5, textbookSec: (i % 5) * 40, help: (i * 3) % 7, recall: i % 2, ai: 0, trials: i % 3 } };
     },
     // 화면에 띄울 학생 답: 가져온 근거 덩어리를 빼고 학생이 직접 쓴 글만
     ownText(v) {
