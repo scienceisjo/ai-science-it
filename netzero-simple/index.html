@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NET ZERO ECO-CITY · 심플 데이터 탐구</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f4f6f2; --card:#ffffff; --ink:#1d2a24; --muted:#5d6b64; --line:#dde3dc;
+  --green:#1f7a4d; --green-soft:#e3f2e9; --amber:#c27a12; --amber-soft:#fbf0dc;
+  --blue:#2e63b8; --blue-soft:#e4ecf8; --red:#b8442e; --red-soft:#f8e5e0;
+  --gray:#8a948f; --violet:#6a4fb3; --violet-soft:#ece7f7;
+  --radius:14px;
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;font-size:16px}
+button,select,input,textarea{font:inherit;color:inherit}
+a{color:var(--blue)}
+.wrap{max-width:980px;margin:0 auto;padding:0 18px 80px}
+header.top{position:sticky;top:0;z-index:20;background:rgba(244,246,242,.94);backdrop-filter:blur(6px);border-bottom:1px solid var(--line)}
+.top-in{max-width:980px;margin:0 auto;padding:10px 18px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.brand{font-weight:900;letter-spacing:.02em;font-size:15px;white-space:nowrap}
+.brand small{display:block;font-weight:500;color:var(--muted);font-size:11.5px;letter-spacing:0}
+nav.tabs{display:flex;gap:6px;flex-wrap:wrap;margin-left:auto}
+nav.tabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:6px 13px;cursor:pointer;font-size:14px;font-weight:500}
+nav.tabs button[aria-current="true"]{background:var(--ink);color:#fff;border-color:var(--ink)}
+nav.tabs .done::after{content:" ✓";color:var(--green);font-weight:900}
+nav.tabs button[aria-current="true"].done::after{color:#9fe3bd}
+
+.hero{margin:26px 0 18px;padding:22px 24px;border-radius:var(--radius);background:linear-gradient(135deg,#183f2e,#1f7a4d);color:#fff}
+.hero .kicker{font-size:13px;opacity:.85;font-weight:700;letter-spacing:.06em}
+.hero h1{margin:4px 0 8px;font-size:26px;line-height:1.3}
+.hero .q{background:rgba(255,255,255,.12);border-radius:10px;padding:10px 14px;font-weight:500}
+.flow{display:flex;flex-wrap:wrap;gap:6px;margin-top:12px}
+.flow span{font-size:12px;font-weight:700;background:rgba(255,255,255,.1);color:rgba(255,255,255,.55);padding:3px 9px;border-radius:999px}
+.flow span.on{background:#fff;color:var(--green)}
+
+.step{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px 22px;margin:16px 0}
+.step.locked{opacity:.55}
+.step-h{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px}
+.num{flex:0 0 34px;height:34px;border-radius:50%;background:var(--green);color:#fff;font-weight:900;display:grid;place-items:center}
+.step.locked .num{background:var(--gray)}
+.step-h h2{margin:0;font-size:19px;line-height:1.35}
+.step-h .tag{display:inline-block;font-size:11.5px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--green-soft);color:var(--green);margin-bottom:3px}
+.step-h p{margin:2px 0 0;color:var(--muted);font-size:14.5px}
+.lockmsg{background:#f0f2ef;border-radius:10px;padding:14px;color:var(--muted);text-align:center;font-weight:500}
+
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden;background:#fff}
+.seg button{border:0;background:transparent;padding:7px 14px;cursor:pointer;font-weight:500}
+.seg button[aria-pressed="true"]{background:var(--ink);color:#fff}
+.row{display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin:10px 0}
+label.inline{display:inline-flex;gap:6px;align-items:center;font-weight:500;font-size:14.5px}
+select,input[type=number],input[type=text]{border:1px solid var(--line);border-radius:8px;padding:6px 10px;background:#fff}
+textarea{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px 12px;min-height:76px;resize:vertical;background:#fcfdfb}
+textarea:focus,select:focus,input:focus{outline:2px solid var(--green);outline-offset:1px}
+.field{margin:12px 0}
+.field > label{display:block;font-weight:700;font-size:14.5px;margin-bottom:5px}
+.field > label small{font-weight:400;color:var(--muted)}
+
+.chart{width:100%;border:1px solid var(--line);border-radius:12px;background:#fff;padding:8px 8px 4px;margin:8px 0}
+.chart svg{display:block;width:100%;height:auto}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:2px 6px 6px}
+.legend i{display:inline-block;width:14px;height:4px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.src{font-size:12px;color:var(--muted);margin:4px 2px 0;line-height:1.5}
+.src b{color:var(--ink);font-weight:700}
+.assume{display:inline-block;font-size:11.5px;font-weight:700;background:var(--amber-soft);color:var(--amber);padding:1px 7px;border-radius:6px}
+.real{display:inline-block;font-size:11.5px;font-weight:700;background:var(--blue-soft);color:var(--blue);padding:1px 7px;border-radius:6px}
+
+.readout{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:10px 0}
+.stat{background:#f6f8f5;border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+.stat .k{font-size:12.5px;color:var(--muted)}
+.stat .v{font-size:21px;font-weight:900;line-height:1.25}
+.stat .v small{font-size:12px;font-weight:500;color:var(--muted)}
+.stat.hl{background:var(--green-soft);border-color:#bfe0cc}
+.stat.warn{background:var(--amber-soft);border-color:#efd6a6}
+
+.coach{display:flex;gap:10px;margin:12px 0;align-items:flex-start}
+.coach .av{flex:0 0 38px;height:38px;border-radius:12px;background:var(--violet);color:#fff;display:grid;place-items:center;font-weight:900;font-size:13px}
+.coach .bubble{background:var(--violet-soft);border-radius:4px 14px 14px 14px;padding:10px 14px;flex:1}
+.coach .role{font-size:11.5px;font-weight:700;color:var(--violet);letter-spacing:.03em}
+.coach .bubble p{margin:2px 0}
+.guide{display:flex;gap:10px;margin:12px 0;background:#f0f2ef;border-radius:10px;padding:10px 14px;font-size:15px}
+.guide b{white-space:nowrap}
+.choices{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.choices button,.btn{border:1px solid var(--line);background:#fff;border-radius:10px;padding:8px 14px;cursor:pointer;font-weight:500}
+.choices button[aria-pressed="true"]{background:var(--violet);border-color:var(--violet);color:#fff}
+.btn.primary{background:var(--green);border-color:var(--green);color:#fff;font-weight:700}
+.btn.primary:disabled{background:#a9b9b0;border-color:#a9b9b0;cursor:not-allowed}
+.btn.ghost{background:transparent}
+.btn.danger{color:var(--red);border-color:#e7c3ba}
+.msg{margin:8px 0;padding:9px 13px;border-radius:10px;font-size:14.5px}
+.msg.ok{background:var(--green-soft);color:#155c39}
+.msg.bad{background:var(--red-soft);color:#8c2f1d}
+.msg.info{background:var(--blue-soft);color:#21498a}
+
+.ai-card{border:1px dashed var(--violet);border-radius:12px;padding:12px 14px;background:#fbfaff;margin:10px 0}
+.ai-card .lab{font-size:12px;font-weight:700;color:var(--violet)}
+.claim{display:flex;gap:10px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--line);padding:9px 0}
+.claim:first-of-type{border-top:0}
+.claim .t{flex:1 1 280px}
+
+.stack{margin:10px 0}
+.stack .r{margin:10px 0}
+.stack .lbl{font-size:14px;font-weight:700;margin-bottom:4px}
+.stack .lbl small{font-weight:400;color:var(--muted)}
+.bar{display:flex;height:34px;border-radius:8px;overflow:hidden;background:#eef1ed}
+.bar div{display:flex;align-items:center;justify-content:center;color:#fff;font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden}
+.hb{display:grid;grid-template-columns:110px 1fr;gap:6px 10px;align-items:center;margin:10px 0}
+.hb .n{font-size:14px;font-weight:500;text-align:right}
+.hb .track{position:relative;height:26px;background:#f0f2ef;border-radius:6px}
+.hb .b0{position:absolute;left:0;top:0;bottom:0;background:#cfd6d1;border-radius:6px}
+.hb .b1{position:absolute;left:0;top:5px;bottom:5px;border-radius:4px}
+.hb .val{position:absolute;right:6px;top:2px;font-size:12.5px;font-weight:700}
+
+.pol{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin:10px 0}
+.pol button{text-align:left;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:11px 13px;cursor:pointer}
+.pol button[aria-pressed="true"]{border-color:var(--green);background:var(--green-soft)}
+.pol b{display:block}
+.pol small{color:var(--muted);font-size:12.5px;display:block;line-height:1.45}
+.ev-list{display:flex;flex-direction:column;gap:6px;margin:6px 0}
+.ev-list label{display:flex;gap:8px;align-items:flex-start;background:#f6f8f5;border:1px solid var(--line);border-radius:8px;padding:7px 10px;font-size:14.5px;cursor:pointer}
+.ev-list input{margin-top:5px}
+.out{background:#fffdf6;border:1px solid #ecdcb2;border-radius:12px;padding:14px 16px;margin:10px 0}
+.out h3{margin:0 0 6px;font-size:16px}
+.out dl{margin:0;display:grid;grid-template-columns:140px 1fr;gap:4px 12px;font-size:14.5px}
+.out dt{color:var(--muted);font-weight:700}
+.out dd{margin:0;white-space:pre-wrap}
+.prompt-box{white-space:pre-wrap;background:#1d2a24;color:#e8f2ec;border-radius:12px;padding:14px 16px;font-size:14.5px;line-height:1.7}
+table.matrix{width:100%;border-collapse:collapse;font-size:14.5px;margin:8px 0}
+table.matrix th,table.matrix td{border-bottom:1px solid var(--line);padding:8px 6px;text-align:center}
+table.matrix th:first-child,table.matrix td:first-child{text-align:left}
+.pp-sec{background:#fff;border:1px solid var(--line);border-radius:var(--radius);padding:16px 20px;margin:14px 0}
+.pp-sec h2{font-size:17px;margin:0 0 8px}
+.chip{display:inline-block;font-size:12px;font-weight:700;padding:1px 8px;border-radius:999px;background:var(--green-soft);color:var(--green);margin-right:6px}
+.empty{color:var(--muted);font-size:14.5px}
+footer.foot{max-width:980px;margin:0 auto;padding:10px 18px 40px;color:var(--muted);font-size:12.5px}
+.modebadge{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--violet-soft);color:var(--violet)}
+.modebadge.ctl{background:#eceeec;color:var(--muted)}
+.dialog{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:50}
+.dialog.open{display:grid}
+.dialog .box{background:#fff;border-radius:14px;padding:20px;max-width:380px;width:90%}
+@media (max-width:640px){
+  .hero h1{font-size:21px}
+  .out dl{grid-template-columns:1fr}
+  .hb{grid-template-columns:78px 1fr}
+  .step{padding:16px}
+}
+</style>
+</head>
+<body>
+<header class="top"><div class="top-in">
+  <div class="brand">NET ZERO ECO-CITY<small>심플 데이터 탐구 · 차시마다 데이터 2개 비교</small></div>
+  <nav class="tabs" id="tabs"></nav>
+</div></header>
+<main class="wrap" id="app"></main>
+<footer class="foot">
+  <p>데이터: Our World in Data 2024 스냅샷(2026-09-25 수집), 스톡홀름 Climate Action Plan 2020–2023, 코펜하겐 CO₂-regnskab 2024, Building Data Genome Project 2. 태양광 곡선·감축률·가상 도시 배출량은 <b>교육용 가정</b>이며 실측 성과가 아니다. 기록은 이 기기의 브라우저에만 저장된다.</p>
+  <p>원 시나리오: 「AI·데이터 기반 NET ZERO ECO-CITY 4차시 수업 시나리오」(2026.09.14, 인창고) · 원본 RPG 웹앱: <a href="https://scienceisjo.github.io/ai-science-it/">scienceisjo.github.io/ai-science-it</a></p>
+  <p>교사용: <button class="btn ghost" id="modeBtn" style="padding:3px 10px;font-size:12.5px"></button> <span id="modeTxt"></span></p>
+</footer>
+<div class="dialog" id="dlg"><div class="box"><p id="dlgText"></p><div class="row" style="justify-content:flex-end"><button class="btn" id="dlgNo">취소</button><button class="btn danger" id="dlgYes">확인</button></div></div></div>
+
+<script>
+const D = {"world":{"co2":[[1950,5930.4],[1951,6381.7],[1952,6467.7],[1953,6651.0],[1954,6789.7],[1955,7444.1],[1956,7926.3],[1957,8186.0],[1958,8417.5],[1959,8855.1],[1960,9387.0],[1961,9415.0],[1962,9747.2],[1963,10266.8],[1964,10824.5],[1965,11310.6],[1966,11862.6],[1967,12237.4],[1968,12905.3],[1969,13761.8],[1970,14899.1],[1971,15503.9],[1972,16224.6],[1973,17077.3],[1974,16997.9],[1975,16988.5],[1976,17862.5],[1977,18358.0],[1978,19024.7],[1979,19508.6],[1980,19409.8],[1981,18879.8],[1982,18729.7],[1983,18901.8],[1984,19457.2],[1985,20144.9],[1986,20438.0],[1987,21106.2],[1988,21918.8],[1989,22200.2],[1990,22732.1],[1991,23205.6],[1992,22520.4],[1993,22749.9],[1994,22974.6],[1995,23516.6],[1996,24233.5],[1997,24380.3],[1998,24295.7],[1999,24837.8],[2000,25511.5],[2001,25693.0],[2002,26265.3],[2003,27652.7],[2004,28610.0],[2005,29599.0],[2006,30594.2],[2007,31499.3],[2008,32049.7],[2009,31513.0],[2010,33317.7],[2011,34480.0],[2012,34954.7],[2013,35275.8],[2014,35465.7],[2015,35403.5],[2016,35392.8],[2017,35974.6],[2018,36734.0],[2019,37086.6],[2020,35158.2],[2021,36866.9],[2022,37527.8],[2023,38094.0],[2024,38598.6]],"mix":[[1990,87.4,12.6],[1991,87.0,13.0],[1992,87.0,13.0],[1993,86.5,13.5],[1994,86.5,13.5],[1995,86.1,13.9],[1996,86.2,13.8],[1997,86.2,13.8],[1998,86.1,13.9],[1999,86.0,14.0],[2000,86.0,14.0],[2001,86.2,13.8],[2002,86.3,13.7],[2003,86.9,13.1],[2004,86.8,13.2],[2005,87.0,13.0],[2006,86.9,13.1],[2007,87.2,12.8],[2008,86.9,13.1],[2009,86.6,13.4],[2010,86.5,13.5],[2011,86.7,13.3],[2012,86.7,13.3],[2013,86.3,13.7],[2014,86.0,14.0],[2015,85.7,14.3],[2016,85.3,14.7],[2017,85.0,15.0],[2018,84.6,15.4],[2019,84.1,15.9],[2020,83.0,17.0],[2021,83.0,17.1],[2022,82.6,17.4],[2023,82.1,17.9],[2024,81.3,18.7]]},"korea":{"co2":[[1950,2.2],[1951,2.9],[1952,3.5],[1953,4.7],[1954,5.2],[1955,6.4],[1956,7.6],[1957,8.2],[1958,9.0],[1959,11.2],[1960,12.5],[1961,14.4],[1962,17.3],[1963,21.1],[1964,22.2],[1965,25.0],[1966,30.0],[1967,35.1],[1968,37.2],[1969,42.5],[1970,53.7],[1971,58.5],[1972,60.2],[1973,73.0],[1974,75.6],[1975,81.7],[1976,93.1],[1977,105.5],[1978,113.1],[1979,132.9],[1980,134.5],[1981,139.6],[1982,140.8],[1983,149.1],[1984,160.7],[1985,168.8],[1986,176.3],[1987,185.4],[1988,211.0],[1989,223.5],[1990,250.5],[1991,275.7],[1992,299.9],[1993,330.2],[1994,355.7],[1995,383.7],[1996,421.0],[1997,445.0],[1998,378.0],[1999,410.5],[2000,440.0],[2001,455.6],[2002,476.1],[2003,485.2],[2004,491.4],[2005,498.7],[2006,503.5],[2007,521.7],[2008,532.7],[2009,537.8],[2010,594.3],[2011,623.4],[2012,627.9],[2013,634.6],[2014,629.4],[2015,634.2],[2016,637.9],[2017,654.5],[2018,670.2],[2019,646.1],[2020,597.6],[2021,616.1],[2022,606.9],[2023,589.2],[2024,583.7]],"mix":[[1990,85.1,14.9],[1991,86.4,13.6],[1992,87.9,12.1],[1993,88.5,11.5],[1994,89.6,10.4],[1995,89.0,11.0],[1996,89.1,10.9],[1997,89.6,10.4],[1998,86.7,13.3],[1999,86.0,14.0],[2000,86.1,13.9],[2001,86.3,13.7],[2002,86.1,13.9],[2003,85.2,14.8],[2004,85.6,14.4],[2005,84.6,15.4],[2006,84.7,15.3],[2007,85.7,14.3],[2008,85.3,14.7],[2009,85.7,14.3],[2010,86.7,13.3],[2011,86.7,13.3],[2012,87.2,12.8],[2013,88.0,12.0],[2014,86.5,13.5],[2015,85.9,14.1],[2016,86.5,13.5],[2017,87.3,12.7],[2018,88.3,11.7],[2019,86.9,13.1],[2020,84.8,15.2],[2021,85.2,14.8],[2022,83.7,16.3],[2023,82.9,17.1],[2024,82.5,17.5]]},"building":[13.8,14.04,13.92,14.04,14.28,13.68,19.08,22.68,25.32,20.16,16.44,14.52,13.68,12.96,13.2,14.88,13.68,13.08,12.6,11.76,11.88,11.76,11.76,11.76],"cities":[{"id":"stockholm","name":"스톡홀름","en":"Stockholm","years":[1990,2000,2005,2015,2016,2017],"total":[3669000,3509000,3104000,2458000,2326000,2193000],"sectorYear":2017,"sectors":{"난방":742000,"기타 전기·가스":415000,"교통":1036000},"metrics":[{"name":"난방 배출량","unit":"tCO₂e/년","years":[2000,2017],"values":[1848000,742000]},{"name":"도로 교통 배출량","unit":"tCO₂e/년","years":[2017],"values":[863000]}],"boundary":"난방·기타 전기 및 가스·교통의 지리적 배출 산정. 2020–2023 계획에 실린 과거 통계이며 최신 실적이 아닙니다.","policy":"석유 보일러를 지역난방·히트펌프로 전환하고, 지역난방의 재생연료 비율과 건물 효율을 높였습니다. 대중교통과 자전거 이용도 추진합니다.","limit":"난방의 감소와 교통의 정체가 함께 나타납니다. 소비재 생산 등 도시 밖의 배출은 이 세 부문 합계로 판단할 수 없습니다.","source":"https://start.stockholm/globalassets/start/om-stockholms-stad/sa-arbetar-staden/miljo-och-klimat/climate-action-plan-2020-2023.pdf","publication":"Climate Action Plan 2020–2023, pp.12,17,33","updated":"2020 계획 / 수업 추출 2026-09-25","target":"원문 계획의 2040 화석연료 없는 도시 목표와 과거 실적을 구분합니다."},{"id":"copenhagen","name":"코펜하겐","en":"Copenhagen","years":[2005,2010,2020,2021,2022,2023,2024],"total":[2480325,2431520,956526,839836,831857,677982,668797],"sectorYear":2024,"sectors":{"전력":136715,"지역난방":162259,"도로교통":272888,"기타·순흡수 포함":96935},"metrics":[{"name":"보행·자전거·대중교통 통행 비율","unit":"%","years":[2024],"values":[71]},{"name":"지역난방 CO₂ 중립 생산 비율(보고서 정의)","unit":"%","years":[2024],"values":[85]}],"boundary":"재생에너지 생산 크레딧 보정 전 합계를 사용합니다. Scope 1·2와 일부 Scope 3를 포함하며, 보정 후 2024 값 455,737과 섞지 않습니다.","policy":"지역난방과 전력의 전환, 자전거·보행·대중교통을 함께 추진합니다. 보고서의 2025 목표 중 친환경 통행 75%와 2024 실적 71%를 구분합니다.","limit":"보정 전·후 회계가 다릅니다. 2024 실적을 탄소중립 달성으로 해석할 수 없으며, 열 소비량은 2010보다 소폭 높습니다.","source":"https://www.kk.dk/sites/default/files/2026-08/CO2_regnskab_for_Koebenhavns_Kommune_2024-a.pdf","publication":"CO₂-regnskab 2024, pp.7,37","updated":"게시 경로 2026-08 / 수업 추출 2026-09-25","target":"2025 계획 목표는 목표입니다. 여기 제시한 실적은 2024년입니다."}],"building_id":"Panther_retail_Lester"};
+const KEY = 'nz-simple-v1';
+const C = {green:'#1f7a4d', blue:'#2e63b8', amber:'#c27a12', red:'#b8442e', gray:'#8a948f', violet:'#6a4fb3', teal:'#1b8a8a'};
+
+/* ---------- state ---------- */
+function fresh(){return {mode:'coach', tab:'1', ev:[], out:{}, log:[], l1:{c:'world',y1:1990,y2:2024,y3:2024}, l2:{}, l3:{p:20}, l4:{pol:[],link:{},pf:{},ver:{}}}}
+let S;
+try{ S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ S = fresh(); }
+for(const k of ['l1','l2','l3','l4']) S[k] = Object.assign(fresh()[k], S[k]||{});
+if(location.hash==='#control') S.mode='control';
+if(location.hash==='#coach') S.mode='coach';
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+function log(l, ev, detail){ S.log.push({t:new Date().toISOString(), l, ev, detail}); save(); }
+const coachOn = () => S.mode==='coach';
+
+/* ---------- helpers ---------- */
+const $ = (s,r=document)=>r.querySelector(s);
+const $$ = (s,r=document)=>[...r.querySelectorAll(s)];
+const esc = s => String(s??'').replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmt = (v,d=0) => Number(v).toLocaleString('ko-KR',{maximumFractionDigits:d, minimumFractionDigits:d});
+const get = p => p.split('.').reduce((o,k)=>o?.[k], S);
+function set(p,v){ const ks=p.split('.'); let o=S; ks.slice(0,-1).forEach(k=>{o[k]=o[k]||{}; o=o[k]}); o[ks.at(-1)]=v; save(); }
+function addEv(id, l, text){ S.ev = S.ev.filter(e=>e.id!==id); S.ev.push({id,l,text}); save(); }
+const evOf = l => S.ev.filter(e=>e.l===l);
+function niceMax(v){ const p=Math.pow(10,Math.floor(Math.log10(v))); const n=v/p; return (n<=1?1:n<=2?2:n<=2.5?2.5:n<=5?5:10)*p; }
+
+function coach(role, lines){
+  if(!coachOn()) return '';
+  return `<div class="coach"><div class="av">AI</div><div class="bubble"><div class="role">${role}</div>${lines.map(l=>`<p>${l}</p>`).join('')}</div></div>`;
+}
+function guide(text){ return `<div class="guide"><b>활동</b><span>${text}</span></div>`; }
+function ta(path, ph, rows=3){ return `<textarea data-k="${path}" rows="${rows}" placeholder="${esc(ph)}">${esc(get(path)||'')}</textarea>`; }
+function stepHead(n, tag, title, sub){ return `<div class="step-h"><div class="num">${n}</div><div><span class="tag">${tag}</span><h2>${title}</h2>${sub?`<p>${sub}</p>`:''}</div></div>`; }
+function locked(n, tag, title, why){ return `<section class="step locked">${stepHead(n,tag,title)}<div class="lockmsg">🔒 ${why}</div></section>`; }
+function hero(n, en, title, q, flowOn){
+  const flow=['DATA','INTERPRET','COMPARE','REASON','PLAN','AI CHECK','CREATE','VERIFY'];
+  return `<section class="hero"><div class="kicker">${n}차시 · ${en}</div><h1>${title}</h1><div class="q">핵심 질문 — ${q}</div>
+  <div class="flow">${flow.map(f=>`<span class="${flowOn.includes(f)?'on':''}">${f}</span>`).join('')}</div></section>`;
+}
+
+/* ---------- SVG line chart ---------- */
+function lineChart({series, xMin, xMax, yMax, yLabel, xStep, marks=[], xFmt=(x)=>x, w=720, h=300, dots=false, vbands=[]}){
+  const L=56, R=16, T=16, B=34, W=w-L-R, H=h-T-B;
+  const ym = yMax ?? niceMax(Math.max(...series.flatMap(s=>s.pts.map(p=>p[1])))*1.05);
+  const X = x => L + (x-xMin)/(xMax-xMin)*W, Y = y => T + H - y/ym*H;
+  let g = '';
+  vbands.forEach(b=>{ g+=`<rect x="${X(b[0])}" y="${T}" width="${X(b[1])-X(b[0])}" height="${H}" fill="${b[2]}" opacity=".5"/>`; });
+  for(let i=0;i<=5;i++){ const v=ym*i/5, y=Y(v); g+=`<line x1="${L}" x2="${L+W}" y1="${y}" y2="${y}" stroke="#e6ebe6"/><text x="${L-8}" y="${y+4}" font-size="11.5" text-anchor="end" fill="#5d6b64">${fmt(v, v<10&&ym<=10?1:0)}</text>`; }
+  for(let x=Math.ceil(xMin/xStep)*xStep; x<=xMax; x+=xStep){ g+=`<line x1="${X(x)}" x2="${X(x)}" y1="${T+H}" y2="${T+H+4}" stroke="#8a948f"/><text x="${X(x)}" y="${T+H+18}" font-size="11.5" text-anchor="middle" fill="#5d6b64">${xFmt(x)}</text>`; }
+  g+=`<line x1="${L}" x2="${L+W}" y1="${T+H}" y2="${T+H}" stroke="#8a948f"/>`;
+  g+=`<text x="${12}" y="${T+H/2}" font-size="11.5" fill="#5d6b64" transform="rotate(-90 12 ${T+H/2})" text-anchor="middle">${esc(yLabel)}</text>`;
+  marks.forEach(m=>{ g+=`<line x1="${X(m.x)}" x2="${X(m.x)}" y1="${T}" y2="${T+H}" stroke="${m.c||'#1d2a24'}" stroke-dasharray="4 4" stroke-width="1.3"/><text x="${X(m.x)>L+W-40?X(m.x)-4:X(m.x)+4}" text-anchor="${X(m.x)>L+W-40?'end':'start'}" y="${T+11}" font-size="11.5" font-weight="700" fill="${m.c||'#1d2a24'}">${esc(m.t)}</text>`; });
+  series.forEach(s=>{
+    const d = s.pts.map((p,i)=>`${i?'L':'M'}${X(p[0]).toFixed(1)},${Y(p[1]).toFixed(1)}`).join('');
+    if(s.fill) g+=`<path d="${d}L${X(s.pts.at(-1)[0])},${Y(0)}L${X(s.pts[0][0])},${Y(0)}Z" fill="${s.c}" opacity=".13"/>`;
+    g+=`<path d="${d}" fill="none" stroke="${s.c}" stroke-width="2.6" stroke-linejoin="round" ${s.dash?'stroke-dasharray="6 4"':''}/>`;
+    if(dots||s.dots) s.pts.forEach(p=>{ g+=`<circle cx="${X(p[0])}" cy="${Y(p[1])}" r="4" fill="#fff" stroke="${s.c}" stroke-width="2.2"><title>${xFmt(p[0])}: ${fmt(p[1],1)}</title></circle>`; });
+    marks.forEach(m=>{ const pt=s.pts.find(p=>p[0]===m.x); if(pt) g+=`<circle cx="${X(pt[0])}" cy="${Y(pt[1])}" r="5" fill="${s.c}" stroke="#fff" stroke-width="2"/>`; });
+  });
+  return `<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="${esc(yLabel)} 그래프">${g}</svg>
+  <div class="legend">${series.map(s=>`<span><i style="background:${s.c}"></i>${esc(s.name)}</span>`).join('')}</div>`;
+}
+
+/* =========================================================
+   1차시 WHY
+   ========================================================= */
+const CN = {world:'세계', korea:'대한민국'};
+function co2(c,y){ return D[c].co2.find(r=>r[0]===+y)?.[1]; }
+function mix(c,y){ return D[c].mix.find(r=>r[0]===+y); }
+
+function L1(){
+  const s=S.l1, c=s.c, v1=co2(c,s.y1), v2=co2(c,s.y2);
+  const years = D[c].co2.map(r=>r[0]);
+  const yOpt = sel => years.map(y=>`<option ${y==sel?'selected':''}>${y}</option>`).join('');
+  const ratio = v2/v1, diff=v2-v1;
+  let html = hero(1,'WHY','우리는 왜 NET ZERO CITY가 필요한가?','에너지는 보존되는데 왜 에너지를 절약하고 탄소배출을 줄여야 할까?',['DATA','INTERPRET','COMPARE','REASON','AI CHECK','CREATE']);
+
+  /* step 1 */
+  html += `<section class="step">${stepHead(1,'DATA ① · INTERPRET','연간 CO₂ 배출량 그래프 읽기','두 해를 골라 숫자를 직접 비교한다.')}
+  ${coach('Data Questioner', ['그래프에서 가장 먼저 눈에 들어오는 변화는 무엇인가요?', '그 판단을 뒷받침할 수 있는 <b>서로 다른 두 연도의 수치</b>를 골라 보세요.'])}
+  ${coachOn()?'':guide('그래프에서 가장 눈에 띄는 변화를 찾고, 서로 다른 두 연도의 수치를 골라 비교한다.')}
+  <div class="row"><div class="seg" data-seg="l1.c">${['world','korea'].map(k=>`<button data-v="${k}" aria-pressed="${c===k}">${CN[k]}</button>`).join('')}</div>
+  <label class="inline">연도 ① <select data-sel="l1.y1">${yOpt(s.y1)}</select></label>
+  <label class="inline">연도 ② <select data-sel="l1.y2">${yOpt(s.y2)}</select></label></div>
+  <div class="chart">${lineChart({series:[{name:`${CN[c]} 연간 CO₂ 배출량`, c:C.red, pts:D[c].co2, fill:true}], xMin:1950, xMax:2024, xStep:10, yLabel:'백만 톤 CO₂', marks:[{x:+s.y1,t:s.y1,c:C.blue},{x:+s.y2,t:s.y2,c:C.blue}]})}</div>
+  <div class="readout">
+    <div class="stat"><div class="k">${s.y1}년</div><div class="v">${fmt(v1,1)} <small>백만 t</small></div></div>
+    <div class="stat"><div class="k">${s.y2}년</div><div class="v">${fmt(v2,1)} <small>백만 t</small></div></div>
+    <div class="stat hl"><div class="k">변화량</div><div class="v">${diff>=0?'+':''}${fmt(diff,1)} <small>백만 t</small></div></div>
+    <div class="stat hl"><div class="k">몇 배?</div><div class="v">${fmt(ratio,2)} <small>배</small></div></div>
+  </div>
+  <p class="src"><span class="real">실제 자료</span> <b>출처</b> OWID Annual CO₂ emissions (Global Carbon Budget) · <b>단위</b> 백만 톤 CO₂ · <b>기간</b> 1950–2024 · <b>수집</b> 2026-09-25 · <a href="https://ourworldindata.org/grapher/annual-co2-emissions-per-country" target="_blank" rel="noopener">원자료 보기</a></p>
+  <div class="field"><label>내가 찾은 가장 눈에 띄는 변화 <small>(숫자를 넣어서)</small></label>${ta('l1.notice','예) 세계 CO₂ 배출량은 1990년 ○○에서 2024년 ○○로 약 ○배 늘었다.')}</div>
+  <div class="row"><button class="btn primary" data-act="l1save1">이 두 수치를 근거로 저장</button>${evOf(1).some(e=>e.id==='l1a')?'<span class="msg ok">DATA PASSPORT에 저장됨</span>':''}</div>
+  </section>`;
+
+  /* step 2 */
+  const aDone = evOf(1).some(e=>e.id==='l1a');
+  if(!aDone){ html += locked(2,'DATA ② · COMPARE','에너지 구성 데이터와 비교하기','1단계에서 두 수치를 저장하면 다음 데이터가 열린다.'); }
+  else if(coachOn() && !s.pick){
+    html += `<section class="step">${stepHead(2,'DATA ② · COMPARE','원인을 확인할 데이터 고르기')}
+    ${coach('Data Questioner',['좋아요. 그런데 <b>CO₂ 그래프만으로 원인을 단정할 수 있을까요?</b>','원인을 확인하려면 어떤 데이터를 추가로 보면 좋을까요?'])}
+    <div class="choices">${[['energy','에너지원 구성 (화석연료·저탄소 비율)'],['pop','인구 수'],['temp','기온 변화']].map(([k,t])=>`<button data-act="l1pick" data-v="${k}">${t}</button>`).join('')}</div></section>`;
+  } else {
+    const yrs = D[c].mix.map(r=>r[0]); const m=mix(c,s.y3), m0=D[c].mix[0];
+    const pickMsg = {pop:'인구도 배출에 영향을 줘요. 하지만 같은 인구라도 <b>어떤 에너지를 쓰느냐</b>에 따라 배출이 달라져요. 에너지원 데이터를 먼저 봅시다.', temp:'기온은 CO₂가 늘어난 <b>결과</b>에 가까워요. 원인을 보려면 에너지원 데이터가 더 직접적이에요.', energy:'좋은 선택이에요. 배출의 대부분은 화석연료를 태우는 데서 나와요.'}[s.pick];
+    html += `<section class="step">${stepHead(2,'DATA ② · COMPARE','에너지 구성: 화석연료 vs 저탄소 에너지','같은 나라의 1차에너지 중 화석연료와 저탄소 에너지의 비율을 비교한다.')}
+    ${coach('Data Questioner',[pickMsg, '저탄소 에너지 비율은 늘었나요? 그런데도 CO₂가 계속 늘었다면 왜일까요?'])}
+    ${coachOn()?'':guide('저탄소 에너지 비율이 늘었는지 확인하고, 그런데도 CO₂가 줄지 않은 이유를 생각한다.')}
+    <div class="row"><b>${CN[c]}</b><label class="inline">읽을 연도 <select data-sel="l1.y3">${yrs.map(y=>`<option ${y==s.y3?'selected':''}>${y}</option>`).join('')}</select></label></div>
+    <div class="chart">${lineChart({series:[{name:'화석연료 비율',c:C.gray,pts:D[c].mix.map(r=>[r[0],r[1]])},{name:'저탄소 에너지 비율',c:C.green,pts:D[c].mix.map(r=>[r[0],r[2]])}], xMin:1990, xMax:2024, xStep:5, yMax:100, yLabel:'1차에너지 중 비율(%)', marks:[{x:+s.y3,t:s.y3,c:C.blue}]})}</div>
+    <div class="readout">
+      <div class="stat"><div class="k">화석연료 ${m0[0]} → ${m[0]}</div><div class="v">${fmt(m0[1],1)} → ${fmt(m[1],1)} <small>%</small></div></div>
+      <div class="stat hl"><div class="k">저탄소 ${m0[0]} → ${m[0]}</div><div class="v">${fmt(m0[2],1)} → ${fmt(m[2],1)} <small>%</small></div></div>
+    </div>
+    <p class="src"><span class="real">실제 자료</span> <b>출처</b> OWID Energy mix (Energy Institute 등) · <b>단위</b> 1차에너지 중 비율(%) · 전력만이 아니라 <b>전체 에너지</b> 기준 · <b>기간</b> 1990–2024 · <a href="https://ourworldindata.org/grapher/energy-mix?metric=share&source=low_carbon_energy&tab=line" target="_blank" rel="noopener">원자료 보기</a></p>
+    <div class="field"><label>두 데이터를 비교해 알게 된 점</label>${ta('l1.compare','예) 저탄소 비율은 ○%에서 ○%로 늘었지만, 화석연료가 여전히 ○%라서 …')}</div>
+    <div class="row"><button class="btn primary" data-act="l1save2">이 비교를 근거로 저장</button>${evOf(1).some(e=>e.id==='l1b')?'<span class="msg ok">DATA PASSPORT에 저장됨</span>':''}</div>
+    </section>`;
+  }
+
+  /* step 3 */
+  const bDone = evOf(1).some(e=>e.id==='l1b');
+  if(!bDone) html += locked(3,'REASON','처음 설명을 다시 보기','2단계 비교를 저장하면 열린다.');
+  else {
+    html += `<section class="step">${stepHead(3,'REASON','처음 설명을 유지할까, 수정할까?')}
+    ${coach('Data Questioner',['새 데이터까지 고려하면 처음의 설명을 <b>유지</b>하겠습니까, <b>수정</b>하겠습니까?', `처음 설명: “${esc(s.notice||'(작성하지 않음)')}”`])}
+    ${coachOn()?'':guide(`에너지 구성 데이터까지 보고, 1단계에서 쓴 설명을 유지할지 수정할지 정한다.<br>처음 설명: “${esc(s.notice||'(작성하지 않음)')}”`)}
+    <div class="choices">${['유지','수정'].map(k=>`<button data-act="setv" data-k="l1.keep" data-v="${k}" aria-pressed="${s.keep===k}">${k}</button>`).join('')}</div>
+    <div class="field"><label>${s.keep==='수정'?'수정한 설명':'유지하는 이유'}</label>${ta('l1.revise', s.keep==='수정'?'예) CO₂ 증가는 에너지 사용량 증가뿐 아니라 화석연료 비율이 여전히 높기 때문이다.':'예) 에너지 구성 데이터도 같은 방향을 보여 주기 때문이다.')}</div>
+    </section>`;
+
+    /* step 4 AI literacy */
+    const fb = (k,ans) => s['q'+k] ? (s['q'+k]===ans ? '<span class="msg ok">맞아요</span>' : '<span class="msg bad">다시 생각해 보세요</span>') : '';
+    html += `<section class="step">${stepHead(4,'AI CHECK','AI 리터러시 미션: AI의 설명도 근거를 확인한다','AI가 만든 설명을 두 주장으로 나누어 판단한다.')}
+    <div class="ai-card"><div class="lab">AI가 만든 설명</div>“세계 CO₂ 배출량은 1950년보다 2024년에 약 6.5배 늘었다. 그 주된 원인은 전 세계 자동차 수가 늘었기 때문이다.”</div>
+    <div class="claim"><div class="t">주장 A. 세계 CO₂ 배출량은 1950년보다 2024년에 약 6.5배 늘었다.</div><div class="choices">${['직접 확인 가능','추가 자료 필요'].map(k=>`<button data-act="setv" data-k="l1.qa" data-v="${k}" aria-pressed="${s.qa===k}">${k}</button>`).join('')}</div>${fb('a','직접 확인 가능')}</div>
+    <div class="claim"><div class="t">주장 B. 그 주된 원인은 자동차 수가 늘었기 때문이다.</div><div class="choices">${['직접 확인 가능','추가 자료 필요'].map(k=>`<button data-act="setv" data-k="l1.qb" data-v="${k}" aria-pressed="${s.qb===k}">${k}</button>`).join('')}</div>${fb('b','추가 자료 필요')}</div>
+    ${s.qa&&s.qb?`<div class="msg info">주장 A는 1단계 그래프(1950년 ${fmt(co2('world',1950),1)} → 2024년 ${fmt(co2('world',2024),1)} 백만 t, ${fmt(co2('world',2024)/co2('world',1950),2)}배)로 확인할 수 있다. 주장 B는 부문별(교통·전력·산업) 배출 자료가 있어야 판단할 수 있다. 오늘 본 두 데이터에는 자동차 자료가 없다.</div>`:''}
+    </section>`;
+
+    /* step 5 CER */
+    const evs = evOf(1);
+    html += `<section class="step">${stepHead(5,'CREATE','CER 카드: 넷제로 도시가 필요한 이유','Evidence에는 실제 데이터 수치 2개 이상을 넣는다.')}
+    <div class="field"><label>Claim 주장</label>${ta('l1.claim','예) 도시는 화석연료 의존을 줄이는 방향으로 바뀌어야 한다.',2)}</div>
+    <div class="field"><label>Evidence 근거 <small>(저장한 데이터를 2개 이상 체크)</small></label><div class="ev-list">${evs.map(e=>`<label><input type="checkbox" data-evk="l1.use" value="${e.id}" ${(s.use||[]).includes(e.id)?'checked':''}>${esc(e.text)}</label>`).join('')}</div></div>
+    <div class="field"><label>Reasoning 추론 <small>(근거가 왜 주장을 뒷받침하는지 과학 개념으로)</small></label>${ta('l1.reason','예) 에너지는 보존되지만 화석연료를 태우면 CO₂가 생기고, 쓸모 있는 형태의 에너지는 줄어든다(에너지 효율). 그래서 …')}</div>
+    <div class="row"><button class="btn primary" data-act="l1cer">CER 카드 저장</button></div>
+    ${S.out.l1?outCard('CER 카드',S.out.l1):''}
+    </section>`;
+  }
+  return html;
+}
+
+/* =========================================================
+   2차시 HOW
+   ========================================================= */
+const [STO, CPH] = D.cities;
+const pct = (a,b)=> (b/a-1)*100;
+function L2(){
+  const s=S.l2;
+  let html = hero(2,'HOW','실제 도시는 어떻게 탄소중립을 시도하고 있을까?','넷제로를 목표로 하는 도시는 무엇을 바꾸고 있으며, 그 선택은 데이터로 설명할 수 있을까?',['DATA','COMPARE','REASON','AI CHECK','CREATE']);
+  const chg = c => pct(c.total[0], c.total.at(-1));
+  html += `<section class="step">${stepHead(1,'DATA ① · INTERPRET','두 도시의 총배출량 변화','스톡홀름과 코펜하겐의 온실가스 총배출량을 비교한다.')}
+  ${coach('Evidence Coach',['도시 소개는 아직 보여주지 않을게요. 데이터만 보고 <b>어느 도시가 넷제로에 더 가까워 보이는지</b> 먼저 판단해 보세요.'])}
+  ${coachOn()?'':guide('그래프만 보고 어느 도시가 넷제로에 더 가까워 보이는지 판단하고, 판단에 쓴 변수를 고른다.')}
+  <div class="chart">${lineChart({series:[{name:'스톡홀름',c:C.blue,pts:STO.years.map((y,i)=>[y,STO.total[i]/10000]),dots:true},{name:'코펜하겐',c:C.amber,pts:CPH.years.map((y,i)=>[y,CPH.total[i]/10000]),dots:true}], xMin:1990, xMax:2024, xStep:5, yLabel:'총배출량(만 tCO₂e/년)'})}</div>
+  <div class="readout">
+    <div class="stat"><div class="k">스톡홀름 ${STO.years[0]} → ${STO.years.at(-1)}</div><div class="v">${fmt(STO.total[0]/10000)} → ${fmt(STO.total.at(-1)/10000)} <small>만 t</small></div></div>
+    <div class="stat hl"><div class="k">스톡홀름 변화율 (${STO.years.at(-1)-STO.years[0]}년간)</div><div class="v">${fmt(chg(STO),1)} <small>%</small></div></div>
+    <div class="stat"><div class="k">코펜하겐 ${CPH.years[0]} → ${CPH.years.at(-1)}</div><div class="v">${fmt(CPH.total[0]/10000)} → ${fmt(CPH.total.at(-1)/10000)} <small>만 t</small></div></div>
+    <div class="stat hl"><div class="k">코펜하겐 변화율 (${CPH.years.at(-1)-CPH.years[0]}년간)</div><div class="v">${fmt(chg(CPH),1)} <small>%</small></div></div>
+  </div>
+  <p class="src"><span class="real">실제 자료</span> <b>스톡홀름</b> ${esc(STO.publication)} · ${esc(STO.boundary)}<br><b>코펜하겐</b> ${esc(CPH.publication)} · ${esc(CPH.boundary)}<br>두 도시는 <b>기준연도와 산정 범위가 다르다.</b> 순위보다 각 도시 안의 변화를 먼저 본다.</p>
+  <div class="field"><label>넷제로에 더 가까워 보이는 도시</label><div class="choices">${['스톡홀름','코펜하겐'].map(k=>`<button data-act="setv" data-k="l2.first" data-v="${k}" aria-pressed="${s.first===k}">${k}</button>`).join('')}</div></div>
+  <div class="field"><label>그 판단에 사용한 변수</label><div class="choices">${['총배출량 감소율','최근 배출량의 크기','배출이 줄어든 속도'].map(k=>`<button data-act="setv" data-k="l2.var" data-v="${k}" aria-pressed="${s.var===k}">${k}</button>`).join('')}</div></div>
+  <div class="field"><label>판단 이유 <small>(수치 포함)</small></label>${ta('l2.why1','예) 코펜하겐은 2005년 ○○만 t에서 2024년 ○○만 t로 ○% 줄었다.',2)}</div>
+  <div class="row"><button class="btn primary" data-act="l2save1">첫 판단 저장</button>${evOf(2).some(e=>e.id==='l2a')?'<span class="msg ok">DATA PASSPORT에 저장됨</span>':''}</div>
+  </section>`;
+
+  const aDone = evOf(2).some(e=>e.id==='l2a');
+  if(!aDone) html += locked(2,'DATA ② · COMPARE','부문별 배출 구성 비교','첫 판단을 저장하면 열린다.');
+  else {
+    const grp = {
+      sto:[['건물 난방·전기',STO.sectors['난방']+STO.sectors['기타 전기·가스'],C.green],['교통',STO.sectors['교통'],C.red]],
+      cph:[['건물 난방·전기',CPH.sectors['전력']+CPH.sectors['지역난방'],C.green],['교통',CPH.sectors['도로교통'],C.red],['기타',CPH.sectors['기타·순흡수 포함'],C.gray]]
+    };
+    const bar = (name, yr, arr) => { const t=arr.reduce((a,b)=>a+b[1],0); return `<div class="r"><div class="lbl">${name} <small>${yr}년 · 합계 ${fmt(t/10000)}만 t</small></div><div class="bar">${arr.map(a=>`<div style="width:${a[1]/t*100}%;background:${a[2]}" title="${a[0]} ${fmt(a[1]/t*100,1)}%">${a[0]} ${fmt(a[1]/t*100)}%</div>`).join('')}</div></div>`; };
+    html += `<section class="step">${stepHead(2,'DATA ② · COMPARE','부문별 배출 구성: 무엇이 남아 있나?','가장 최근 연도에 어느 부문이 배출을 많이 차지하는지 비교한다.')}
+    ${coach('Evidence Coach',[`첫 판단은 <b>${esc(s.first||'?')}</b>, 사용한 변수는 <b>${esc(s.var||'?')}</b>였어요.`,'한 개의 지표만으로 충분할까요? 당신의 주장을 <b>강화하거나 반박할 수 있는 데이터</b>를 하나 더 봅시다.'])}
+    ${coachOn()?'':guide('두 도시의 부문별 배출 구성을 비교하고, 각 도시가 어떤 부문을 먼저 줄였을지 추론한다.')}
+    <div class="stack">${bar('스톡홀름',STO.sectorYear,grp.sto)}${bar('코펜하겐',CPH.sectorYear,grp.cph)}</div>
+    <div class="readout">
+      <div class="stat"><div class="k">스톡홀름 난방 배출 2000 → 2017</div><div class="v">${fmt(184.8,1)} → ${fmt(74.2,1)} <small>만 t</small></div></div>
+      <div class="stat"><div class="k">코펜하겐 친환경 통행 비율(2024)</div><div class="v">71 <small>% (보행·자전거·대중교통)</small></div></div>
+    </div>
+    <p class="src"><span class="real">실제 자료</span> 같은 보고서에서 부문을 묶어 표시했다(스톡홀름: 난방+기타 전기·가스 / 코펜하겐: 전력+지역난방). 코펜하겐 ‘기타’에는 순흡수가 포함된다. 연도가 다르다(2017 vs 2024).</p>
+    <div class="field"><label>부문 데이터로 알게 된 점</label>${ta('l2.compare','예) 스톡홀름은 난방 배출을 크게 줄였지만 교통이 절반 가까이 남아 있다. 코펜하겐은 …')}</div>
+    <div class="row"><button class="btn primary" data-act="l2save2">이 비교를 근거로 저장</button>${evOf(2).some(e=>e.id==='l2b')?'<span class="msg ok">DATA PASSPORT에 저장됨</span>':''}</div>
+    </section>`;
+  }
+
+  const bDone = evOf(2).some(e=>e.id==='l2b');
+  if(!bDone) html += locked(3,'REASON','처음 판단 다시 보기','2단계 비교를 저장하면 열린다.');
+  else {
+    html += `<section class="step">${stepHead(3,'REASON','처음 판단과 같은가?')}
+    ${coach('Evidence Coach',['처음 판단과 같은가요? 달라졌다면 <b>무엇 때문에</b> 바뀌었나요?'])}
+    ${coachOn()?'':guide('부문 데이터까지 보고 처음 판단이 그대로인지, 바뀌었는지 쓴다.')}
+    <div class="choices">${['처음 판단과 같다','판단이 바뀌었다','판단을 보류한다'].map(k=>`<button data-act="setv" data-k="l2.same" data-v="${k}" aria-pressed="${s.same===k}">${k}</button>`).join('')}</div>
+    <div class="field"><label>이유</label>${ta('l2.why2','예) 감소율은 코펜하겐이 크지만 기간이 다르고, 스톡홀름은 …',2)}</div>
+    </section>`;
+
+    const sel = s.ai;
+    html += `<section class="step">${stepHead(4,'AI CHECK','AI 리터러시 미션: AI의 판단을 데이터 두 개로 검증한다')}
+    <div class="ai-card"><div class="lab">AI의 판단</div>“코펜하겐이 스톡홀름보다 더 친환경적인 도시입니다. 2005년보다 배출량을 73%나 줄였기 때문입니다.”</div>
+    <div class="field"><label>확인한 것 <small>(해당하는 것 모두)</small></label><div class="ev-list">
+      ${[['num','73%라는 수치가 데이터와 맞는가?'],['period','두 도시의 비교 기간이 같은가?'],['bound','두 도시의 산정 범위가 같은가?'],['sector','부문 구성(무엇이 남았나)까지 보았는가?']].map(([k,t])=>`<label><input type="checkbox" data-evk="l2.chk" value="${k}" ${(s.chk||[]).includes(k)?'checked':''}>${t}</label>`).join('')}
+    </div></div>
+    <div class="field"><label>AI 판단을 어떻게 받아들일까?</label><div class="choices">${['그대로 수용','일부만 수용','거부'].map(k=>`<button data-act="setv" data-k="l2.ai" data-v="${k}" aria-pressed="${sel===k}">${k}</button>`).join('')}</div></div>
+    <div class="field"><label>근거</label>${ta('l2.aiwhy','예) 73%는 맞지만, 스톡홀름은 1990–2017, 코펜하겐은 2005–2024라서 …',2)}</div>
+    ${sel?`<div class="msg ${sel==='그대로 수용'?'bad':'info'}">‘73% 감소’는 데이터와 맞다(${fmt(CPH.total[0]/10000)} → ${fmt(CPH.total.at(-1)/10000)}만 t, ${fmt(-chg(CPH),1)}% 감소). 그러나 스톡홀름은 ${STO.years[0]}–${STO.years.at(-1)}년 자료라 기간이 다르고, 두 도시의 산정 범위도 다르다. 그래서 “더 친환경적이다”라는 순위 판단은 이 자료만으로 확정하기 어렵다.${sel==='그대로 수용'?' AI의 수치가 맞아도 결론까지 맞는 것은 아니다.':''}</div>`:''}
+    </section>`;
+
+    const city = s.city || '코펜하겐'; const cd = city==='스톡홀름'?STO:CPH;
+    html += `<section class="step">${stepHead(5,'CREATE','NET ZERO CITY CASE CARD','문제 → 데이터 증거 → 정책 → 효과 → 한계. 마지막에 내 도시로 가져올 전략 1개를 고른다.')}
+    <div class="field"><label>정리할 도시</label><div class="choices">${['스톡홀름','코펜하겐'].map(k=>`<button data-act="setv" data-k="l2.city" data-v="${k}" aria-pressed="${city===k}">${k}</button>`).join('')}</div></div>
+    <div class="field"><label>문제 <small>(이 도시에서 가장 큰 배출원은?)</small></label>${ta('l2.prob','',2)}</div>
+    <div class="field"><label>데이터 증거 <small>(체크)</small></label><div class="ev-list">${evOf(2).map(e=>`<label><input type="checkbox" data-evk="l2.use" value="${e.id}" ${(s.use||[]).includes(e.id)?'checked':''}>${esc(e.text)}</label>`).join('')}</div></div>
+    <div class="field"><label>내가 추론한 정책 <small>(데이터를 보고 짐작한 정책)</small></label>${ta('l2.policy','예) 석유 보일러를 지역난방으로 바꿨을 것이다.',2)}</div>
+    <div class="row"><button class="btn" data-act="toggle" data-k="l2.reveal">${s.reveal?'공식 계획 닫기':'공식 계획과 대조하기'}</button></div>
+    ${s.reveal?`<div class="msg info"><b>${city} 공식 자료</b><br>정책: ${esc(cd.policy)}<br>한계: ${esc(cd.limit)}<br>목표: ${esc(cd.target)}<br><a href="${esc(cd.source)}" target="_blank" rel="noopener">원문 보기</a></div>`:''}
+    <div class="field"><label>효과와 한계</label>${ta('l2.limit','',2)}</div>
+    <div class="field"><label>내 도시에 가져올 전략 1개와 데이터 근거</label>${ta('l2.take','예) 지역난방 전환 — 스톡홀름 난방 배출이 2000년 184.8만 t에서 2017년 74.2만 t로 줄었다.',2)}</div>
+    <div class="row"><button class="btn primary" data-act="l2card">CASE CARD 저장</button></div>
+    ${S.out.l2?outCard('NET ZERO CITY CASE CARD',S.out.l2):''}
+    </section>`;
+  }
+  return html;
+}
+
+/* =========================================================
+   3차시 WHAT
+   ========================================================= */
+const HOURS=[...Array(24).keys()];
+const solar = (P,h)=> (h>=6&&h<=18) ? P*Math.sin(Math.PI*(h-6)/12) : 0;
+const BASE = {'건물 연료':350,'교통':250,'전력':200,'폐기물':100,'산업·재료':100};
+const SEC_C = {'건물 연료':C.amber,'교통':C.red,'전력':C.blue,'폐기물':C.teal,'산업·재료':C.violet};
+function energy(P){
+  const cons=D.building, gen=HOURS.map(h=>solar(P,h));
+  const tc=cons.reduce((a,b)=>a+b,0), tg=gen.reduce((a,b)=>a+b,0);
+  const surplus=HOURS.filter(h=>gen[h]>cons[h]);
+  const night=HOURS.reduce((a,h)=>a+Math.max(0,cons[h]-gen[h]),0);
+  return {cons,gen,tc,tg,surplus,night,bal:tg-tc};
+}
+function hbars(rows, max){
+  return `<div class="hb">${rows.map(r=>`<div class="n">${esc(r.n)}</div><div class="track"><div class="b0" style="width:${r.v0/max*100}%"></div><div class="b1" style="width:${r.v1/max*100}%;background:${r.c}"></div><span class="val">${r.v1===r.v0?fmt(r.v1):fmt(r.v0)+' → '+fmt(r.v1)}</span></div>`).join('')}</div>`;
+}
+function l3dyn(){ const s=S.l3, E=energy(+s.p); const hrs = E.surplus.length ? `${E.surplus[0]}시–${E.surplus.at(-1)+1}시` : '없음';
+  return `  <div class="chart">${lineChart({series:[{name:'전력 소비 (실측)',c:C.red,pts:HOURS.map(h=>[h,E.cons[h]])},{name:'태양광 발전 (수업용 가정)',c:C.amber,pts:HOURS.map(h=>[h,E.gen[h]]),fill:true}], xMin:0, xMax:23, xStep:3, yMax:80, yLabel:'시간당 전력(kWh)', xFmt:x=>x+'시'})}</div>
+  <div class="readout">
+    <div class="stat"><div class="k">하루 소비</div><div class="v">${fmt(E.tc)} <small>kWh</small></div></div>
+    <div class="stat"><div class="k">하루 발전</div><div class="v">${fmt(E.tg)} <small>kWh</small></div></div>
+    <div class="stat ${E.bal>=0?'hl':'warn'}"><div class="k">하루 수지 (발전−소비)</div><div class="v">${E.bal>=0?'+':''}${fmt(E.bal)} <small>kWh</small></div></div>
+    <div class="stat"><div class="k">발전 &gt; 소비 시간대</div><div class="v" style="font-size:17px">${hrs}</div></div>
+    <div class="stat warn"><div class="k">부족해서 전력망에서 받은 양</div><div class="v">${fmt(E.night)} <small>kWh</small></div></div>
+  </div>
+  <p class="src"><span class="real">실제 자료</span> 소비: BDG2 비주거 건물(${esc(D.building_id)}) 2016-01-05 시간별 실측 전력 · <a href="https://github.com/buds-lab/building-data-genome-project-2" target="_blank" rel="noopener">원자료</a><br><span class="assume">교육용 가정</span> 발전: 06–18시 사인 곡선. 날씨·그늘·장비 손실·저장장치는 넣지 않았다. 이 건물은 제로에너지 주택이 아니다.</p>
+`; }
+function l3btn(){ const s=S.l3, E=energy(+s.p); return `<button class="btn primary" data-act="l3save1" ${E.bal<0?'disabled':''}>Energy Zero 결과 저장</button>${E.bal<0?'<span class="empty">하루 수지가 0 이상이 되도록 패널 용량을 조절한다.</span>':''}${evOf(3).some(e=>e.id==='l3a')?'<span class="msg ok">DATA PASSPORT에 저장됨</span>':''}`; }
+function L3(){
+  const s=S.l3, E=energy(+s.p);
+  let html = hero(3,'WHAT','Energy Zero이면 Carbon Zero일까?','에너지 제로 건물이 많이 모이면 탄소 제로 도시가 될까?',['DATA','INTERPRET','COMPARE','REASON','PLAN','AI CHECK']);
+  const hrs = E.surplus.length ? `${E.surplus[0]}시–${E.surplus.at(-1)+1}시` : '없음';
+  html += `<section class="step">${stepHead(1,'DATA ① · INTERPRET','건물 하루 전력: 소비 vs 태양광 발전','태양광 패널 용량을 바꾸며 하루 전체의 에너지 수지를 계산한다.')}
+  ${coach('Carbon Design Coach',['태양광 발전량이 소비량보다 <b>큰 시간대</b>를 찾으세요.','그 시간만으로 이 건물을 Energy Zero라고 할 수 있을까요? <b>하루 전체</b>의 생산량과 소비량을 비교해 보세요.'])}
+  ${coachOn()?'':guide('발전량이 소비량보다 큰 시간대를 찾고, 하루 전체 합계로 에너지 수지를 판단한다.')}
+  <div class="row"><label class="inline">태양광 패널 최대 출력 <input type="range" min="0" max="80" step="5" value="${s.p}" data-range="l3.p" style="width:200px"> <b id="pval">${s.p} kW</b></label></div>
+  <div id="l3dyn">${l3dyn()}</div>
+  <div class="field"><label>하루 수지를 0 이상으로 만든 패널 용량과, 그래도 남는 문제</label>${ta('l3.note','예) 50 kW에서 하루 발전이 소비보다 많아졌지만, 밤에는 ○ kWh를 전력망에서 받아야 한다.')}</div>
+  <div class="row" id="l3btn">${l3btn()}</div>
+  </section>`;
+
+  const aDone=evOf(3).some(e=>e.id==='l3a');
+  if(!aDone) html += locked(2,'DATA ② · COMPARE','도시 Carbon Budget 공개','건물의 Energy Zero 결과를 저장하면 새 데이터가 공개된다.');
+  else {
+    const after = {...BASE, '전력':50};
+    const t0=Object.values(BASE).reduce((a,b)=>a+b,0), t1=Object.values(after).reduce((a,b)=>a+b,0);
+    html += `<section class="step">${stepHead(2,'DATA ② · COMPARE','새 데이터 공개: 도시 Carbon Budget','도시의 모든 건물이 Energy Zero가 되었다고 가정했을 때 남는 탄소를 본다.')}
+    ${coach('Carbon Design Coach',['좋아요. 이제 새로운 데이터를 공개합니다.','건물의 에너지 수지는 0에 가까운데 도시의 Carbon Budget에는 <b>탄소가 남아 있습니다.</b> 왜일까요?'])}
+    ${coachOn()?'':guide('건물이 모두 Energy Zero가 되어도 도시에 탄소가 남는 이유를 찾고, 가장 먼저 줄일 부문을 고른다.')}
+    ${hbars(Object.keys(BASE).map(k=>({n:k,v0:BASE[k],v1:after[k],c:SEC_C[k]})), 400)}
+    <div class="readout"><div class="stat"><div class="k">현재 합계</div><div class="v">${fmt(t0)} <small>천 tCO₂e/년</small></div></div><div class="stat warn"><div class="k">건물 Energy Zero 이후 남는 양</div><div class="v">${fmt(t1)} <small>천 tCO₂e/년 (${fmt(t1/t0*100)}%)</small></div></div></div>
+    <p class="src"><span class="assume">교육용 가정</span> 가상 도시의 배출량이다. 건물 전력을 건물 태양광으로 충당해 전력 부문이 200 → 50으로 줄었다고 가정했다(회색 = 원래 값). 실제 도시 예측이 아니다.</p>
+    <div class="field"><label>탄소가 남은 이유</label>${ta('l3.why','예) 건물 난방에 쓰는 가스, 자동차 연료, 폐기물 처리는 건물 전력과 관계없이 탄소를 낸다.',2)}</div>
+    <div class="field"><label>가장 먼저 줄일 부문</label><div class="choices">${Object.keys(BASE).map(k=>`<button data-act="setv" data-k="l3.first" data-v="${k}" aria-pressed="${s.first===k}">${k}</button>`).join('')}</div></div>
+    ${s.first?coach('Carbon Design Coach',[`<b>${esc(s.first)}</b>를 골랐군요. 남은 배출 중 ${esc(s.first)}는 ${after[s.first]}로 ${fmt(after[s.first]/t1*100)}%를 차지해요. ${after[s.first]===Math.max(...Object.values(after))?'가장 큰 부문이에요.':'가장 큰 부문은 아니에요. 그래도 고른 이유가 있다면 데이터로 설명해 보세요.'}`]):''}
+    <div class="field"><label>그 부문을 고른 데이터 근거</label>${ta('l3.firstwhy','',2)}</div>
+    <div class="row"><button class="btn primary" data-act="l3save2">Carbon Budget 판단 저장</button>${evOf(3).some(e=>e.id==='l3b')?'<span class="msg ok">DATA PASSPORT에 저장됨</span>':''}</div>
+    </section>`;
+  }
+
+  const bDone=evOf(3).some(e=>e.id==='l3b');
+  if(!bDone) html += locked(3,'AI CHECK','AI 기술 추천을 선택적으로 받아들이기','2단계 판단을 저장하면 열린다.');
+  else {
+    const recs=[['wind','도시 외곽에 대형 풍력발전 단지를 지으세요.','풍력은 바람 조건 데이터가 있어야 판단할 수 있다. 오늘 본 자료에는 바람 자료가 없다. ‘거부’ 또는 ‘근거 추가 후 채택’이 타당하다.','그대로 채택'],['ins','건물 단열과 차양을 강화하세요.','건물 연료(난방)는 남은 배출 중 가장 큰 부문이다. 다만 단열 효과 수치는 이 자료에 없으니, 효과를 확인할 자료를 덧붙이면 더 좋다.','거부']];
+    html += `<section class="step">${stepHead(3,'AI CHECK','AI 리터러시 미션: AI 추천을 골라서 받아들인다','각 추천을 ‘채택 / 근거 추가 후 채택 / 거부’ 중 하나로 정하고 이유를 쓴다.')}
+    ${recs.map(([k,t,fb,bad])=>`<div class="ai-card"><div class="lab">AI 추천</div>“${t}”
+      <div class="choices">${['채택','근거 추가 후 채택','거부'].map(o=>`<button data-act="setv" data-k="l3.r_${k}" data-v="${o}" aria-pressed="${s['r_'+k]===o}">${o}</button>`).join('')}</div>
+      ${ta('l3.rw_'+k,'이유 (데이터로)',2)}
+      ${s['r_'+k]?`<div class="msg ${(s['r_'+k]==='채택'&&k==='wind')||(s['r_'+k]==='거부'&&k==='ins')?'bad':'info'}">${fb}</div>`:''}</div>`).join('')}
+    </section>`;
+
+    const TECH=['건물 단열·차양','태양광 발전','히트펌프·지역난방','대중교통·보행·자전거','전기버스','폐기물 감량·자원순환','저탄소 건축 재료','녹지·물순환'];
+    html += `<section class="step">${stepHead(4,'PLAN · CREATE','MY NET ZERO ECO-CITY PLAN','기술을 많이 넣는 것이 아니라, 데이터에 맞는 기술을 고른다.')}
+    <div class="field"><label>해결할 문제</label>${ta('l3.prob','',2)}</div>
+    <div class="field"><label>적용 기술 <small>(최대 3개)</small></label><div class="choices">${TECH.map(t=>`<button data-act="tech" data-v="${t}" aria-pressed="${(s.tech||[]).includes(t)}">${t}</button>`).join('')}</div></div>
+    <div class="field"><label>기술 선택의 데이터 근거</label>${ta('l3.techwhy','예) 남은 배출 중 건물 연료가 350으로 가장 커서 단열·히트펌프를 골랐다.',2)}</div>
+    <div class="field"><label>예상 한계</label>${ta('l3.lim','예) 태양광은 밤에 발전하지 못해 저장장치나 전력망이 필요하다.',2)}</div>
+    <div class="row"><button class="btn primary" data-act="l3plan">PLAN 저장</button></div>
+    ${S.out.l3?outCard('MY NET ZERO ECO-CITY PLAN',S.out.l3):''}
+    </section>`;
+  }
+  return html;
+}
+
+/* =========================================================
+   4차시 CREATE & VERIFY
+   ========================================================= */
+const POL=[
+  {id:'solar',name:'태양광 전력 전환',sector:'전력',rate:45,kw:/태양광/},
+  {id:'insulation',name:'건물 단열·차양',sector:'건물 연료',rate:20,kw:/단열|차양|히트펌프/},
+  {id:'transit',name:'대중교통·보행 전환',sector:'교통',rate:25,kw:/대중교통|보행|자전거|버스/},
+  {id:'circular',name:'폐기물·자원순환',sector:'폐기물',rate:20,kw:/폐기물|자원순환|재활용/},
+  {id:'materials',name:'저탄소 재료',sector:'산업·재료',rate:15,kw:/저탄소 재료|목재|재료/},
+  {id:'green',name:'녹지·물순환',sector:null,rate:0,kw:/녹지|숲|공원|물순환/}
+];
+function sim(){
+  const out={...BASE};
+  S.l4.pol.forEach(id=>{ const p=POL.find(x=>x.id===id); if(p.sector) out[p.sector]=Math.round(BASE[p.sector]*(1-p.rate/100)); });
+  const t0=Object.values(BASE).reduce((a,b)=>a+b,0), t1=Object.values(out).reduce((a,b)=>a+b,0);
+  return {out,t0,t1,red:(1-t1/t0)*100};
+}
+const PF=[['problem','해결할 환경 문제'],['data','데이터 근거'],['goal','탄소감축 목표'],['energy','에너지 시스템'],['zeb','제로에너지 건축'],['traffic','교통'],['circ','자원순환'],['green','녹지/탄소흡수'],['space','공간 배치']];
+function promptText(){ const f=S.l4.pf; return PF.map(([k,n])=>`[${n}] ${f[k]||''}`).join('\n'); }
+function critic(){
+  const f=S.l4.pf, all=PF.map(([k])=>f[k]||'').join(' '), pp=S.ev.map(e=>e.text).join(' ')+' '+(S.l3.techwhy||'')+' '+(S.l2.take||'');
+  const m=[];
+  PF.forEach(([k,n])=>{ if(!(f[k]||'').trim()) m.push(['bad',`[${n}] 칸이 비어 있습니다. 채우거나, 이 도시에 필요 없는 이유를 적으세요.`]); });
+  S.l4.pol.forEach(id=>{ const p=POL.find(x=>x.id===id); if(!p.kw.test(all)) m.push(['bad',`시뮬레이터에서 <b>${p.name}</b>을(를) 선택했지만 프롬프트에는 없습니다. 추가할까요, 아니면 제외한 이유를 설명할까요?`]); });
+  [['풍력',/풍력/],['수소',/수소/],['원자력',/원자력|핵발전/],['탄소포집',/탄소\s?포집|CCS/],['지열',/지열/]].forEach(([n,re])=>{ if(re.test(all) && !re.test(pp)) m.push(['bad',`<b>${n}</b>을(를) 넣었지만 DATA PASSPORT에는 ${n} 조건을 뒷받침하는 데이터가 없습니다. 근거를 추가하거나 설계에서 제외하세요.`]); });
+  if(/흡수/.test(f.green||'')) m.push(['info','녹지의 탄소 흡수량은 근거 자료가 없어 시뮬레이터에서 0으로 계산했습니다. 그늘·열섬 완화·물순환처럼 다른 가치로 설명해 보세요.']);
+  if(f.data && !/\d/.test(f.data)) m.push(['bad','[데이터 근거]에 수치가 없습니다. 1~3차시에서 읽은 숫자를 넣으세요.']);
+  const g=(f.goal||'').match(/(\d+(?:\.\d+)?)\s*%/); const r=sim().red;
+  if(g && Math.abs(+g[1]-r)>5) m.push(['bad',`[탄소감축 목표] ${g[1]}%는 시뮬레이터 결과(${fmt(r,1)}%)와 다릅니다. 목표를 조정하거나 정책을 다시 고르세요.`]);
+  if(!m.length) m.push(['ok','최종 프롬프트의 각 요소가 데이터·계획과 연결되어 있습니다. 마지막으로 각 요소가 어떤 데이터에서 왔는지 직접 확인해 봅시다.']);
+  return m;
+}
+function L4(){
+  const s=S.l4, R=sim();
+  let html = hero(4,'CREATE & VERIFY','데이터를 3D 탄소중립 생태도시로 바꿔라','내가 만든 도시는 친환경적으로 보이기만 하는가, 데이터로 탄소중립을 설명할 수 있는가?',['DATA','PLAN','AI CHECK','CREATE','VERIFY']);
+  /* step1 passport dashboard */
+  const cnt=[1,2,3].map(l=>evOf(l).length);
+  html += `<section class="step">${stepHead(1,'DATA ①','나의 DATA PASSPORT','1~3차시에 저장한 근거가 4차시 설계의 기본 데이터다.')}
+  <div class="readout">${[1,2,3].map((l,i)=>`<div class="stat ${cnt[i]?'hl':'warn'}"><div class="k">${l}차시 근거</div><div class="v">${cnt[i]} <small>개 · 산출물 ${S.out['l'+l]?'✓':'—'}</small></div></div>`).join('')}</div>
+  ${S.ev.length?`<div class="ev-list">${S.ev.map(e=>`<label style="cursor:default"><span class="chip">${e.l}차시</span>${esc(e.text)}</label>`).join('')}</div>`:'<p class="empty">아직 저장한 근거가 없다. 1~3차시를 먼저 진행한다.</p>'}
+  </section>`;
+
+  /* step2 simulator */
+  html += `<section class="step">${stepHead(2,'DATA ② · PLAN','Carbon Budget 시뮬레이터','정책을 최대 3개 고르고, 각 정책을 DATA PASSPORT 근거와 연결한다.')}
+  ${coachOn()?'':guide('정책을 최대 3개 고르고, 정책마다 근거를 하나씩 연결한다.')}
+  <div class="pol">${POL.map(p=>`<button data-act="pol" data-v="${p.id}" aria-pressed="${s.pol.includes(p.id)}"><b>${p.name}</b><small>${p.sector?`${p.sector} 부문 −${p.rate}% (가정)`:'탄소 감축 0으로 계산 · 흡수량 근거 없음'}</small></button>`).join('')}</div>
+  ${hbars(Object.keys(BASE).map(k=>({n:k,v0:BASE[k],v1:R.out[k],c:SEC_C[k]})),400)}
+  <div class="readout"><div class="stat"><div class="k">정책 적용 전</div><div class="v">${fmt(R.t0)} <small>천 tCO₂e/년</small></div></div><div class="stat"><div class="k">정책 적용 후</div><div class="v">${fmt(R.t1)} <small>천 tCO₂e/년</small></div></div><div class="stat hl"><div class="k">감축률</div><div class="v">${fmt(R.red,1)} <small>%</small></div></div><div class="stat warn"><div class="k">아직 남은 배출</div><div class="v">${fmt(R.t1)} <small>→ 넷제로까지 남은 양</small></div></div></div>
+  <p class="src"><span class="assume">교육용 가정</span> 해당 부문 기준 배출량 × 감축률만큼 뺀다. 정책 간 상호작용, 지역별 배출계수는 넣지 않았다. 실제 도시 예측이 아니라 정책의 <b>상대적 효과</b>를 비교하는 모형이다.</p>
+  ${s.pol.length?`<div class="field"><label>정책별 근거 연결</label>${s.pol.map(id=>{const p=POL.find(x=>x.id===id);return `<div class="row"><b style="min-width:150px">${p.name}</b><select data-sel="l4.link.${id}" style="flex:1;min-width:220px"><option value="">— 근거 선택 —</option>${S.ev.map(e=>`<option value="${e.id}" ${s.link[id]===e.id?'selected':''}>[${e.l}차시] ${esc(e.text.slice(0,60))}</option>`).join('')}</select></div>`;}).join('')}</div>`:''}
+  </section>`;
+
+  /* step3 prompt + critic */
+  html += `<section class="step">${stepHead(3,'AI CHECK · CREATE','3D 프롬프트 만들기와 AI Critic 검토','먼저 내가 프롬프트를 쓰고, AI는 데이터와 맞지 않는 부분만 지적한다.')}
+  <div class="row"><button class="btn" data-act="prefill">계획에서 불러오기</button><span class="empty">빈 칸에만 3차시 PLAN과 시뮬레이터 결과를 채운다.</span></div>
+  ${PF.map(([k,n])=>`<div class="field"><label>[${n}]</label><input type="text" data-k="l4.pf.${k}" value="${esc(s.pf[k]||'')}" style="width:100%"></div>`).join('')}
+  ${coachOn()
+    ? `<div class="row"><button class="btn primary" data-act="critic">AI Critic에게 검토 받기</button><span class="empty">검토 ${s.reviews||0}회</span></div>
+       ${s.crit?`<div class="coach"><div class="av">AI</div><div class="bubble"><div class="role">AI Critic</div>${s.crit.map(([t,x])=>`<div class="msg ${t}">${x}</div>`).join('')}</div></div>`:''}`
+    : `<div class="field"><label>스스로 점검하기</label><div class="ev-list">${['모든 칸을 채웠다','시뮬레이터에서 고른 정책이 프롬프트에 모두 들어 있다','근거 데이터가 없는 기술을 넣지 않았다','[데이터 근거]에 수치가 있다','감축 목표가 시뮬레이터 결과와 맞다'].map((t,i)=>`<label><input type="checkbox" data-evk="l4.self" value="${i}" ${(s.self||[]).includes(String(i))?'checked':''}>${t}</label>`).join('')}</div></div>`}
+  <div class="field"><label>최종 프롬프트</label><div class="prompt-box">${esc(promptText())}</div></div>
+  <div class="row"><button class="btn" data-act="copyPrompt">프롬프트 복사</button><span class="empty" id="copyMsg"></span></div>
+  <p class="src">복사한 프롬프트를 3D 생성 도구(예: Meshy, meshy.ai)에 넣어 도시를 만든다. 만든 결과는 다음 단계에서 계획과 비교한다.</p>
+  </section>`;
+
+  /* step4 verify */
+  const items = [...s.pol.map(id=>POL.find(x=>x.id===id).name), '에너지 시스템','교통','공간 배치'];
+  html += `<section class="step">${stepHead(4,'VERIFY','3D 결과 검증하기','3D 결과는 완성물이 아니라 ‘검증해야 할 AI 산출물’이다.')}
+  <table class="matrix"><thead><tr><th>계획 요소</th><th>표현됨</th><th>누락</th><th>잘못 표현</th></tr></thead><tbody>
+  ${items.map((it,i)=>`<tr><td>${esc(it)}</td>${['표현됨','누락','잘못 표현'].map(o=>`<td><input type="radio" name="ver${i}" data-rad="l4.ver.${i}" value="${o}" ${s.ver[i]===o?'checked':''}></td>`).join('')}</tr>`).join('')}
+  </tbody></table>
+  <div class="field"><label>AI가 임의로 추가한 요소 <small>(계획에 없던 것)</small></label>${ta('l4.added','예) 계획에 없던 풍력발전기가 산 위에 생겼다.',2)}</div>
+  <div class="field"><label>과학적으로 부적절한 표현과 수정 방법 <small>(최소 1개)</small></label>${ta('l4.wrong','예) 태양광 패널이 북쪽을 향해 있다 → 남향으로 바꾸도록 프롬프트에 “남향 지붕 태양광”을 추가한다.',2)}</div>
+  <div class="row"><button class="btn primary" data-act="l4final">최종 산출물 저장</button></div>
+  ${S.out.l4?outCard('최종 산출물',S.out.l4):''}
+  </section>`;
+  return html;
+}
+
+/* ---------- passport ---------- */
+function outCard(title,o){ return `<div class="out"><h3>${esc(title)}</h3><dl>${Object.entries(o).map(([k,v])=>`<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join('')}</dl></div>`; }
+function PP(){
+  let html = `<section class="hero"><div class="kicker">DATA PASSPORT</div><h1>나의 탐구 기록</h1><div class="q">선택한 데이터, 읽은 수치, 주장, 수정 기록이 모두 여기에 쌓인다.</div></section>`;
+  [1,2,3,4].forEach(l=>{
+    const name={1:'CER 카드',2:'CASE CARD',3:'ECO-CITY PLAN',4:'최종 산출물'}[l];
+    html += `<div class="pp-sec"><h2>${l}차시</h2>${evOf(l).length?`<div class="ev-list">${evOf(l).map(e=>`<label style="cursor:default">${esc(e.text)}</label>`).join('')}</div>`:''}${S.out['l'+l]?outCard(name,S.out['l'+l]):'<p class="empty">아직 산출물이 없다.</p>'}</div>`;
+  });
+  const rev = S.log.filter(x=>/수정|revise|critic/.test(x.ev)).length;
+  html += `<div class="pp-sec"><h2>탐구 로그</h2><p class="empty">기록 ${S.log.length}건 · 답변 수정·재검토 ${rev}건 · 모드: ${coachOn()?'AI 코치':'비교집단(코치 없음)'}</p>
+  <div class="row"><button class="btn" data-act="copyAll">전체 기록 복사(텍스트)</button><button class="btn" data-act="copyJson">JSON 복사</button><button class="btn" data-act="dl">JSON 내려받기</button><button class="btn danger" data-act="reset">모든 기록 지우기</button><span class="empty" id="ppMsg"></span></div></div>`;
+  return html;
+}
+function allText(){
+  let t='NET ZERO ECO-CITY · DATA PASSPORT\n';
+  [1,2,3,4].forEach(l=>{ t+=`\n[${l}차시]\n`; evOf(l).forEach(e=>t+=`- ${e.text}\n`); if(S.out['l'+l]) Object.entries(S.out['l'+l]).forEach(([k,v])=>t+=`· ${k}: ${v}\n`); });
+  return t;
+}
+
+/* ---------- actions ---------- */
+const need = (cond, msg) => { if(!cond){ flash(msg); return false; } return true; };
+function flash(msg){ const d=$('#dlg'); $('#dlgText').textContent=msg; $('#dlgNo').style.display='none'; $('#dlgYes').textContent='확인'; d.classList.add('open'); $('#dlgYes').onclick=()=>d.classList.remove('open'); }
+function confirmBox(msg, yes){ const d=$('#dlg'); $('#dlgText').textContent=msg; $('#dlgNo').style.display=''; $('#dlgYes').textContent='지우기'; d.classList.add('open'); $('#dlgNo').onclick=()=>d.classList.remove('open'); $('#dlgYes').onclick=()=>{d.classList.remove('open'); yes();}; }
+async function copy(text, el){ try{ await navigator.clipboard.writeText(text); if(el) el.textContent='복사했다.'; }catch(e){ if(el) el.textContent='복사가 막혀 있다. 아래 내용을 직접 선택해 복사한다.'; } }
+
+const ACT = {
+  setv(b){ const k=b.dataset.k, v=b.dataset.v, old=get(k); set(k,v); log(S.tab,'choose',{k,v,old}); if(k==='l1.keep'&&v==='수정') log(1,'revise',{}); if(k==='l2.same'&&v==='판단이 바뀌었다') log(2,'revise',{}); },
+  toggle(b){ set(b.dataset.k, !get(b.dataset.k)); },
+  l1pick(b){ S.l1.pick=b.dataset.v; log(1,'select-data',b.dataset.v); },
+  l1save1(){ const s=S.l1; if(!need((s.notice||'').trim().length>5,'눈에 띄는 변화를 먼저 써야 한다.')) return; addEv('l1a',1,`${CN[s.c]} CO₂ 배출량 ${s.y1}년 ${fmt(co2(s.c,s.y1),1)} → ${s.y2}년 ${fmt(co2(s.c,s.y2),1)} 백만 t (${fmt(co2(s.c,s.y2)/co2(s.c,s.y1),2)}배)`); log(1,'initial',s.notice); },
+  l1save2(){ const s=S.l1, m=mix(s.c,s.y3), m0=D[s.c].mix[0]; if(!need((s.compare||'').trim().length>5,'비교해서 알게 된 점을 먼저 써야 한다.')) return; addEv('l1b',1,`${CN[s.c]} 1차에너지 중 저탄소 비율 ${m0[0]}년 ${fmt(m0[2],1)}% → ${m[0]}년 ${fmt(m[2],1)}%, 화석연료 ${fmt(m0[1],1)}% → ${fmt(m[1],1)}%`); log(1,'compare',s.compare); },
+  l1cer(){ const s=S.l1, use=(s.use||[]); if(!need(use.length>=2,'Evidence에 데이터 근거를 2개 이상 체크해야 한다.')) return; if(!need((s.claim||'').trim()&&(s.reason||'').trim(),'Claim과 Reasoning을 모두 써야 한다.')) return;
+    S.out.l1={'Claim':s.claim,'Evidence':use.map(id=>S.ev.find(e=>e.id===id)?.text).filter(Boolean).join('\n'),'Reasoning':s.reason,'처음 설명':s.notice||'','유지/수정':`${s.keep||'—'} · ${s.revise||''}`}; log(1,'output','CER'); },
+  l2save1(){ const s=S.l2; if(!need(s.first&&s.var,'도시와 변수를 먼저 골라야 한다.')) return; addEv('l2a',2,`총배출량: 스톡홀름 ${STO.years[0]}→${STO.years.at(-1)} ${fmt(pct(STO.total[0],STO.total.at(-1)),1)}%, 코펜하겐 ${CPH.years[0]}→${CPH.years.at(-1)} ${fmt(pct(CPH.total[0],CPH.total.at(-1)),1)}% (첫 판단: ${s.first}, 변수: ${s.var})`); log(2,'initial',{first:s.first,var:s.var,why:s.why1}); },
+  l2save2(){ const s=S.l2; if(!need((s.compare||'').trim().length>5,'알게 된 점을 먼저 써야 한다.')) return; addEv('l2b',2,`부문 구성: 스톡홀름(2017) 교통 47%·건물 난방·전기 53% / 코펜하겐(2024) 교통 41%·건물 난방·전기 45%, 친환경 통행 71%`); log(2,'compare',s.compare); },
+  l2card(){ const s=S.l2; if(!need((s.take||'').trim(),'내 도시에 가져올 전략을 써야 한다.')) return; S.out.l2={'도시':s.city||'코펜하겐','문제':s.prob||'','데이터 증거':(s.use||[]).map(id=>S.ev.find(e=>e.id===id)?.text).filter(Boolean).join('\n'),'추론한 정책':s.policy||'','효과와 한계':s.limit||'','첫 판단 → 재판단':`${s.first||'—'} → ${s.same||'—'} (${s.why2||''})`,'AI 판단 검증':`${s.ai||'—'} · ${s.aiwhy||''}`,'가져올 전략':s.take}; log(2,'output','CASE'); },
+  l3save1(){ const s=S.l3, E=energy(+s.p); addEv('l3a',3,`건물 하루 소비 ${fmt(E.tc)} kWh, 태양광 ${s.p} kW일 때 발전 ${fmt(E.tg)} kWh (수지 ${E.bal>=0?'+':''}${fmt(E.bal)}), 그래도 전력망에서 ${fmt(E.night)} kWh 필요`); log(3,'energy-zero',{p:s.p,note:s.note}); },
+  l3save2(){ const s=S.l3; if(!need(s.first,'가장 먼저 줄일 부문을 골라야 한다.')) return; addEv('l3b',3,`가상 도시 Carbon Budget 1000 → 건물 Energy Zero 후 850 (85% 남음). 먼저 줄일 부문: ${s.first}`); log(3,'carbon-budget',{first:s.first,why:s.why}); },
+  tech(b){ const t=S.l3.tech||[], v=b.dataset.v; S.l3.tech = t.includes(v)? t.filter(x=>x!==v) : (t.length<3? [...t,v] : (flash('기술은 최대 3개까지 고른다.'), t)); },
+  l3plan(){ const s=S.l3; if(!need((s.tech||[]).length,'적용 기술을 1개 이상 골라야 한다.')) return; S.out.l3={'해결할 문제':s.prob||'','기준 Carbon Budget':'가상 도시 1000 천 tCO₂e/년 (건물 Energy Zero 후 850)','가장 먼저 줄일 부문':s.first||'','적용 기술':(s.tech||[]).join(', '),'데이터 근거':s.techwhy||'','예상 한계':s.lim||'','AI 추천 판단':`풍력: ${s.r_wind||'—'} / 단열: ${s.r_ins||'—'}`}; log(3,'output','PLAN'); },
+  pol(b){ const v=b.dataset.v, p=S.l4.pol; S.l4.pol = p.includes(v)? p.filter(x=>x!==v) : (p.length<3? [...p,v] : (flash('정책은 최대 3개까지 고른다.'), p)); log(4,'policy',S.l4.pol); },
+  prefill(){ const f=S.l4.pf, l3=S.l3, R=sim(); const fill=(k,v)=>{ if(!(f[k]||'').trim() && v) f[k]=v; };
+    fill('problem', l3.prob); fill('data', S.ev.find(e=>e.id==='l3b')?.text || S.ev[0]?.text); fill('goal', S.l4.pol.length?`정책 ${S.l4.pol.length}개로 배출 ${fmt(R.red,1)}% 감축`:'');
+    fill('energy', S.l4.pol.includes('solar')?'남향 지붕 태양광과 전력망 연결':''); fill('zeb', S.l4.pol.includes('insulation')?'고단열 외벽, 창문 차양':''); fill('traffic', S.l4.pol.includes('transit')?'버스 전용로, 자전거 도로, 보행 중심 거리':''); fill('circ', S.l4.pol.includes('circular')?'자원순환 센터':''); save(); },
+  critic(){ S.l4.crit=critic(); S.l4.reviews=(S.l4.reviews||0)+1; log(4,'critic',{n:S.l4.reviews,prompt:promptText(),issues:S.l4.crit.filter(x=>x[0]==='bad').length}); },
+  copyPrompt(){ copy(promptText(), $('#copyMsg')); log(4,'copy-prompt',promptText()); },
+  l4final(){ const s=S.l4; if(!need((s.wrong||'').trim(),'과학적으로 부적절한 표현을 최소 1개 찾아 써야 한다.')) return; const R=sim();
+    S.out.l4={'① 최종 Carbon Budget':`${fmt(R.t0)} → ${fmt(R.t1)} 천 tCO₂e/년 (${fmt(R.red,1)}% 감축, 교육용 가정)`,'② 선택 정책과 근거':s.pol.map(id=>`${POL.find(x=>x.id===id).name} ← ${S.ev.find(e=>e.id===s.link[id])?.text||'근거 미연결'}`).join('\n'),'③ 3D 프롬프트':promptText(),'④ 3D 결과 대조':Object.entries(s.ver).map(([i,v])=>v).join(', '),'⑤ AI 오류·한계 검증':`추가된 요소: ${s.added||'—'}\n부적절한 표현: ${s.wrong}`,'AI Critic 검토 횟수':String(s.reviews||0)}; log(4,'output','FINAL'); },
+  copyAll(){ copy(allText(), $('#ppMsg')); },
+  copyJson(){ copy(JSON.stringify(S,null,1), $('#ppMsg')); },
+  dl(){ try{ const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([JSON.stringify(S,null,1)],{type:'application/json'})); a.download='netzero-passport.json'; a.click(); $('#ppMsg').textContent='내려받기를 시도했다. 안 되면 JSON 복사를 쓴다.'; }catch(e){ $('#ppMsg').textContent='내려받기가 막혀 있다. JSON 복사를 쓴다.'; } },
+  reset(){ confirmBox('이 기기에 저장된 모든 탐구 기록을 지운다.', ()=>{ const m=S.mode; S=fresh(); S.mode=m; save(); render(); }); return 'skip'; }
+};
+
+/* ---------- render ---------- */
+const VIEWS={'1':L1,'2':L2,'3':L3,'4':L4,'pp':PP};
+function render(keepScroll){
+  const y=window.scrollY;
+  $('#tabs').innerHTML = [['1','1차시 WHY'],['2','2차시 HOW'],['3','3차시 WHAT'],['4','4차시 CREATE'],['pp','PASSPORT']].map(([k,t])=>`<button data-tab="${k}" aria-current="${S.tab===k}" class="${S.out['l'+k]?'done':''}">${t}</button>`).join('');
+  $('#app').innerHTML = VIEWS[S.tab]();
+  $('#modeBtn').textContent = coachOn()?'비교집단 모드로 전환':'AI 코치 모드로 전환';
+  $('#modeTxt').innerHTML = coachOn()?'<span class="modebadge">현재: AI 코치 모드(실험집단)</span>':'<span class="modebadge ctl">현재: 비교집단 모드 — 같은 데이터·활동, AI 코치 질문과 피드백 없음</span>';
+  if(keepScroll) window.scrollTo(0,y);
+}
+document.addEventListener('click', e=>{
+  const t=e.target.closest('[data-tab]'); if(t){ S.tab=t.dataset.tab; save(); render(); window.scrollTo(0,0); return; }
+  const sg=e.target.closest('[data-seg] button'); if(sg){ set(sg.parentElement.dataset.seg, sg.dataset.v); render(true); return; }
+  const a=e.target.closest('[data-act]'); if(a){ const r=ACT[a.dataset.act](a); save(); if(r!=='skip') render(true); }
+});
+document.addEventListener('input', e=>{
+  const k=e.target.dataset.k; if(k){ set(k, e.target.value); if(k.startsWith('l4.pf')){ const pb=$('.prompt-box'); if(pb) pb.textContent=promptText(); } return; }
+  const rg=e.target.dataset.range; if(rg){ set(rg, +e.target.value); $('#pval').textContent=e.target.value+' kW'; $('#l3dyn').innerHTML=l3dyn(); $('#l3btn').innerHTML=l3btn(); }
+});
+document.addEventListener('change', e=>{
+  const sl=e.target.dataset.sel; if(sl){ set(sl, isNaN(+e.target.value)||e.target.value===''?e.target.value:+e.target.value); render(true); return; }
+  const ek=e.target.dataset.evk; if(ek){ const cur=new Set(get(ek)||[]); e.target.checked?cur.add(e.target.value):cur.delete(e.target.value); set(ek,[...cur]); return; }
+  const rd=e.target.dataset.rad; if(rd){ set(rd, e.target.value); }
+});
+$('#modeBtn').onclick=()=>{ S.mode=coachOn()?'control':'coach'; save(); render(true); };
+render();
+</script>
+</body>
+</html>
