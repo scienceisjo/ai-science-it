@@ -14,7 +14,7 @@
     '1-0': ['대상', '감소 구간', '감소 구간과 원인'],
     '1-1': ['집중 사건', '잠정 가설', '가설 선택 이유'],
     '1-2': ['심사 사건', '자료의 관찰 사실', '자료의 해석', '판단', '판단 이유'],
-    '1-3': ['확인한 사실', '잠정 설명', '추가 확인'],
+    '1-3': ['1차 대멸종', '2차 대멸종', '3차 대멸종', '4차 대멸종', '5차 대멸종'],   // 11-13 서술 3칸 → 대멸종별 원인 가설 고르기
     '2-0': ['자료 0', '자료 1', '자료 2', '분류 이유'],
     '2-1': ['순서 0', '순서 1', '순서 2', '순서 3', '길이 0', '길이 1', '길이 2', '길이 3', '비율 해석'],
     '2-2': ['자료 A', '자료 B', '분류 근거'],
@@ -28,9 +28,10 @@
     '4-2': ['동료의 지지', '동료 질문', '설명 수정'],
     '4-3': ['탐구 제목', '시대 선정', '환경 특징', '화석 근거', '변천 설명', '결론', '마지막 문장']
   };
+  const era = { '1차 대멸종': '오르도비스기 말', '2차 대멸종': '데본기 말', '3차 대멸종': '페름기 말', '4차 대멸종': '트라이아스기 말', '5차 대멸종': '백악기 말' };
   const questions = Object.entries(fields).flatMap(([k, names]) => {
     const [l, s] = k.split('-').map(Number);
-    return names.map(name => ({ key: k + '|' + name, lesson: l, step: s, stepName: steps[l - 1][s], label: name, path: ['records', k, name] }));
+    return names.map(name => ({ key: k + '|' + name, lesson: l, step: s, stepName: steps[l - 1][s], label: era[name] ? name + '(' + era[name] + ') 원인 가설' : name, path: ['records', k, name] }));
   });
   const labels = Object.fromEntries(questions.map(q => [q.key, q.stepName + ' · ' + q.label]));
   const place = (id, lesson) => {
@@ -58,7 +59,7 @@
     // 연구 지표(학생별 기록·반 전체 지표). 횟수·시간은 점수에 넣지 않는다(루브릭 운영 유의사항)
     recordRoot: ['records'],
     answerOf: (root, key) => { const m = /^(\d-\d)\|(.+)$/.exec(key); return m && root && root[m[1]] ? root[m[1]][m[2]] : undefined; },
-    choiceKeys: ['1-0|대상', '1-1|집중 사건', '1-1|잠정 가설', '1-2|판단', '2-2|자료 A', '2-2|자료 B', '4-1|설명 상태'],
+    choiceKeys: ['1-0|대상', '1-1|집중 사건', '1-1|잠정 가설', '1-2|판단', '1-3|1차 대멸종', '1-3|2차 대멸종', '1-3|3차 대멸종', '1-3|4차 대멸종', '1-3|5차 대멸종', '2-2|자료 A', '2-2|자료 B', '4-1|설명 상태'],
     transitionKey: null,
     columns: [
       { id: 'time', label: '학습 시간', unit: '분', get: r => Math.round(Object.values((r && r.active) || {}).reduce((a, b) => a + (Number(b) || 0), 0) / 60), title: '화면이 보이고 조작이 있던 시간(선생님이 멈춘 시간 빼고)' },

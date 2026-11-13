@@ -1,6 +1,6 @@
 'use strict';
 (() => {
- const version='fossil-scaffold-20261110-v1';
+ const version='fossil-scaffold-20261113-v1';
  const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  const refs={
   P1:['Shen 외(2018) · 중국 펑라이탄 지층 연구','https://profiles.si.edu/display/sro_149827'],
@@ -18,6 +18,8 @@
  };
  const source=id=>`<a class="sc-source" href="${refs[id][1]}" target="_blank" rel="noopener">[${id}] ${refs[id][0]}</a>`;
  const hypotheses=['기후 변화설','수륙 분포 변화설','해양 무산소설','화산 폭발설','소행성 충돌설','복합 원인 / 보류'];
+ // 1-4 조사 결과 보고: 1-1 그래프의 다섯 감소 구간(marine-guide.js 「다른 사건은 어디일까?」와 같은 이름)
+ const extinctions=[['1차','오르도비스기 말'],['2차','데본기 말'],['3차','페름기 말'],['4차','트라이아스기 말'],['5차','백악기 말']];
  const hypothesisText=['기온·빙하·해수면의 변화가 생물의 서식 조건을 바꾼다.','대륙과 바다의 배치가 달라져 서식 공간과 해류가 바뀐다.','바닷물에 녹아 있는 산소가 부족해 생존이 어려워진다.','대규모 화산 활동이 기체와 물질을 내보내 기후·바다에 영향을 준다.','큰 천체의 충돌이 대기와 지표의 환경을 급격히 바꾼다.'];
  const cases={
   permian:{name:'페름기 말',boundary:'고생대 말 → 중생대 초',scope:'약 2억 5200만 년 전 · 중국 펑라이탄 해양 지층, 판게아, 시베리아 트랩 자료',
@@ -35,12 +37,15 @@
  function glossary(){return `<details class="sc-details"><summary>낯선 증거 용어, 쉬운 말로</summary><dl class="sc-glossary"><dt>탄소 동위원소</dt><dd>같은 탄소이지만 질량이 다른 종류다. 그 비율의 변화는 탄소가 이동하고 순환한 방식의 단서가 된다. 비율 하나가 화산의 지문처럼 원인을 확정하지는 않는다.</dd><dt>해수 온도 지표</dt><dd>옛 바다에 온도계를 꽂아 잰 값이 아니다. 물질의 특성과 온도의 관계를 이용해 과거 온도를 추정하는 간접 단서다.</dd><dt>이리듐 농도 이상</dt><dd>주변 층보다 이리듐이라는 원소가 유난히 많이 검출된 상태다. 충돌 구조·충돌로 생긴 물질 등과 함께 해석한다.</dd><dt>판게아</dt><dd>여러 대륙이 하나로 모여 있던 초대륙. ‘모든 땅’이라는 뜻이다.</dd><dt>시베리아 트랩</dt><dd>지금의 시베리아에 넓게 쌓인 현무암 지대. 땅의 갈라진 틈에서 용암이 오랫동안 흘러나와 만들어졌다.</dd><dt>화산 기원 물질</dt><dd>화산에서 나온 재 등이 굳어 지층에 남은 것이다. 화산 활동이 있었다는 근거와, 그것이 멸종을 일으킨 과정의 근거는 구분한다.</dd></dl>${source('P1')} ${source('K1')}</details>`;}
  function caseEvidence(id){const c=cases[id];return `<article class="sc-case" data-case="${id}"><h3>${c.name} · ${c.boundary}</h3><p class="sc-scope">${c.scope}</p>${c.clues.map(([r,f,i])=>`<div class="sc-evidence-row"><div><b>자료가 보고한 내용</b><p>${f}</p></div><div><b>함께 읽는 뜻</b><p>${i}</p></div>${source(r)}</div>`).join('')}<p class="sc-limit"><b>여기까지는 아직</b> ${c.limit}</p></article>`;}
  function casesView(){return `<div class="sc-cases">${Object.keys(cases).map((id,i)=>`<details class="sc-details" ${i===0?'open':''}><summary>${cases[id].name} 증거 묶음</summary>${caseEvidence(id)}</details>`).join('')}</div>`;}
- function evidence1(s){
+ function hypothesesView(open){return `<details class="sc-details" ${open?'open':''}><summary>다섯 가설의 뜻</summary>${hypotheses.slice(0,5).map((h,i)=>`<h3>${h}</h3><p>${hypothesisText[i]}</p>`).join('')}<p>서로 배타적인 정답 목록이 아닙니다. 화산 활동과 기후 변화처럼 연결될 수 있습니다.</p></details>`;}
+ function evidence1(s,h){
+  if(s===3)return `<h2>다섯 번의 침묵과 원인 가설 짝짓기</h2>${help('고르기로 정리하는 보고',`<p>그래프에서 찾은 다섯 감소 구간마다 원인으로 가장 그럴듯한 가설을 하나씩 고르세요. 근거가 부족하면 <b>복합 원인 / 보류</b>를 골라도 됩니다.</p><p>${extinctions.map(([n,name])=>`${n} ${name}`).join(' · ')}</p><p>페름기 말과 백악기 말은 원인 가설 회의의 증거 묶음을 다시 보고 고르세요.</p>`)}${hypothesesView(true)}${casesView()}<h2>보고 전에 다시 펼치는 기록</h2>${h&&h.previousRecords?h.previousRecords(1,3):''}<div class="note">모둠 30초 보고: 고른 짝 가운데 가장 자신 있는 것 하나와 그 근거 자료 번호.</div>`;
   if(s===1)return `<h2>가설은 증거를 찾아가는 출발점</h2>${help('오늘은 한 사건을 집중 조사',`<p>페름기 말 또는 백악기 말의 <b>자료가 보고한 내용</b>을 읽고, 설명할 가설을 하나 고르세요. 아직 근거가 부족하면 보류해도 됩니다.</p>`)}${casesView()}<details class="sc-details"><summary>다섯 가설의 뜻</summary>${hypotheses.slice(0,5).map((h,i)=>`<h3>${h}</h3><p>${hypothesisText[i]}</p>`).join('')}<p>서로 배타적인 정답 목록이 아닙니다. 화산 활동과 기후 변화처럼 연결될 수 있습니다.</p></details>${glossary()}`;
   return `<h2>같은 증거를 다시 읽고 판단하기</h2>${help('사실 → 뜻 → 내 판단','<ol><li>집중할 사건의 보고 내용을 확인합니다.</li><li>해설을 읽고 내 가설과 연결되는 이유를 생각합니다.</li><li>가설을 유지·수정·보류하고, 아직 필요한 자료를 고릅니다.</li></ol>')}${casesView()}${glossary()}${help('추가 자료를 떠올리는 질문','<p>정확한 시기를 더 알아야 할까? 다른 지역도 같은지 봐야 할까? 생물이 영향을 받은 과정을 더 확인해야 할까? 가장 필요한 하나를 골라 이유를 쓰세요.</p>')}`;
  }
  function forms1(s,h){const {field,selectField,previousRecords}=h;
-  if(s===1)return selectField('집중 사건','집중 조사할 사건',Object.values(cases).map(c=>c.name))+selectField('잠정 가설','지금 자료와 연결해 볼 가설',hypotheses)+field('가설 선택 이유','어떤 단서 때문에 이 가설을 살펴보려 하나요?','[자료 번호]의 ___은 ___와 관련이 있다고 생각한다. 다만 ___은 아직 확인해야 한다.');
+  if(s===1)return selectField('집중 사건','집중 조사할 사건',Object.values(cases).map(c=>c.name))+selectField('잠정 가설','지금 자료와 연결해 볼 가설',hypotheses)+field('가설 선택 이유','어떤 단서 때문에 이 가설을 살펴보려 하나요?','단서의 ___는 가설 ___와 관련이 있다고 생각한다.');
+  if(s===3)return extinctions.map(([n,name])=>selectField(n+' 대멸종',n+' · '+name,hypotheses)).join('');
   return `<details class="sc-details"><summary>내가 앞에서 세운 가설</summary>${previousRecords(1,2)}</details>`+selectField('심사 사건','집중 심사할 사건',Object.values(cases).map(c=>c.name))+field('자료의 관찰 사실','자료에서 확인한 내용 하나','[P1 또는 K1 등]에 ___이라고 보고되었다. 제공된 해석을 참고해 한 문장으로 정리하세요.')+field('자료의 해석','그 단서는 내 가설과 왜 연결되나요?','___이라면 ___의 변화가 생길 수 있으므로 이 단서는 ___ 가설과 관련된다.')+selectField('판단','다시 검토한 판단',['유지','수정','보류'])+field('판단 이유','판단의 이유와 다음에 볼 자료 하나','___ 때문에 판단을 ___했다. 아직 ___을 모르므로 ___ 자료를 더 보겠다.');
  }
  function timeline(){return help('100cm가 지구 역사 전체라면',`<p><b>1% = 1cm</b>입니다. 예를 들어 수업 자료의 고생대 비율 6.3%를 옮기면 <b>100cm × 6.3 ÷ 100 = 6.3cm</b>입니다.</p><p>나머지 세 시대도 같은 방법으로 옮기고, 과거에서 현재 방향으로 놓아 보세요. 이 비율은 원안의 반올림 값이며 최신 경계 연대의 정밀 계산값은 아닙니다.</p>`);}
