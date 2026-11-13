@@ -74,6 +74,27 @@ window.ClassLink = (() => {
       };
     },
     position: () => ({ lesson: lessonNo() + 1, step: (S.steps && Number.isInteger(S.steps[lessonNo()])) ? S.steps[lessonNo()] : 0, place: place() }),
+    // 친구 캐릭터(2026-11-13): 지도 화면에서만 내 좌표를 알리고, 친구는 내 캐릭터와 같은 모양에 몸 색만 다르게
+    coords() {
+      if (INQUIRY_PAGE || typeof player === 'undefined' || !player || !scene) return null;
+      const w = document.querySelector('.world');
+      if (!w || !w.clientWidth) return null;
+      return { x: player.position.x, z: player.position.z, ry: player.rotation.y };
+    },
+    peerScene() {
+      if (INQUIRY_PAGE || typeof THREE === 'undefined' || typeof scene === 'undefined' || !scene || !player || player.parent !== scene) return null;
+      return {
+        THREE, parent: scene, labelY: 1.95, groundY: () => 0,
+        make(color) {
+          const g = new THREE.Group();
+          cylinder(.27, .85, 0, .7, 0, color, g);
+          const head = new THREE.Mesh(new THREE.SphereGeometry(.22, 12, 8), mat('#edd1b2'));
+          head.position.y = 1.32; g.add(head);
+          box(.16, .4, .2, -.14, .2, 0, '#314b55', g); box(.16, .4, .2, .14, .2, 0, '#314b55', g);
+          return g;
+        }
+      };
+    },
     flush() {
       try { if (typeof flushLearningInputs === 'function') flushLearningInputs(); } catch (e) {}
       save();

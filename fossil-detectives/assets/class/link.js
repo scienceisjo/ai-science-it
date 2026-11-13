@@ -70,6 +70,19 @@ window.FossilLink = (() => {
       return { lesson: chapter, step: active < 0 ? 3 : active, place: place() };
     },
     flush() { save(); },
+    // 친구 캐릭터(2026-11-13): 지도에서만 내 좌표를 알리고, 친구는 탐사 대원 캐릭터에 옷 색만 다르게
+    coords() {
+      if (inquiry() || !mapReady() || typeof world === 'undefined' || !world) return null;
+      return { x: player.position.x, z: player.position.z, ry: player.rotation.y };
+    },
+    peerScene() {
+      if (inquiry() || !mapReady() || typeof world === 'undefined' || !world || typeof makeCharacter !== 'function' || !window.THREE) return null;
+      return {
+        THREE: window.THREE, parent: world, labelY: 2.45,
+        groundY: (x, z) => { const s = typeof surface === 'function' ? surface(x, z) : null; return s && isFinite(s.y) ? s.y : player.position.y; },
+        make: color => makeCharacter(false, color)
+      };
+    },
     tools: () => inquiry() ? q('.inquiry-head') : q('.topactions'),
     headerEl: () => inquiry() ? q('.inquiry-head') : q('header.topbar'),
     statusEls: () => [q('#savedState')].concat(Array.from(document.querySelectorAll('.save-indicator'))),

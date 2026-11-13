@@ -33,6 +33,9 @@ window.ASILink = (() => {
     let helpLocalAt = 0, tickTimer = 0, ticking = false, bypass = false, clockTimer = 0;
     // 연구 요약: 학습 시간(조작이 있던 시간만, 멈춤·설명 화면은 뺌)과 앱이 세는 횟수. 횟수는 기기를 바꿔도 줄지 않게 서버 값과 큰 쪽을 쓴다
     let timeAcc = {}, lastInput = Date.now(), lastTimeTick = 0, prevResearch = {};
+    // 친구 캐릭터(2026-11-13): 지도를 보고 있을 때만 내 좌표를 보내고(움직였을 때만), 같은 차시 지도의 친구 위치를 받아 2초 사이를 잇는다
+    const peers = new Map();   // 학생 번호 → { obj, label, text, inMap, from, to, t0 }
+    let peerSupport = true, peerSince = null, peerMode = null, sentPos = null, peerRaf = 0, peerView = null;
     ['pointerdown', 'keydown', 'input', 'wheel', 'touchstart'].forEach(ev => window.addEventListener(ev, () => { lastInput = Date.now(); }, { passive: true, capture: true }));
 
     const eligible = () => { try { return !!window.ASI && A.eligible(); } catch (e) { return false; } };
@@ -237,7 +240,23 @@ window.ASILink = (() => {
         const pos = position();
         countTime(pos);
         const sentAt = Date.now();
-        const r = await ASI.rpc('asi_tick', { p_token: ses.token, p_lesson: pos.lesson, p_step: pos.step, p_place: pos.place, p_after: lastCmd == null ? 0 : lastCmd, p_live_rev: liveRev }, { timeout: 8000 });
+        const base = { p_token: ses.token, p_lesson: pos.lesson, p_step: pos.step, p_place: pos.place, p_after: lastCmd == null ? 0 : lastCmd, p_live_rev: liveRev };
+        const c = peerSupport ? myCoords() : null;
+        const want = !!c && !document.hidden && (live.peers || 'name') !== 'off';
+        const moved = !!c && (!sentPos || Math.hypot(c.x - sentPos.x, c.z - sentPos.z) > 0.25 || Math.abs(turn(c.ry, sentPos.ry)) > 0.35);
+        let r;
+        if (peerSupport) {
+          try {
+            r = await ASI.rpc('asi_tick', Object.assign({}, base, {
+              p_x: moved ? round(c.x, 1) : null, p_z: moved ? round(c.z, 1) : null, p_ry: moved ? round(c.ry, 2) : null,
+              p_peers: want, p_peers_since: want ? peerSince : null }), { timeout: 8000 });
+            if (moved) sentPos = c;
+          } catch (e) {
+            if (e.code !== 'not_installed') throw e;
+            peerSupport = false; clearPeers();   // 서버에 11-13 SQL 이 아직 없으면 예전 방식으로
+          }
+        }
+        if (!r) r = await ASI.rpc('asi_tick', base, { timeout: 8000 });
         if (offline) { offline = false; queueSend(0); }
         if (r.now) skew = Date.parse(r.now) - Date.now();
         if (r.live && typeof r.live === 'object') { live = r.live; liveRev = r.live_rev; renderLive(); }
@@ -248,6 +267,7 @@ window.ASILink = (() => {
         const cmds = Array.isArray(r.commands) ? r.commands : [];
         if (lastCmd == null) { lastCmd = cmds.reduce((m, c) => Math.max(m, c.id), 0); saveCmd(); }   // 번호를 모르면 지난 명령은 건너뛴다
         else for (const c of cmds) { if (c.id <= lastCmd) continue; lastCmd = c.id; saveCmd(); run(c); }
+        if (peerSupport) handlePeers(r, want);
       } catch (e) {
         if (e.code === 'no_student') { ticking = false; return lost('no_student'); }
         offline = true;
@@ -257,6 +277,101 @@ window.ASILink = (() => {
         if (on) tickTimer = setTimeout(tick, document.hidden ? 10000 : 2000);
       }
     }
+    // ---------- 친구 캐릭터 ----------
+    const PEER_COLORS = ['#3b7dd8', '#d9a21b', '#7b5fc7', '#2f9e77', '#d1598a', '#5a8f2e', '#3f8f9e', '#a05a2c'];
+    const PEER_GLIDE = 2100;   // 2초 신호 사이를 이 시간 동안 이어 움직인다
+    const round = (v, d) => Math.round(v * Math.pow(10, d)) / Math.pow(10, d);
+    const turn = (a, b) => { let d = (a - b) % (2 * Math.PI); if (d > Math.PI) d -= 2 * Math.PI; if (d < -Math.PI) d += 2 * Math.PI; return d; };
+    function myCoords() {
+      try {
+        const c = A.coords && A.coords();
+        return c && isFinite(c.x) && isFinite(c.z) ? { x: +c.x, z: +c.z, ry: isFinite(c.ry) ? +c.ry : 0 } : null;
+      } catch (e) { return null; }
+    }
+    function peerScene() {
+      let v = null;
+      try { v = A.peerScene && A.peerScene(); } catch (e) {}
+      if (!v || !v.THREE || !v.parent || !v.make) return null;
+      if (peerView && peerView.parent !== v.parent) { clearPeers(); peerSince = null; }   // 장면을 새로 만들었으면 다시
+      peerView = v;
+      return v;
+    }
+    const groundY = (x, z) => { try { const y = peerView.groundY ? peerView.groundY(x, z) : 0; return isFinite(y) ? y : 0; } catch (e) { return 0; } };
+    function setLabel(p, text) {
+      const T = peerView.THREE, show = text + (p.inMap ? '' : ' · 탐구 중');
+      const cv = document.createElement('canvas'), ctx = cv.getContext('2d'), font = '700 40px Pretendard, "Malgun Gothic", sans-serif';
+      ctx.font = font;
+      cv.width = Math.ceil(ctx.measureText(show).width) + 36; cv.height = 64;
+      ctx.font = font; ctx.fillStyle = 'rgba(18,40,38,.8)';
+      const w = cv.width, h = cv.height, rr = 22;
+      ctx.beginPath(); ctx.moveTo(rr, 0); ctx.arcTo(w, 0, w, h, rr); ctx.arcTo(w, h, 0, h, rr); ctx.arcTo(0, h, 0, 0, rr); ctx.arcTo(0, 0, w, 0, rr); ctx.fill();
+      ctx.fillStyle = '#fff'; ctx.textBaseline = 'middle'; ctx.fillText(show, 18, 34);
+      const tex = new T.CanvasTexture(cv);
+      tex.minFilter = T.LinearFilter;
+      if (!p.label) {
+        p.label = new T.Sprite(new T.SpriteMaterial({ map: tex, depthTest: false, transparent: true }));
+        p.label.renderOrder = 999; p.obj.add(p.label);
+      } else { p.label.material.map.dispose(); p.label.material.map = tex; p.label.material.needsUpdate = true; }
+      const s = 0.42; p.label.scale.set(s * w / h, s, 1); p.label.position.set(0, peerView.labelY || 2, 0);
+      p.label.material.opacity = p.inMap ? 1 : 0.7;
+      p.text = text;
+    }
+    function setInMap(p, flag) {
+      p.inMap = flag ? 1 : 0;
+      p.obj.traverse(m => { if (m.isMesh && m.material) { m.material.transparent = !p.inMap; m.material.opacity = p.inMap ? 1 : 0.38; m.material.depthWrite = !!p.inMap; } });
+      setLabel(p, p.text);
+    }
+    function makePeer(id, text, at) {
+      const obj = peerView.make(PEER_COLORS[Math.abs(id) % PEER_COLORS.length]);
+      obj.traverse(m => { if (m.isMesh) { m.material = m.material.clone(); m.castShadow = false; m.receiveShadow = false; } });
+      obj.userData.asiPeer = id;
+      obj.position.set(at.x, at.y, at.z); obj.rotation.y = at.ry;
+      const p = { id, obj, text: '', inMap: 1, label: null, from: at, to: at, t0: 0 };
+      setLabel(p, text);
+      peerView.parent.add(obj);
+      return p;
+    }
+    function removePeer(id) {
+      const p = peers.get(id); if (!p) return;
+      if (p.obj.parent) p.obj.parent.remove(p.obj);
+      p.obj.traverse(m => { if (m.isMesh && m.material && m.material.dispose) m.material.dispose(); });
+      if (p.label) { p.label.material.map.dispose(); p.label.material.dispose(); }
+      peers.delete(id);
+    }
+    function clearPeers() { for (const id of Array.from(peers.keys())) removePeer(id); }
+    function glide(p, now) {
+      const far = Math.hypot(p.to.x - p.from.x, p.to.z - p.from.z) > 12;   // 순간이동은 바로
+      const t = far ? 1 : Math.min(1, Math.max(0, (now - p.t0) / PEER_GLIDE));
+      return { x: p.from.x + (p.to.x - p.from.x) * t, y: p.from.y + (p.to.y - p.from.y) * t, z: p.from.z + (p.to.z - p.from.z) * t, ry: p.from.ry + turn(p.to.ry, p.from.ry) * t };
+    }
+    function animatePeers() {
+      peerRaf = 0;
+      if (!peers.size) return;
+      const now = performance.now();
+      for (const p of peers.values()) { const c = glide(p, now); p.obj.position.set(c.x, c.y, c.z); p.obj.rotation.y = c.ry; }
+      peerRaf = requestAnimationFrame(animatePeers);
+    }
+    function handlePeers(r, want) {
+      const mode = r.peers_mode || null;
+      if (!want || !Array.isArray(r.here) || !peerScene()) { if (peers.size) clearPeers(); peerSince = null; peerMode = mode; return; }
+      const now = performance.now(), hereMap = new Map(r.here.map(h => [h[0], h[1]]));
+      for (const id of Array.from(peers.keys())) if (!hereMap.has(id)) removePeer(id);
+      for (const e of (Array.isArray(r.peers) ? r.peers : [])) {
+        const [id, text, x, z, ry] = e;
+        if (!isFinite(x) || !isFinite(z)) continue;
+        const at = { x, z, y: groundY(x, z), ry: isFinite(ry) ? ry : 0 };
+        const p = peers.get(id);
+        if (!p) peers.set(id, makePeer(id, String(text || ''), at));
+        else { p.from = glide(p, now); p.to = at; p.t0 = now; if (p.text !== String(text || '')) setLabel(p, String(text || '')); }
+      }
+      for (const [id, flag] of hereMap) { const p = peers.get(id); if (p && p.inMap !== (flag ? 1 : 0)) setInMap(p, flag); }
+      const unknown = Array.from(hereMap.keys()).some(id => !peers.has(id));
+      // 표시 방식이 바뀌었거나 위치를 모르는 친구가 있으면 다음 신호에 모두 다시 받는다
+      peerSince = (peerMode && mode !== peerMode) || unknown ? null : (r.now || null);
+      peerMode = mode;
+      if (peers.size && !peerRaf) peerRaf = requestAnimationFrame(animatePeers);
+    }
+
     // 2초 신호마다: 화면이 보이고, 90초 안에 조작이 있었고, 선생님 화면이 떠 있지 않을 때만 그 차시-단계의 학습 시간에 더한다
     function countTime(pos) {
       const now = Date.now(), dt = lastTimeTick ? Math.min(10, (now - lastTimeTick) / 1000) : 0;
@@ -555,7 +670,8 @@ window.ASILink = (() => {
     function note(m) { try { sessionStorage.setItem(NOTE_KEY, m); } catch (e) {} }
 
     // 시험용으로 안을 들여다보는 창(값은 복사본)
-    const peek = () => ({ on, ready, code: ses && ses.code, no: ses && ses.no, sync: Object.assign({}, sync), live: JSON.parse(JSON.stringify(live)), liveRev, lastCmd, locked, offline, conflict, helpAt, place: on ? position().place : null, saveKey: on ? key : null });
+    const peek = () => ({ on, ready, code: ses && ses.code, no: ses && ses.no, sync: Object.assign({}, sync), live: JSON.parse(JSON.stringify(live)), liveRev, lastCmd, locked, offline, conflict, helpAt, place: on ? position().place : null, saveKey: on ? key : null,
+      peerSupport, peerMode, peerSince, peers: Array.from(peers.values()).map(p => ({ id: p.id, text: p.text, inMap: p.inMap, x: round(p.obj.position.x, 2), z: round(p.obj.position.z, 2), to: { x: p.to.x, z: p.to.z } })) });
 
     // 연결부가 쓰는 창구
     const api = {

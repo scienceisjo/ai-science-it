@@ -140,6 +140,7 @@
       + '<button type="button" class="big" id="btn-gather">모두 모으기</button>'
       + '<span class="sep"></span>'
       + '<label class="switch"><input type="checkbox" id="sw-lock"> 이동 잠금</label>'
+      + '<span class="group" id="peer-mode" title="학생 지도에 같은 차시 친구 캐릭터를 보여 줘요. 머리 위 이름표를 이름·학번으로 고르거나 끌 수 있어요."><span class="lbl">친구 캐릭터</span>' + [['name', '이름'], ['no', '학번'], ['off', '끔']].map(([v, t]) => '<button type="button" data-peers="' + v + '" aria-pressed="false">' + t + '</button>').join('') + '</span>'
       + '<span class="group lesson-toggle"><span class="lbl">열린 차시</span>' + [1, 2, 3, 4].map(n => '<button type="button" data-open="' + n + '" aria-pressed="false" title="' + n + '차시 ' + esc(P.lessons[n - 1]) + '">' + n + '</button>').join('') + '</span>'
       + '<span class="group"><span class="lbl">타이머</span><span class="timer-left" id="timer-left"></span>' + [5, 10, 15].map(m => '<button type="button" data-timer="' + m + '">' + m + '분</button>').join('') + '<button type="button" data-timer="0" id="timer-off">끄기</button></span>'
       + '<span class="group"><span class="lbl">공지</span><input type="text" id="notice-in" maxlength="200" placeholder="학생 화면 위쪽에 한 줄"><button type="button" id="notice-send">올리기</button><button type="button" id="notice-clear">내리기</button></span>'
@@ -171,6 +172,7 @@
     $('#btn-screen').onclick = openScreenPicker;
     $('#btn-gather').onclick = openGather;
     $('#sw-lock').onchange = e => setLive({ move_lock: e.target.checked });
+    $$('[data-peers]').forEach(b => b.onclick = () => setLive({ peers: b.dataset.peers }));
     $$('[data-open]').forEach(b => b.onclick = () => {
       const n = +b.dataset.open, cur = (ov && Array.isArray(ov.live.open_lessons)) ? ov.live.open_lessons.slice() : [1];
       const next = cur.includes(n) ? cur.filter(x => x !== n) : cur.concat(n).sort();
@@ -237,6 +239,7 @@
     pause.setAttribute('aria-pressed', String(!!live.paused));
     pause.textContent = live.paused ? '멈춤 풀기' : '모두 멈춤';
     $('#sw-lock').checked = !!live.move_lock;
+    $$('[data-peers]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.peers === (live.peers || 'name'))));
     const open = Array.isArray(live.open_lessons) ? live.open_lessons : [];
     $$('[data-open]').forEach(b => b.setAttribute('aria-pressed', String(open.includes(+b.dataset.open))));
     const ni = $('#notice-in'); if (document.activeElement !== ni && live.notice && !ni.value) ni.value = live.notice;

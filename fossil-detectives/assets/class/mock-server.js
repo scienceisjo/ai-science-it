@@ -41,6 +41,7 @@
       if (!isNaN(t) && t > now - 3600e3 && t < now + 3 * 3600e3) v.timer_end = new Date(t).toISOString();
     }
     if (typeof p.notice === 'string' && p.notice.trim()) v.notice = p.notice.trim().slice(0, 200);
+    if (['name', 'no', 'off'].includes(p.peers)) v.peers = p.peers;   // 친구 캐릭터 표시(11-13)
     return v;
   }
   const stripNulls = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null));
@@ -116,19 +117,35 @@
         return { ok: true, rev, updated_at: at };
       },
 
-      asi_tick({ p_token, p_lesson, p_step, p_place, p_after, p_live_rev }) {
+      asi_tick({ p_token, p_lesson, p_step, p_place, p_after, p_live_rev, p_x = null, p_z = null, p_ry = null, p_peers = false, p_peers_since = null }) {
         const st = student(p_token);
         if (Number.isInteger(p_lesson) && p_lesson >= 1 && p_lesson <= 4) st.lesson = p_lesson;
         if (Number.isInteger(p_step) && p_step >= 0 && p_step <= 4) st.step = p_step;
         if (p_place != null) st.place = String(p_place).trim().slice(0, 40);
         st.last_seen = iso();
+        // 친구 캐릭터(11-13): 움직였을 때만 좌표를 받고, 지도를 보고 있으면 같은 차시 친구 위치를 돌려준다
+        if (typeof p_x === 'number' && typeof p_z === 'number' && Math.abs(p_x) < 5000 && Math.abs(p_z) < 5000) {
+          st.px = p_x; st.pz = p_z; if (typeof p_ry === 'number') st.pry = p_ry; st.pos_at = clock();
+        }
         const r = db.rooms.find(x => x.id === st.room_id);
+        const mode = (r.live && r.live.peers) || 'name';
+        let here = null, peers = null;
+        if (p_peers && mode !== 'off' && st.lesson != null) {
+          const since = p_peers_since ? Date.parse(p_peers_since) - 1000 : null;
+          const r1 = v => Math.round(v * 10) / 10;
+          const list = db.students.filter(s => s.room_id === st.room_id && s.id !== st.id && s.lesson === st.lesson && s.px != null
+            && Date.parse(s.last_seen) > clock() - 15000).sort((a, b) => a.id - b.id);
+          here = list.map(s => [s.id, ['inquiry', 'council'].includes(s.place) ? 0 : 1]);
+          peers = list.filter(s => since == null || s.pos_at > since)
+            .map(s => [s.id, mode === 'no' ? s.student_no : s.name, r1(s.px), r1(s.pz), Math.round((s.pry || 0) * 100) / 100]);
+        }
         const cmds = db.commands.filter(c => c.room_id === st.room_id && c.id > (p_after || 0) && c.created > clock() - 600e3
           && (c.target === 'all' || c.target === 'student:' + st.id || (st.group_no != null && c.target === 'group:' + st.group_no)))
           .sort((a, b) => a.id - b.id).slice(0, 20).map(c => ({ id: c.id, kind: c.kind, payload: clone(c.payload) }));
         return {
           now: iso(), live_rev: r.live_rev, live: p_live_rev !== r.live_rev ? clone(r.live) : null,
-          records_locked: r.records_locked, group_no: st.group_no, help_at: st.help_at, commands: cmds
+          records_locked: r.records_locked, group_no: st.group_no, help_at: st.help_at, commands: cmds,
+          peers_mode: mode, here, peers
         };
       },
 
