@@ -14,12 +14,12 @@
   const LEVELS = P.levels || ['A', 'B', 'C', 'D', 'E'];
   const LV = x => (P.levelNames && P.levelNames[x]) || x;   // 화면에 보이는 단계 이름(넷제로: 상·중·하·무응답, 화석: A~E 그대로)
   const ONLINE_MS = 25000, STUCK_MS = 10 * 60000;
-  const TABS = [['live', '수업 화면'], ['students', '학생별 기록'], ['answers', '답 모아보기'], ['scores', '채점표'], ['class', '반 전체 지표'], ['settings', '방 설정']];
+  const TABS = [['live', '수업 화면'], ['answers', '답 모아보기'], ['scores', '채점표'], ['records', '학생 기록'], ['settings', '방 설정']];
   const STEPS = P.stepCount || 5, TOTAL = STEPS * 4, RANGE = [...Array(STEPS).keys()];
 
   let auth = null, ov = null, tab = 'live', pollTimer = 0, polling = false, serverSkew = 0;
   const selected = new Set(), seen = {}, tiles = new Map();
-  let scores = null, curQ = null, answersCache = null, hideNames = false, drawerAt = null;
+  let scores = null, curQ = null, answersCache = null, hideNames = false, recView = 'students';
   const studentCache = new Map();
 
   const store = {
@@ -112,7 +112,7 @@
     stopPoll();
     if (auth && !message && !DEMO) { try { await rpc('asi_teacher_logout', { p_tok: auth.token }); } catch (e) {} }
     store.del(AUTH_KEY, sessionStorage);
-    auth = null; ov = null; tiles.clear(); selected.clear(); scores = null; studentCache.clear();
+    auth = null; ov = null; tiles.clear(); selected.clear(); scores = null; studentCache.clear(); sv = null;
     if (DEMO) { location.href = location.pathname; return; }
     renderLogin(message || '');
   }
@@ -126,37 +126,46 @@
   function renderShell() {
     const SAMPLE = DEMO && (window.ASI_SAMPLES || {})[P.id];
     $('#app').innerHTML = (DEMO ? '<div class="demo-bar">' + (SAMPLE
-      ? '<b>예시 수업</b> · 가상 학생 ' + SAMPLE.students.length + '명이 ' + esc(SAMPLE.scene) + '인 장면이에요(실제 학생 기록 아님). 버튼을 눌러도 실제 서버에는 저장하지 않아요. 아래 탭을 왼쪽부터 하나씩 눌러 보세요.'
+      ? '<b>예시 수업</b> · 가상 학생 ' + SAMPLE.students.length + '명이 ' + esc(SAMPLE.scene) + '인 장면이에요(실제 학생 기록 아님). 버튼을 눌러도 실제 서버에는 저장하지 않아요. 학생 칸을 누르면 그 학생의 학습 기록으로 넘어가요.'
       : '체험 화면입니다. 가짜 학생 28명이 움직이고, 버튼을 눌러도 실제 서버에는 아무것도 저장하지 않아요.')
       + (P.otherDemo ? ' <a href="' + P.otherDemo.href + '">' + esc(P.otherDemo.label) + '</a> ·' : '') + ' <a href="' + location.pathname + '">진짜 방 열기</a></div>' : '')
       + '<header class="top"><span class="app-name">' + esc(P.name) + ' 수업 화면</span>'
       + '<span class="room" id="room-title"></span>'
       + '<span class="count" id="count"></span>'
-      + '<label class="switch" title="이 화면을 학생들 앞에 비출 때 켭니다. 학번과 이름 대신 「학생 1」처럼 보여요."><input type="checkbox" id="hide-names"> 이름 가리기</label>'
       + '<span class="code"><span>입장 코드</span><b id="room-code">' + esc(auth.code) + '</b><button type="button" id="copy-link">학생 링크 복사</button></span>'
       + '<button type="button" id="btn-logout">나가기</button></header>'
       + '<div class="controls" id="controls">'
       + '<button type="button" class="big" id="btn-pause" aria-pressed="false">모두 멈춤</button>'
       + '<button type="button" class="big" id="btn-screen">설명 화면 띄우기</button>'
       + '<button type="button" class="big" id="btn-gather">모두 모으기</button>'
-      + '<span class="sep"></span>'
+      + '<span class="group lesson-toggle"><span class="lbl">열린 차시</span>' + [1, 2, 3, 4].map(n => '<button type="button" data-open="' + n + '" aria-pressed="false" title="' + n + '차시 ' + esc(P.lessons[n - 1]) + '">' + n + '</button>').join('') + '</span>'
+      + '<details class="more" id="more"><summary>더 보기<span class="more-state" id="more-state"></span></summary><div class="more-body">'
       + '<label class="switch"><input type="checkbox" id="sw-lock"> 이동 잠금</label>'
       + '<span class="group" id="peer-mode" title="학생 지도에 같은 차시 친구 캐릭터를 보여 줘요. 머리 위 이름표를 이름·학번으로 고르거나 끌 수 있어요."><span class="lbl">친구 캐릭터</span>' + [['name', '이름'], ['no', '학번'], ['off', '끔']].map(([v, t]) => '<button type="button" data-peers="' + v + '" aria-pressed="false">' + t + '</button>').join('') + '</span>'
-      + '<span class="group lesson-toggle"><span class="lbl">열린 차시</span>' + [1, 2, 3, 4].map(n => '<button type="button" data-open="' + n + '" aria-pressed="false" title="' + n + '차시 ' + esc(P.lessons[n - 1]) + '">' + n + '</button>').join('') + '</span>'
       + '<span class="group"><span class="lbl">타이머</span><span class="timer-left" id="timer-left"></span>' + [5, 10, 15].map(m => '<button type="button" data-timer="' + m + '">' + m + '분</button>').join('') + '<button type="button" data-timer="0" id="timer-off">끄기</button></span>'
       + '<span class="group"><span class="lbl">공지</span><input type="text" id="notice-in" maxlength="200" placeholder="학생 화면 위쪽에 한 줄"><button type="button" id="notice-send">올리기</button><button type="button" id="notice-clear">내리기</button></span>'
+      + '<label class="switch" title="이 화면을 학생들 앞에 비출 때 켭니다. 학번과 이름 대신 「학생 1」처럼 보여요."><input type="checkbox" id="hide-names"> 이름 가리기</label>'
+      + '</div></details>'
       + '</div>'
       + '<div class="screen-strip" id="screen-strip" hidden></div>'
       + '<nav class="tabs" role="tablist">'
       + TABS.map(([k, t]) => '<button type="button" role="tab" data-tab="' + k + '" aria-selected="' + (k === tab) + '">' + t + '</button>').join('')
       + '</nav>'
-      + '<section class="panel" id="p-live"><div class="live"><div><div class="tiles" id="tiles"></div></div><aside class="side" id="side"></aside></div></section>'
-      + '<section class="panel" id="p-students" hidden></section>'
-      + '<section class="panel" id="p-class" hidden></section>'
+      + '<section class="panel" id="p-live">'
+      + '<div class="hands" id="hands" hidden></div>'
+      + '<div class="live-tools"><span class="muted">학생 칸을 누르면 그 학생 화면으로 넘어가요. 여러 명에게 보내려면 칸 왼쪽 위 네모를 눌러 고르세요.</span><span class="grow"></span>'
+      + '<button type="button" data-pick="all">모두 고르기</button><button type="button" data-pick="help">손 든 학생 고르기</button></div>'
+      + '<details class="stepcount" id="stepcount"><summary>단계별 인원 보기</summary><div id="stepcount-body"></div></details>'
+      + '<div class="tiles" id="tiles"></div>'
+      + '<div class="act" id="act" hidden></div>'
+      + '</section>'
       + '<section class="panel" id="p-answers" hidden></section>'
       + '<section class="panel" id="p-scores" hidden></section>'
+      + '<section class="panel" id="p-records" hidden><div class="rec-switch"><span class="seg" role="tablist">'
+      + [['students', '학생별 표'], ['class', '반 전체 지표']].map(([k, t]) => '<button type="button" data-rec="' + k + '" aria-pressed="' + (recView === k) + '">' + t + '</button>').join('')
+      + '</span></div><div id="p-students"></div><div id="p-class" hidden></div></section>'
       + '<section class="panel" id="p-settings" hidden></section>'
-      + '<aside class="drawer" id="drawer" hidden></aside>'
+      + '<section class="panel" id="p-student" hidden></section>'
       + '<dialog id="dlg"></dialog>';
     $('#btn-logout').onclick = () => { if (DEMO || confirm('이 기기에서 선생님 화면을 닫을까요? 학생들은 계속 저장돼요.')) logout(); };
     $('#copy-link').onclick = async () => {
@@ -166,8 +175,9 @@
     };
     $('#hide-names').onchange = e => {
       hideNames = e.target.checked;
-      if (tab === 'live' && ov) renderLive(); else if (tab === 'answers' && answersCache) drawAnswers(); else if (tab === 'scores' && scores) drawScores(); else if (tab === 'settings') renderSettings();
-      else if (tab === 'students') renderStudents(); else if (tab === 'class') renderClass();
+      if (sv) renderStudentPage(); else if (tab === 'live' && ov) renderLive(); else if (tab === 'answers' && answersCache) drawAnswers(); else if (tab === 'scores' && scores) drawScores(); else if (tab === 'settings') renderSettings();
+      else if (tab === 'records') renderRecords();
+      updateMoreState();
     };
     $('#btn-pause').onclick = () => setLive({ paused: !(ov && ov.live.paused) });
     $('#btn-screen').onclick = openScreenPicker;
@@ -186,21 +196,32 @@
     $('#notice-send').onclick = () => { const v = $('#notice-in').value.trim(); if (v) setLive({ notice: v }); };
     $('#notice-in').onkeydown = e => { if (e.key === 'Enter') $('#notice-send').click(); };
     $('#notice-clear').onclick = () => { $('#notice-in').value = ''; setLive({ notice: null }); };
-    $$('.tabs button').forEach(b => b.onclick = () => showTab(b.dataset.tab));
+    $$('.tabs button').forEach(b => b.onclick = () => { leaveStudent(); showTab(b.dataset.tab); });
+    $$('[data-rec]').forEach(b => b.onclick = () => { recView = b.dataset.rec; renderRecords(true); });
+    $$('#p-live [data-pick]').forEach(b => b.onclick = () => pickStudents(b.dataset.pick));
+    if (!window.__asiMoreClose) { window.__asiMoreClose = true; document.addEventListener('click', e => { const m = $('#more'); if (m && m.open && !m.contains(e.target)) m.open = false; }); }
     showTab(tab);
+    route();
     if (!window.__asiTimer) window.__asiTimer = setInterval(drawTimer, 1000);
   }
 
   function showTab(k) {
     tab = k;
-    $$('.tabs button').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tab === k)));
-    TABS.forEach(([x]) => { $('#p-' + x).hidden = x !== k; });
+    $$('.tabs button').forEach(b => b.setAttribute('aria-selected', String(!sv && b.dataset.tab === k)));
+    TABS.forEach(([x]) => { $('#p-' + x).hidden = !!sv || x !== k; });
+    $('#p-student').hidden = !sv;
+    if (sv) return;
+    if (k === 'live' && ov) renderLive();
     if (k === 'answers') renderAnswers();
     if (k === 'scores') loadScores();
     if (k === 'settings') renderSettings();
-    if (k === 'students') renderStudents(true);
-    if (k === 'class') renderClass(true);
-    if (k !== 'scores' && k !== 'students') closeDrawer();
+    if (k === 'records') renderRecords(true);
+  }
+  function renderRecords(force) {
+    $$('[data-rec]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.rec === recView)));
+    $('#p-students').hidden = recView !== 'students';
+    $('#p-class').hidden = recView !== 'class';
+    if (recView === 'students') renderStudents(force); else renderClass(force);
   }
 
   // ---------- 3초마다 ----------
@@ -247,7 +268,23 @@
     $('#notice-clear').disabled = !live.notice;
     drawTimer();
     drawStrip();
-    if (tab === 'live') renderLive();
+    updateMoreState();
+    if (parseHash() && !$('#p-student .sv-grid')) route();
+    else if (sv) updateStudentHead();
+    else if (tab === 'live') renderLive();
+  }
+  // 「더 보기」를 접어 두어도 켜 둔 것은 제목 옆에 보인다
+  function updateMoreState() {
+    const el = $('#more-state'); if (!el || !ov) return;
+    const live = ov.live || {}, bits = [];
+    if (live.move_lock) bits.push('이동 잠금');
+    if ((live.peers || 'name') === 'off') bits.push('친구 캐릭터 끔');
+    if (live.notice) bits.push('공지');
+    const end = live.timer_end ? Date.parse(live.timer_end) : NaN, left = Math.round((end - nowMs()) / 1000);
+    if (!isNaN(end)) bits.push('타이머 ' + (left > 0 ? Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : '끝'));
+    if (hideNames) bits.push('이름 가림');
+    const t = bits.length ? bits.join(' · ') : '';
+    if (el.textContent !== t) el.textContent = t;
   }
 
   function drawTimer() {
@@ -256,6 +293,7 @@
     const left = Math.round((end - nowMs()) / 1000);
     el.textContent = isNaN(end) ? '' : left > 0 ? Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : '끝';
     $('#timer-off').disabled = isNaN(end);
+    updateMoreState();
   }
 
   async function setLive(patch) {
@@ -279,10 +317,11 @@
   }
 
   // ---------- 실시간 화면 ----------
+  const whereOf = s => !s.last_seen || !s.lesson ? '아직 신호 없음' : s.lesson + '차시 ' + (P.steps[s.lesson - 1][s.step] || '') + ' · ' + P.place(s.place, s.lesson);
   function tileHTML(s) {
     const pr = s.progress || {}, total = pr.total || TOTAL, done = pr.done || 0;
     const off = !online(s), stuck = stuckMin(s);
-    const where = !s.last_seen || !s.lesson ? '아직 신호 없음' : s.lesson + '차시 ' + (P.steps[s.lesson - 1][s.step] || '') + ' · ' + P.place(s.place, s.lesson);
+    const where = whereOf(s);
     const flags = [];
     if (s.help_at) flags.push('<span class="flag-help">손 듦 ' + esc(fmtTime(s.help_at)) + '</span>');
     if (off) flags.push('<span class="flag-off">' + (s.last_seen ? '연결 끊김 ' + esc(fmtTime(s.last_seen)) : '들어오기 전') + '</span>');
@@ -304,82 +343,105 @@
       ov.students.forEach((s, i) => {
         let el = tiles.get(s.id);
         if (!el) {
-          el = document.createElement('button');
-          el.type = 'button'; el.className = 'tile'; el.dataset.id = s.id;
-          el.onclick = () => { selected.has(s.id) ? selected.delete(s.id) : selected.add(s.id); renderLive(); };
+          // 칸 = 고르기 네모 + 학생 화면으로 넘어가는 버튼
+          el = document.createElement('div');
+          el.className = 'tile'; el.dataset.id = s.id;
+          el.innerHTML = '<input type="checkbox" class="pick"><button type="button" class="open"></button>';
+          $('.pick', el).onchange = e => { e.target.checked ? selected.add(s.id) : selected.delete(s.id); renderLive(); };
+          $('.open', el).onclick = () => openStudentPage(s.id);
           tiles.set(s.id, el);
         }
         if (box.children[i] !== el) box.insertBefore(el, box.children[i] || null);
-        const html = tileHTML(s);
-        if (el._html !== html) { el.innerHTML = html; el._html = html; }
+        const html = tileHTML(s), btn = $('.open', el);
+        if (btn._html !== html) { btn.innerHTML = html; btn._html = html; }
+        const pick = $('.pick', el);
+        pick.checked = selected.has(s.id);
+        pick.setAttribute('aria-label', label(s) + ' 고르기');
+        btn.setAttribute('aria-label', label(s) + ' 학습 기록 보기');
         el.classList.toggle('off', !online(s));
         el.classList.toggle('help', !!s.help_at);
         el.classList.toggle('sel', selected.has(s.id));
-        el.setAttribute('aria-pressed', String(selected.has(s.id)));
-        el.setAttribute('aria-label', label(s) + (selected.has(s.id) ? ' 고름' : ''));
       });
     }
-    renderSide();
+    renderHands();
+    renderStepCount();
+    renderAct();
   }
-
-  function renderSide() {
-    const side = $('#side'), list = ov.students;
-    const hands = list.filter(s => s.help_at).sort((a, b) => a.help_at < b.help_at ? -1 : 1);
+  function pickStudents(k) {
+    const list = ov ? ov.students : [];
+    selected.clear();
+    if (k === 'all') list.forEach(s => selected.add(s.id));
+    if (k === 'help') list.filter(s => s.help_at).forEach(s => selected.add(s.id));
+    if (k === 'help' && !selected.size) toast('손 든 학생이 없어요.');
+    renderLive();
+  }
+  // 손 든 학생: 칸 위 한 줄. 이름을 누르면 그 학생 화면, 「내리기」로 손 내리기
+  function renderHands() {
+    const el = $('#hands'), hands = ov.students.filter(s => s.help_at).sort((a, b) => a.help_at < b.help_at ? -1 : 1);
+    const html = hands.length ? '<b>손 든 학생 ' + hands.length + '명</b>' + hands.map(s => '<span class="hand"><button type="button" class="quiet" data-stu="' + s.id + '">' + esc(label(s)) + ' <span class="muted">' + esc(fmtTime(s.help_at)) + '</span></button><button type="button" data-hand="' + s.id + '" title="손 내리기">내리기</button></span>').join('') : '';
+    el.hidden = !hands.length;
+    if (el._html === html) return;
+    el._html = html; el.innerHTML = html;
+    $$('[data-stu]', el).forEach(b => b.onclick = () => openStudentPage(+b.dataset.stu));
+    $$('[data-hand]', el).forEach(b => b.onclick = () => clearHand(+b.dataset.hand));
+  }
+  async function clearHand(sid) { try { await call('asi_teacher_clear_help', { p_student_id: sid }); poll(); } catch (e) { toast(e.message); } }
+  // 단계별 인원: 접어 둔 표. 숫자를 누르면 그 학생들을 고른다
+  function renderStepCount() {
+    const body = $('#stepcount-body'), list = ov.students;
     const counts = [0, 1, 2, 3].map(l => RANGE.map(st => list.filter(s => online(s) && s.lesson === l + 1 && s.step === st)));
-    const sel = list.filter(s => selected.has(s.id));
-    const sameLesson = sel.length && sel.every(s => s.lesson === sel[0].lesson) ? sel[0].lesson : 0;
-    const placeBtn = p => {
-      if (p.lessons && sameLesson && !p.lessons.includes(sameLesson)) return '';
-      const label = p.step != null ? (sameLesson ? P.steps[sameLesson - 1][p.step] : (p.step + 1) + '단계') : p.label;
-      return '<button type="button" data-move="' + p.id + '" title="' + esc(p.step != null ? (p.step + 1) + '단계 시설' : p.label) + '">' + esc(label) + '</button>';
-    };
-    const html = '<section><h3>손 든 학생 ' + hands.length + '명</h3><div class="hands">'
-      + (hands.length ? hands.map(s => '<button type="button" data-hand="' + s.id + '" title="눌러서 손 내리기"><span>' + esc(label(s)) + '</span><span class="muted">' + esc(fmtTime(s.help_at)) + ' · 내리기</span></button>').join('') : '<span class="muted">없음</span>')
-      + '</div></section>'
-      + '<section><h3>단계별 인원 <span class="muted" style="font-weight:400">(접속한 학생, 숫자를 누르면 고름)</span></h3><table class="steps"><thead><tr><th></th>' + RANGE.map(i => i + 1).map(n => '<th>' + n + '단계</th>').join('') + '</tr></thead><tbody>'
+    const html = '<table class="steps"><thead><tr><th></th>' + RANGE.map(i => '<th>' + (i + 1) + '단계</th>').join('') + '</tr></thead><tbody>'
       + counts.map((row, l) => '<tr><th title="' + esc(P.lessons[l]) + '">' + (l + 1) + '차시</th>' + row.map((who, st) => who.length
         ? '<td><button type="button" data-cell="' + l + '-' + st + '" title="' + esc(P.steps[l][st] + ' · ' + who.map(s => nameOf(s)).join(', ')) + '">' + who.length + '</button></td>'
         : '<td class="zero" title="' + esc(P.steps[l][st]) + '">0</td>').join('') + '</tr>').join('')
-      + '</tbody></table></section>'
-      + '<section><h3>고른 학생 ' + sel.length + '명</h3>'
-      + '<div class="row"><button type="button" data-pick="all">모두 고르기</button><button type="button" data-pick="help">손 든 학생</button><button type="button" data-pick="none"' + (sel.length ? '' : ' disabled') + '>고르기 풀기</button></div>'
-      + '<p class="sub">옮기기' + (sameLesson ? ' (' + sameLesson + '차시)' : sel.length ? ' (각자 지금 차시)' : '') + '</p>'
-      + '<div class="row">' + P.places.filter(p => p.step == null).map(placeBtn).join('') + '</div>'
-      + '<div class="row">' + P.places.filter(p => p.step != null).map(placeBtn).join('') + '</div>'
-      + '<p class="sub">탐구 단계 열기</p><div class="row"><select id="open-step" aria-label="열 단계">' + P.steps.map((st, l) => '<optgroup label="' + (l + 1) + '차시">' + st.map((n, i) => '<option value="' + (l + 1) + '-' + i + '">' + (l + 1) + '-' + (i + 1) + ' ' + esc(n) + '</option>').join('') + '</optgroup>').join('') + '</select><button type="button" id="open-step-go">열기</button></div>'
-      + '<p class="sub">카드 보내기</p><textarea id="card-text" rows="2" maxlength="300" placeholder="예: 두 연도의 단위가 같은지 먼저 확인해 보세요."></textarea>'
-      + '<div class="row" style="margin-top:4px"><button type="button" data-card="hint">힌트로 보내기</button><button type="button" data-card="praise">칭찬으로 보내기</button></div>'
-      + '<p class="sub">시점·새로 고침</p><div class="row"><button type="button" data-view="overview">전체 보기</button><button type="button" data-view="follow">따라가기</button><button type="button" data-view="first">1인칭</button><button type="button" id="reload-go" title="새 판을 배포한 뒤 학생 화면을 새로 고칩니다">새로 고침</button></div>'
-      + '<p class="muted" style="font-size:12px;margin:4px 0 0">아무도 고르지 않으면 모두에게 보냅니다.</p>'
-      + '</section>';
+      + '</tbody></table><p class="muted" style="font-size:12px;margin:4px 0 0">접속한 학생만 셉니다. 숫자를 누르면 그 학생들을 고릅니다.</p>';
+    if (body._html === html) return;
+    body._html = html; body.innerHTML = html;
+    $$('[data-cell]', body).forEach(b => b.onclick = () => { const [l, st] = b.dataset.cell.split('-').map(Number); selected.clear(); list.filter(s => online(s) && s.lesson === l + 1 && s.step === st).forEach(s => selected.add(s.id)); renderLive(); });
+  }
+  // 고른 학생에게 보내기: 고른 학생이 있을 때만 화면 아래에 뜬다
+  function placeButtons(sameLesson) {
+    const placeBtn = p => {
+      if (p.lessons && sameLesson && !p.lessons.includes(sameLesson)) return '';
+      const t = p.step != null ? (sameLesson ? P.steps[sameLesson - 1][p.step] : (p.step + 1) + '단계') : p.label;
+      return '<button type="button" data-move="' + p.id + '" title="' + esc(p.step != null ? (p.step + 1) + '단계 시설' : p.label) + '">' + esc(t) + '</button>';
+    };
+    return P.places.filter(p => p.step == null).map(placeBtn).join('') + '<span class="sep"></span>' + P.places.filter(p => p.step != null).map(placeBtn).join('');
+  }
+  const stepOptions = () => P.steps.map((st, l) => '<optgroup label="' + (l + 1) + '차시">' + st.map((n, i) => '<option value="' + (l + 1) + '-' + i + '">' + (l + 1) + '-' + (i + 1) + ' ' + esc(n) + '</option>').join('') + '</optgroup>').join('');
+  function renderAct() {
+    const act = $('#act'), list = ov.students;
+    const sel = list.filter(s => selected.has(s.id));
+    if (!sel.length) { act.hidden = true; act.innerHTML = ''; act._html = ''; return; }
+    const sameLesson = sel.every(s => s.lesson === sel[0].lesson) ? sel[0].lesson : 0;
+    const html = '<div class="act-head"><b>고른 학생 ' + sel.length + '명</b><span class="muted">' + esc(sel.slice(0, 6).map(s => nameOf(s)).join(', ') + (sel.length > 6 ? ' 외 ' + (sel.length - 6) + '명' : '')) + '</span><span class="grow"></span><button type="button" data-pick="none">고르기 풀기</button></div>'
+      + '<div class="act-row"><span class="lbl">옮기기' + (sameLesson ? ' (' + sameLesson + '차시)' : ' (각자 지금 차시)') + '</span>' + placeButtons(sameLesson) + '</div>'
+      + '<div class="act-row"><span class="lbl">단계 열기</span><select id="open-step" aria-label="열 단계">' + stepOptions() + '</select><button type="button" id="open-step-go">열기</button>'
+      + '<span class="lbl" style="margin-left:10px">카드</span><input type="text" id="card-text" maxlength="300" placeholder="예: 두 연도의 단위가 같은지 먼저 확인해 보세요."><button type="button" data-card="hint">힌트로 보내기</button><button type="button" data-card="praise">칭찬으로 보내기</button></div>'
+      + '<div class="act-row"><span class="lbl">시점</span><button type="button" data-view="overview">전체 보기</button><button type="button" data-view="follow">따라가기</button><button type="button" data-view="first">1인칭</button><button type="button" id="reload-go" title="새 판을 배포한 뒤 학생 화면을 새로 고칩니다">학생 화면 새로 고침</button></div>';
+    act.hidden = false;
     // 입력 중인 칸은 지우지 않는다
     const keep = { card: ($('#card-text') || {}).value || '', step: ($('#open-step') || {}).value || '', focus: document.activeElement && document.activeElement.id };
-    if (side._html === html) return;
-    side._html = html; side.innerHTML = html;
+    if (act._html === html) return;
+    act._html = html; act.innerHTML = html;
     if (keep.card) $('#card-text').value = keep.card;
     if (keep.step) $('#open-step').value = keep.step;
     if (keep.focus && $('#' + keep.focus)) $('#' + keep.focus).focus();
-    $$('[data-hand]', side).forEach(b => b.onclick = async () => { try { await call('asi_teacher_clear_help', { p_student_id: +b.dataset.hand }); poll(); } catch (e) { toast(e.message); } });
-    $$('[data-cell]', side).forEach(b => b.onclick = () => { const [l, st] = b.dataset.cell.split('-').map(Number); selected.clear(); list.filter(s => online(s) && s.lesson === l + 1 && s.step === st).forEach(s => selected.add(s.id)); renderLive(); });
-    $$('[data-pick]', side).forEach(b => b.onclick = () => {
-      const k = b.dataset.pick; selected.clear();
-      if (k === 'all') list.forEach(s => selected.add(s.id));
-      if (k === 'help') list.filter(s => s.help_at).forEach(s => selected.add(s.id));
-      renderLive();
-    });
-    const who = () => { const ids = list.filter(s => selected.has(s.id)).map(s => s.id); return { t: targetsOf(ids), n: ids.length || list.length, all: !ids.length || ids.length === list.length }; };
-    $$('[data-move]', side).forEach(b => b.onclick = () => {
+    $('[data-pick=none]', act).onclick = () => pickStudents('none');
+    const who = () => { const ids = list.filter(s => selected.has(s.id)).map(s => s.id); return { t: targetsOf(ids), n: ids.length, all: ids.length === list.length }; };
+    $$('[data-move]', act).forEach(b => b.onclick = () => {
       const w = who(), p = { place: b.dataset.move };
       if (sameLesson) p.lesson = sameLesson;
       command(w.t, w.all ? 'gather' : 'teleport', p, (w.all ? '모두를 ' : w.n + '명을 ') + ro(b.textContent) + ' 옮겼어요.');
     });
-    $('#open-step-go', side).onclick = () => { const [l, s] = $('#open-step').value.split('-').map(Number), w = who(); command(w.t, 'open_step', { lesson: l, step: s }, (w.all ? '모두' : w.n + '명') + '에게 ' + l + '-' + (s + 1) + ' 단계를 열었어요.'); };
-    $$('[data-card]', side).forEach(b => b.onclick = () => {
+    $('#open-step-go', act).onclick = () => { const [l, s] = $('#open-step').value.split('-').map(Number), w = who(); command(w.t, 'open_step', { lesson: l, step: s }, (w.all ? '모두' : w.n + '명') + '에게 ' + l + '-' + (s + 1) + ' 단계를 열었어요.'); };
+    $('#card-text', act).onkeydown = e => { if (e.key === 'Enter') $('[data-card=hint]', act).click(); };
+    $$('[data-card]', act).forEach(b => b.onclick = () => {
       const text = $('#card-text').value.trim(); if (!text) { $('#card-text').focus(); return; }
       const w = who(); command(w.t, 'card', { kind: b.dataset.card, text }, (w.all ? '모두' : w.n + '명') + '에게 카드를 보냈어요.').then(() => { $('#card-text').value = ''; });
     });
-    $$('[data-view]', side).forEach(b => b.onclick = () => { const w = who(); command(w.t, 'view', { mode: b.dataset.view }, '시점을 맞췄어요.'); });
-    $('#reload-go', side).onclick = () => { const w = who(); if (confirm((w.all ? '모든 학생' : w.n + '명') + '의 화면을 새로 고칠까요? 쓰던 글은 저장된 뒤 다시 열려요.')) command(w.t, 'reload', {}, '새로 고침을 보냈어요.'); };
+    $$('[data-view]', act).forEach(b => b.onclick = () => { const w = who(); command(w.t, 'view', { mode: b.dataset.view }, '시점을 맞췄어요.'); });
+    $('#reload-go', act).onclick = () => { const w = who(); if (confirm((w.all ? '모든 학생' : w.n + '명') + '의 화면을 새로 고칠까요? 쓰던 글은 저장된 뒤 다시 열려요.')) command(w.t, 'reload', {}, '새로 고침을 보냈어요.'); };
   }
 
   // ---------- 모두 모으기 ----------
@@ -575,7 +637,7 @@
       + '<div class="score-wrap"><table class="scores"><thead><tr><th class="l">학번</th><th class="l">이름</th>'
       + P.rubric.map(r => '<th title="' + esc(r.area) + '">' + r.no + ' ' + esc(r.name) + '<small>' + r.points.A + '점</small></th>').join('')
       + '<th>합계<small>확정한 요소만</small></th></tr></thead><tbody>'
-      + list.map(s => { const t = totalOf(s.id); return '<tr><td class="l">' + (hideNames ? '' : esc(s.student_no)) + '</td><td class="l">' + esc(nameOf(s)) + '</td>' + P.rubric.map(r => cell(s, r)).join('') + '<td class="total">' + t.sum + ' <span class="muted" style="font-weight:400">(' + t.n + '/' + P.rubric.length + ')</span></td></tr>'; }).join('')
+      + list.map(s => { const t = totalOf(s.id); return '<tr><td class="l">' + (hideNames ? '' : esc(s.student_no)) + '</td><td class="l"><button type="button" class="link" data-stu="' + s.id + '">' + esc(nameOf(s)) + '</button></td>' + P.rubric.map(r => cell(s, r)).join('') + '<td class="total">' + t.sum + ' <span class="muted" style="font-weight:400">(' + t.n + '/' + P.rubric.length + ')</span></td></tr>'; }).join('')
       + '</tbody></table></div>';
     $$('select[data-s]', box).forEach(sel => sel.onchange = async () => {
       const sid = +sel.dataset.s, el = sel.dataset.e, old = scoreOf(sid, el);
@@ -585,7 +647,8 @@
         drawScores();
       } catch (e) { toast(e.message); sel.value = old && old.level || ''; }
     });
-    $$('[data-open-s]', box).forEach(b => b.onclick = () => openDrawer(+b.dataset.openS, b.dataset.openE));
+    $$('[data-open-s]', box).forEach(b => b.onclick = () => openStudentPage(+b.dataset.openS, b.dataset.openE));
+    $$('[data-stu]', box).forEach(b => b.onclick = () => openStudentPage(+b.dataset.stu));
     $('#sc-reload').onclick = loadScores;
     $('#sc-csv').onclick = downloadCSV;
     if (aiEl) $('#sc-ai-el').value = aiEl;
@@ -627,47 +690,185 @@
     studentCache.set(sid, r);
     return r;
   }
-  function closeDrawer() { const d = $('#drawer'); if (d) { d.hidden = true; d.innerHTML = ''; } drawerAt = null; }
-  async function openDrawer(sid, el) {
-    const d = $('#drawer'), r = P.rubric.find(x => x.id === el), s = ov.students.find(x => x.id === sid);
-    if (!r || !s) return;
-    drawerAt = { sid, el };
-    d.hidden = false;
-    d.innerHTML = '<header><h2>' + esc(label(s) + ' · ' + r.no + ' ' + r.name) + '</h2><button type="button" data-x>닫기</button></header><div class="body"><p class="muted">기록을 불러오는 중…</p></div>';
-    $('[data-x]', d).onclick = closeDrawer;
+  // ---------- 학생 화면: 학생 칸·이름·「근거」를 누르면 넘어온다 ----------
+  // 주소 #student=12(&el=N1-1) → 뒤로 가기로 목록, 새로 고침해도 그 학생. 오른쪽 슬라이드 창은 쓰지 않는다.
+  let sv = null, svPushed = false;
+  function parseHash() {
+    const h = new URLSearchParams(location.hash.replace(/^#/, ''));
+    const sid = +h.get('student');
+    return sid ? { sid, el: h.get('el') || '' } : null;
+  }
+  function openStudentPage(sid, el, replace) {
+    const h = '#student=' + sid + (el ? '&el=' + encodeURIComponent(el) : '');
+    if (replace) history.replaceState(null, '', location.pathname + location.search + h);
+    else { history.pushState(null, '', location.pathname + location.search + h); svPushed = true; }
+    route();
+  }
+  function leaveStudent() {
+    if (!sv && !parseHash()) return;
+    history.replaceState(null, '', location.pathname + location.search);
+    sv = null; svPushed = false;
+  }
+  function backToList() {
+    if (svPushed) history.back();
+    else { leaveStudent(); showTab(tab); }
+  }
+  window.addEventListener('popstate', () => { if (auth) route(); });
+  function route() {
+    const want = parseHash();
+    if (!want) { if (sv) { sv = null; showTab(tab); } return; }
+    if (!ov) { sv = want; return; }                     // 첫 신호를 받으면 update() 가 다시 부른다
+    if (!ov.students.some(s => s.id === want.sid)) { sv = null; history.replaceState(null, '', location.pathname + location.search); showTab(tab); toast('그 학생을 찾지 못했어요.'); return; }
+    sv = want;
+    showTab(tab);
+    renderStudentPage();
+    window.scrollTo(0, 0);
+  }
+
+  const svStudent = () => sv && ov && ov.students.find(x => x.id === sv.sid);
+  function svStatus(s) {
+    const bits = [esc(whereOf(s))];
+    bits.push(online(s) ? '<span class="on">접속 중</span>' : '<span class="muted">' + (s.last_seen ? '연결 끊김 ' + esc(fmtTime(s.last_seen)) : '들어오기 전') + '</span>');
+    if (s.help_at) bits.push('<span class="flag-help">손 듦 ' + esc(fmtTime(s.help_at)) + '</span> <button type="button" id="sv-hand">손 내리기</button>');
+    return bits.join(' · ');
+  }
+  function updateStudentHead() {
+    const s = svStudent(), el = $('#sv-status');
+    if (!s || !el) return;
+    const html = svStatus(s);
+    if (el._html !== html) { el._html = html; el.innerHTML = html; const h = $('#sv-hand'); if (h) h.onclick = () => clearHand(s.id); }
+    // 기록이 새로 저장되면 진행·답 부분만 다시 그린다(채점 메모를 쓰는 중이면 그대로)
+    const c = studentCache.get(s.id);
+    if (c && c.rev !== s.rev && !(document.activeElement && document.activeElement.closest && document.activeElement.closest('#sv-focus'))) renderStudentPage(true);
+  }
+
+  async function renderStudentPage(quiet) {
+    const box = $('#p-student'), s = svStudent();
+    if (!s) return;
+    const at = sv;
+    if (!quiet) box.innerHTML = '<div class="sv"><div class="sv-head"><button type="button" class="back" id="sv-back">← 목록으로</button><h2>' + esc(label(s)) + '</h2></div><p class="muted">기록을 불러오는 중…</p></div>';
+    if (!quiet) $('#sv-back').onclick = backToList;
     let rec;
-    try { rec = await studentRecord(sid); } catch (e) { $('.body', d).innerHTML = '<p>' + esc(e.message) + '</p>'; return; }
-    if (!drawerAt || drawerAt.sid !== sid || drawerAt.el !== el) return;
-    const ans = (rec.data && rec.data.answers) || {};
-    const sc = scoreOf(sid, el) || {};
-    const lv = sc.level || '';
-    d.innerHTML = '<header><h2>' + esc(label(s) + ' · ' + r.no + ' ' + r.name) + '</h2><button type="button" data-x>닫기</button></header>'
-      + '<div class="body"><section><h3>이 요소의 근거가 되는 학생 답</h3>'
-      + r.keys.map(k => { const q = P.questions.find(x => x.key === k), t = P.ownText(ans[k]), ev = P.evidenceCount(ans[k]); return '<div class="ans"><b>' + esc((q ? q.lesson + '-' + (q.step + 1) + ' ' : '') + (P.labels[k] || k)) + '</b><p' + (t ? '' : ' class="muted"') + '>' + (t ? esc(t) : '(쓰지 않음)') + '</p>' + (ev ? '<span class="muted" style="font-size:12px">가져온 근거 ' + ev + '개</span>' : '') + '</div>'; }).join('')
-      + (rec.data ? '<p class="muted" style="font-size:12px;margin:0">담은 근거 ' + ((rec.data.evidence || []).length) + '개 · 마지막 저장 ' + esc(fmtTime(rec.updated_at)) + '</p>' : '<p class="muted">아직 저장된 기록이 없어요.</p>')
-      + '</section><section><h3>단계 기준</h3><div class="levels">'
-      + LEVELS.map(x => '<label><input type="radio" name="lv" value="' + x + '"' + (lv === x ? ' checked' : '') + '><b>' + LV(x) + ' ' + r.points[x] + '점</b><span>' + esc(r.levels[x]) + '</span></label>').join('')
-      + '<label><input type="radio" name="lv" value="U"' + (lv === 'U' ? ' checked' : '') + '><b>미확인</b><span>기록을 더 확인한 뒤 정합니다.</span></label>'
-      + '<label><input type="radio" name="lv" value=""' + (!lv ? ' checked' : '') + '><b>비움</b><span>확정하지 않습니다.</span></label></div></section>'
-      + (r.focus ? '<p class="muted" style="margin:0;font-size:12.5px"><b>채점 초점</b> ' + esc(r.focus) + '</p>' : '')
-      + '<section><h3>선생님 메모</h3><textarea id="dr-note" rows="3" maxlength="1000" style="width:100%">' + esc(sc.note || '') + '</textarea></section>'
-      + '<section><h3>AI 제안</h3><div class="ai-box">' + (sc.ai_level ? '제안 단계 ' + esc(LV(sc.ai_level)) + (sc.ai_evidence ? '<br>근거로 본 문장: ' + esc(sc.ai_evidence) : '') + '<br>제안일 뿐이며 점수는 선생님이 정합니다.' : '아직 없음. 채점표 위 「AI 채점 제안 받기」로 받을 수 있어요. 점수는 선생님이 정합니다.') + '</div></section></div>'
-      + '<footer><button type="button" class="primary" id="dr-save">저장</button><button type="button" id="dr-next">저장하고 다음 학생</button><span class="grow"></span><button type="button" data-x>닫기</button></footer>';
-    $$('[data-x]', d).forEach(b => b.onclick = closeDrawer);
-    const saveIt = async () => {
-      const level = ($('input[name=lv]:checked', d) || {}).value || null;
-      const r2 = await call('asi_teacher_score', { p_student_id: sid, p_element: el, p_level: level, p_note: $('#dr-note').value });
-      scores = (scores || []).filter(x => !(x.student_id === sid && x.element === el)).concat(r2);
-      drawScores();
+    if (!scores) { try { scores = await call('asi_teacher_scores'); } catch (e) {} }
+    try { rec = await studentRecord(s.id); } catch (e) { box.innerHTML = '<div class="sv"><div class="sv-head"><button type="button" class="back" id="sv-back">← 목록으로</button><h2>' + esc(label(s)) + '</h2></div><p>' + esc(e.message) + '</p></div>'; $('#sv-back').onclick = backToList; return; }
+    if (sv !== at) return;
+    const list = ov.students, i = list.findIndex(x => x.id === s.id);
+    const prev = list[i - 1], next = list[i + 1];
+    const data = rec.data || {}, r = (data.research && typeof data.research === 'object') ? data.research : R(s.id), done = doneSet(r);
+    const root = P.recordRoot[0] === 'answers' ? (data.answers || {}) : (data.records || {});
+    const recScores = rec.scores || [];
+    const scoreHere = el => scoreOf(s.id, el) || recScores.find(v => v.element === el) || {};
+
+    // 머리: 돌아가기 · 이름 · 지금 상태 · 이 학생에게 보내기
+    const head = '<div class="sv-head"><button type="button" class="back" id="sv-back">← 목록으로</button><h2>' + esc(label(s)) + (s.group_no ? ' <small>' + s.group_no + '모둠</small>' : '') + '</h2>'
+      + '<span class="sv-status" id="sv-status"></span><span class="grow"></span>'
+      + '<button type="button" id="sv-prev"' + (prev ? '' : ' disabled') + '>이전 학생</button><button type="button" id="sv-nextstu"' + (next ? '' : ' disabled') + '>다음 학생</button></div>'
+      + '<div class="sv-act"><span class="lbl">옮기기</span><select id="sv-place" aria-label="옮길 곳">' + P.places.filter(p => !p.lessons || !s.lesson || p.lessons.includes(s.lesson)).map(p => '<option value="' + p.id + '">' + esc(p.step != null ? (s.lesson ? P.steps[s.lesson - 1][p.step] : (p.step + 1) + '단계') + (P.stepSuffix || '') : p.label) + '</option>').join('') + '</select><button type="button" id="sv-move">보내기</button>'
+      + '<span class="lbl">단계 열기</span><select id="sv-step" aria-label="열 단계">' + stepOptions() + '</select><button type="button" id="sv-open">열기</button>'
+      + '<span class="lbl">카드</span><input type="text" id="sv-card" maxlength="300" placeholder="이 학생에게만 보낼 한 줄"><button type="button" data-svcard="hint">힌트</button><button type="button" data-svcard="praise">칭찬</button></div>';
+
+    // 채점 중인 요소(채점표 「근거」로 왔을 때)
+    let focus = '';
+    const fr = sv.el && P.rubric.find(x => x.id === sv.el);
+    if (fr) {
+      const sc = scoreHere(fr.id), lv = sc.level || '';
+      focus = '<section class="sv-focus" id="sv-focus"><h3>채점: ' + esc(fr.no + ' ' + fr.name) + ' <span class="muted">' + esc(fr.area || '') + '</span></h3>'
+        + '<div class="sv-two"><div><h4>이 요소의 근거가 되는 학생 답</h4>'
+        + fr.keys.map(k => { const q = P.questions.find(x => x.key === k), v = P.answerOf(root, k), t = P.ownText(v), ev = P.evidenceCount(v); return '<div class="ans"><b>' + esc((q ? q.lesson + '-' + (q.step + 1) + ' ' : '') + (P.labels[k] || k)) + '</b><p' + (t ? '' : ' class="muted"') + '>' + (t ? esc(t) : '(쓰지 않음)') + '</p>' + (ev ? '<span class="muted" style="font-size:12px">가져온 근거 ' + ev + '개</span>' : '') + '</div>'; }).join('')
+        + '</div><div><h4>단계 기준</h4><div class="levels">'
+        + LEVELS.map(x => '<label><input type="radio" name="lv" value="' + x + '"' + (lv === x ? ' checked' : '') + '><b>' + LV(x) + ' ' + fr.points[x] + '점</b><span>' + esc(fr.levels[x]) + '</span></label>').join('')
+        + '<label><input type="radio" name="lv" value="U"' + (lv === 'U' ? ' checked' : '') + '><b>미확인</b><span>기록을 더 확인한 뒤 정합니다.</span></label>'
+        + '<label><input type="radio" name="lv" value=""' + (!lv ? ' checked' : '') + '><b>비움</b><span>확정하지 않습니다.</span></label></div>'
+        + (fr.focus ? '<p class="muted" style="margin:6px 0 0;font-size:12.5px"><b>채점 초점</b> ' + esc(fr.focus) + '</p>' : '')
+        + '<h4>선생님 메모</h4><textarea id="dr-note" rows="3" maxlength="1000">' + esc(sc.note || '') + '</textarea>'
+        + '<div class="ai-box">' + (sc.ai_level ? '<b>AI 제안 단계</b> ' + esc(LV(sc.ai_level)) + (sc.ai_evidence ? '<br>근거로 본 문장: ' + esc(sc.ai_evidence) : '') + '<br>제안일 뿐이며 점수는 선생님이 정합니다.' : 'AI 제안 없음. 채점표 위 「AI 채점 제안 받기」로 받을 수 있어요. 점수는 선생님이 정합니다.') + '</div>'
+        + '<div class="row-tools"><button type="button" class="primary" id="dr-save">저장</button><button type="button" id="dr-next">저장하고 다음 학생</button><button type="button" class="quiet" id="dr-done">채점 닫기</button></div>'
+        + '</div></div></section>';
+    }
+
+    // 진행: 차시×단계
+    const grid = '<table class="steps-grid"><thead><tr><th></th>' + RANGE.map(k => '<th>' + (k + 1) + '단계</th>').join('') + '</tr></thead><tbody>'
+      + [1, 2, 3, 4].map(l => '<tr><th>' + l + '차시</th>' + RANGE.map(st => {
+        const k = l + '-' + st, ok = done.has(k), m = Math.round(((r.active || {})[k] || 0) / 60), here = s.lesson === l && s.step === st;
+        return '<td class="' + (ok ? 'ok' : '') + (here ? ' here' : '') + '" data-tip="' + esc(l + '-' + (st + 1) + ' ' + P.steps[l - 1][st] + ' · ' + (ok ? '기록 있음' : '기록 없음') + ' · ' + m + '분' + (here ? ' · 지금 여기' : '')) + '"><span>' + (ok ? '기록' : '·') + '</span><small>' + (m ? m + '분' : '') + '</small></td>';
+      }).join('') + '</tr>').join('') + '</tbody></table>';
+    const progress = '<section><h3>진행</h3>' + grid + '<p class="muted" style="font-size:12px;margin:4px 0 0">초록 칸은 기록이 갖춰진 단계, 테두리 칸은 지금 있는 단계입니다. 학습 시간 ' + minutesOf(r) + '분 · 마지막 저장 ' + esc(fmtTime(rec.updated_at)) + '</p>'
+      + (P.columns.length ? '<dl class="kv" style="margin-top:8px">' + P.columns.map(c => '<dt title="' + esc(c.title || '') + '">' + esc(c.label) + '</dt><dd>' + fmtNum(c.get(r)) + (c.unit ? c.unit : '') + '</dd>').join('') + '</dl>' : '') + '</section>';
+
+    // 채점 목록: 고르면 바로 저장, 「근거」로 채점 칸 열기
+    const scoreList = '<section><h3>채점 <span class="muted">' + (() => { const t = totalOf(s.id); return t.sum + '점 · 확정 ' + t.n + '/' + P.rubric.length; })() + '</span></h3><table class="sv-scores"><tbody>'
+      + P.rubric.map(el => {
+        const x = scoreHere(el.id), lv = x.level || '';
+        return '<tr' + (sv.el === el.id ? ' class="on"' : '') + '><th>' + esc(el.no + ' ' + el.name) + '</th><td><select data-svs="' + el.id + '" aria-label="' + esc(el.no + ' ' + el.name) + '"><option value=""' + (lv ? '' : ' selected') + '>-</option>'
+          + LEVELS.map(k => '<option value="' + k + '"' + (lv === k ? ' selected' : '') + '>' + LV(k) + ' ' + el.points[k] + '</option>').join('') + '<option value="U"' + (lv === 'U' ? ' selected' : '') + '>미확인</option></select>'
+          + (x.ai_level ? ' <span class="ai">AI 제안 ' + esc(LV(x.ai_level)) + '</span>' : '') + '</td><td><button type="button" class="quiet" data-svel="' + el.id + '">근거</button></td></tr>';
+      }).join('') + '</tbody></table></section>';
+
+    // 답: 차시·단계 순서로, 처음 답과 고친 기록을 함께
+    const first = r.first && typeof r.first === 'object' ? r.first : {};
+    const revs = Array.isArray(data.revisions) ? data.revisions : [];
+    const byKey = {};
+    for (const v of revs) { const b = String(v.before || '').trim(), a = String(v.after || '').trim(); if (!b || a === b) continue; (byKey[v.key] = byKey[v.key] || []).push(v); }
+    const ansOne = q => {
+      const v = P.answerOf(root, q.key), t = P.ownText(v), ev = P.evidenceCount(v);
+      const f = first[q.key] && String(first[q.key]).trim(), changed = f && f !== String(t || '').trim();
+      const rv = byKey[q.key] || [];
+      if (!t && !rv.length) return '<li class="blank"><span>' + esc(q.label) + '</span><span class="muted">쓰지 않음</span></li>';
+      return '<li><b>' + esc(q.label) + '</b><p>' + (t ? esc(t) : '<span class="muted">(비움)</span>') + '</p>'
+        + (ev ? '<span class="muted small">가져온 근거 ' + ev + '개</span>' : '')
+        + (changed ? '<p class="was"><span class="muted">처음 답</span> ' + esc(shortText(f, 200)) + '</p>' : '')
+        + (rv.length ? '<details><summary class="muted">고친 기록 ' + rv.length + '번 · 마지막 ' + esc(fmtTime(rv[rv.length - 1].time)) + '</summary>' + rv.slice(-5).map(x => '<p class="was"><span class="muted">' + esc(fmtTime(x.time)) + ' 고치기 전</span> ' + esc(shortText(P.ownText(x.before), 200)) + '</p>').join('') + '</details>' : '')
+        + '</li>';
     };
-    $('#dr-save').onclick = async () => { try { await saveIt(); toast('저장했어요.'); } catch (e) { toast(e.message); } };
-    $('#dr-next').onclick = async () => {
-      try {
-        await saveIt();
-        const list = ov.students, i = list.findIndex(x => x.id === sid);
-        if (i < list.length - 1) openDrawer(list[i + 1].id, el); else { toast('마지막 학생이에요.'); closeDrawer(); }
-      } catch (e) { toast(e.message); }
+    const answers = '<section class="sv-answers"><h3>답</h3>' + [1, 2, 3, 4].map(l => {
+      const qs = P.questions.filter(q => q.lesson === l);
+      const n = qs.filter(q => P.ownText(P.answerOf(root, q.key))).length;
+      const open = n > 0 || l === s.lesson;
+      return '<details class="lesson"' + (open ? ' open' : '') + '><summary><b>' + l + '차시 ' + esc(P.lessons[l - 1]) + '</b> <span class="muted">쓴 칸 ' + n + '/' + qs.length + '</span></summary>'
+        + RANGE.map(st => { const sq = qs.filter(q => q.step === st); return sq.length ? '<div class="sv-step"><h4>' + l + '-' + (st + 1) + ' ' + esc(P.steps[l - 1][st] || '') + '</h4><ul class="sv-ans">' + sq.map(ansOne).join('') + '</ul></div>' : ''; }).join('')
+        + '</details>';
+    }).join('') + '</section>';
+
+    // 그 밖의 기록
+    const extra = [];
+    const ev = Array.isArray(data.evidence) ? data.evidence : [];
+    if (ev.length) extra.push('<section><h3>담은 근거 ' + ev.length + '개</h3><ul class="plain">' + ev.slice(0, 20).map(e => '<li>' + esc((e.id ? e.id + ' ' : '') + (e.label || '') + ': ' + (e.value != null ? e.value : '') + ' ' + (e.unit || '') + (e.year ? ' (' + e.year + ')' : '') + (e.kind ? ' · ' + e.kind : '')) + '</li>').join('') + '</ul></section>');
+    const chat = Array.isArray(data.chat) ? data.chat : [];
+    if (chat.length) extra.push('<section><h3>AI 코치에게 물은 것 ' + chat.length + '번</h3><ul class="plain">' + chat.slice(-10).map(c => '<li>' + esc(shortText(c.question || '', 120)) + '</li>').join('') + '</ul></section>');
+
+    const keepNote = quiet && $('#dr-note') ? $('#dr-note').value : null;
+    box.innerHTML = '<div class="sv">' + head + focus + '<div class="sv-grid">' + progress + scoreList + '</div>' + answers + extra.join('') + '</div>';
+    if (keepNote != null && $('#dr-note')) $('#dr-note').value = keepNote;
+    $('#sv-status')._html = ''; updateStudentHead();
+    $('#sv-back').onclick = backToList;
+    if (prev) $('#sv-prev').onclick = () => openStudentPage(prev.id, sv.el, true);
+    if (next) $('#sv-nextstu').onclick = () => openStudentPage(next.id, sv.el, true);
+    const me = ['student:' + s.id];
+    $('#sv-move').onclick = () => { const o = $('#sv-place').selectedOptions[0], p = { place: o.value }; if (s.lesson) p.lesson = s.lesson; command(me, 'teleport', p, nameOf(s) + ' 학생을 ' + ro(o.textContent) + ' 옮겼어요.'); };
+    if (s.lesson) $('#sv-step').value = s.lesson + '-' + s.step;
+    $('#sv-open').onclick = () => { const [l, st] = $('#sv-step').value.split('-').map(Number); command(me, 'open_step', { lesson: l, step: st }, nameOf(s) + ' 학생에게 ' + l + '-' + (st + 1) + ' 단계를 열었어요.'); };
+    $('#sv-card').onkeydown = e => { if (e.key === 'Enter') $('[data-svcard=hint]').click(); };
+    $$('[data-svcard]').forEach(b => b.onclick = () => { const text = $('#sv-card').value.trim(); if (!text) { $('#sv-card').focus(); return; } command(me, 'card', { kind: b.dataset.svcard, text }, nameOf(s) + ' 학생에게 카드를 보냈어요.').then(() => { $('#sv-card').value = ''; }); });
+    const saveScore = async (el, level, note) => {
+      const r2 = await call('asi_teacher_score', { p_student_id: s.id, p_element: el, p_level: level, p_note: note });
+      scores = (scores || []).filter(x => !(x.student_id === s.id && x.element === el)).concat(r2);
+      rec.scores = recScores.filter(x => x.element !== el).concat(r2);
+      return r2;
     };
+    $$('select[data-svs]').forEach(sel => sel.onchange = async () => {
+      const el = sel.dataset.svs, old = scoreHere(el);
+      try { await saveScore(el, sel.value || null, old.note || ''); renderStudentPage(true); } catch (e) { toast(e.message); sel.value = old.level || ''; }
+    });
+    $$('[data-svel]').forEach(b => b.onclick = () => openStudentPage(s.id, b.dataset.svel, true));
+    if (fr) {
+      const saveFocus = () => saveScore(fr.id, ($('input[name=lv]:checked') || {}).value || null, $('#dr-note').value);
+      $('#dr-save').onclick = async () => { try { await saveFocus(); toast('저장했어요.'); renderStudentPage(true); } catch (e) { toast(e.message); } };
+      $('#dr-next').onclick = async () => {
+        try { await saveFocus(); if (next) openStudentPage(next.id, fr.id, true); else { toast('마지막 학생이에요.'); renderStudentPage(true); } } catch (e) { toast(e.message); }
+      };
+      $('#dr-done').onclick = () => openStudentPage(s.id, '', true);
+      if (!quiet) $('#sv-focus').scrollIntoView({ block: 'start' });
+    }
   }
 
   // ---------- 학생별 기록·반 전체 지표(연구용) ----------
@@ -704,7 +905,7 @@
     const box = $('#p-students');
     if (!rs) box.innerHTML = '<div class="empty">불러오는 중…</div>';
     try { await loadResearch(force); } catch (e) { box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; return; }
-    if (tab !== 'students') return;
+    if (tab !== 'records' || recView !== 'students' || sv) return;
     const list = (ov ? ov.students : []).slice();
     if (!list.length) { box.innerHTML = '<div class="empty">아직 들어온 학생이 없어요.</div>'; return; }
     const val = (s, id) => {
@@ -717,7 +918,7 @@
     list.sort((a, b) => { const x = val(a, rsSort.id), y = val(b, rsSort.id); return (x < y ? -1 : x > y ? 1 : 0) * rsSort.dir; });
     const minis = s => { const d = doneSet(R(s.id)); return [1, 2, 3, 4].map(l => { const n = RANGE.filter(st => d.has(l + '-' + st)).length; return '<span class="mini" style="background:' + seqColor(n / STEPS) + ';color:' + seqInk(n / STEPS) + '" data-tip="' + l + '차시 ' + n + '/' + STEPS + '단계 기록">' + n + '</span>'; }).join(''); };
     const head = [['no', '학번·이름'], ['done', '진행(차시별 단계)', '차시마다 기록이 갖춰진 단계 수']].concat(P.columns.map(c => [c.id, c.label + (c.unit ? '(' + c.unit + ')' : ''), c.title])).concat([['score', '채점 확정'], ['saved', '마지막 저장']]);
-    box.innerHTML = '<div class="score-tools"><span>학생마다 진행과 학습 기록을 한 줄로 봅니다. 줄을 누르면 자세히 열려요. 제목을 누르면 그 순서로 정렬해요. 시간·횟수는 학습 과정을 보는 참고 자료이고 점수에 넣지 않아요.</span><span class="grow"></span><button type="button" id="rs-reload">새로 불러오기</button></div>'
+    box.innerHTML = '<div class="score-tools"><span>학생마다 진행과 학습 기록을 한 줄로 봅니다. 줄을 누르면 그 학생 화면으로 넘어가요. 제목을 누르면 그 순서로 정렬해요. 시간·횟수는 학습 과정을 보는 참고 자료이고 점수에 넣지 않아요.</span><span class="grow"></span><button type="button" id="rs-reload">새로 불러오기</button></div>'
       + '<div class="score-wrap"><table class="scores rs-table"><thead><tr>' + head.map(([id, t, title]) => '<th class="' + (id === 'no' ? 'l' : '') + '"><button type="button" class="sort" data-sort="' + id + '"' + (title ? ' title="' + esc(title) + '"' : '') + ' aria-sort="' + (rsSort.id === id ? (rsSort.dir > 0 ? 'ascending' : 'descending') : 'none') + '">' + esc(t) + (rsSort.id === id ? (rsSort.dir > 0 ? ' ↑' : ' ↓') : '') + '</button></th>').join('') + '</tr></thead><tbody>'
       + list.map(s => {
         const r = R(s.id), has = Object.keys(r).length > 0;
@@ -727,67 +928,14 @@
       }).join('') + '</tbody></table></div>';
     $('#rs-reload').onclick = () => renderStudents(true);
     $$('[data-sort]', box).forEach(b => b.onclick = () => { const id = b.dataset.sort; rsSort = rsSort.id === id ? { id, dir: -rsSort.dir } : { id, dir: id === 'no' ? 1 : -1 }; renderStudents(); });
-    $$('tr[data-student]', box).forEach(tr => { tr.onclick = () => openStudent(+tr.dataset.student); tr.onkeydown = e => { if (e.key === 'Enter') openStudent(+tr.dataset.student); }; });
-  }
-
-  async function openStudent(sid) {
-    const d = $('#drawer'), s = ov && ov.students.find(x => x.id === sid);
-    if (!s) return;
-    drawerAt = { sid, el: '' };
-    d.hidden = false;
-    d.innerHTML = '<header><h2>' + esc(label(s)) + '</h2><button type="button" data-x>닫기</button></header><div class="body"><p class="muted">기록을 불러오는 중…</p></div>';
-    $('[data-x]', d).onclick = closeDrawer;
-    let rec;
-    try { rec = await studentRecord(sid); } catch (e) { $('.body', d).innerHTML = '<p>' + esc(e.message) + '</p>'; return; }
-    if (!drawerAt || drawerAt.sid !== sid) return;
-    const data = rec.data || {}, r = (data.research && typeof data.research === 'object') ? data.research : R(sid), done = doneSet(r);
-    const grid = '<table class="steps-grid"><thead><tr><th></th>' + RANGE.map(i => '<th>' + (i + 1) + '단계</th>').join('') + '</tr></thead><tbody>'
-      + [1, 2, 3, 4].map(l => '<tr><th>' + l + '차시</th>' + RANGE.map(st => {
-        const k = l + '-' + st, ok = done.has(k), m = Math.round(((r.active || {})[k] || 0) / 60);
-        return '<td class="' + (ok ? 'ok' : '') + '" data-tip="' + esc(l + '-' + (st + 1) + ' ' + P.steps[l - 1][st] + ' · ' + (ok ? '기록 있음' : '기록 없음') + ' · ' + m + '분') + '"><span>' + (ok ? '기록' : '·') + '</span><small>' + (m ? m + '분' : '') + '</small></td>';
-      }).join('') + '</tr>').join('') + '</tbody></table>';
-    const sections = ['<section><h3>차시별 단계 <span class="muted">(기록이 갖춰진 단계와 머문 시간)</span></h3>' + grid + '<p class="muted" style="font-size:12px;margin:4px 0 0">학습 시간 ' + minutesOf(r) + '분 · 마지막 저장 ' + esc(fmtTime(rec.updated_at)) + '</p></section>'];
-    if (P.columns.length) sections.push('<section><h3>학습 기록 요약</h3><dl class="kv">' + P.columns.map(c => '<dt title="' + esc(c.title || '') + '">' + esc(c.label) + '</dt><dd>' + fmtNum(c.get(r)) + (c.unit ? c.unit : '') + '</dd>').join('') + '</dl></section>');
-    // 처음 답과 지금 답(판단 수정)
-    const first = r.first && typeof r.first === 'object' ? r.first : {};
-    const root = P.answerOf ? (P.recordRoot[0] === 'answers' ? data.answers : data.records) : null;
-    const firstRows = Object.keys(first).filter(k => first[k]).map(k => {
-      const now = P.answerOf(root, k), same = String(now || '').trim() === String(first[k]).trim();
-      return '<div class="ans"><b>' + esc(P.labels[k] || k) + (same ? ' · 그대로' : ' · 바뀜') + '</b><p><span class="muted">처음</span> ' + esc(shortText(first[k], 140)) + '</p>' + (same ? '' : '<p><span class="muted">지금</span> ' + esc(shortText(P.ownText(now) || '(비움)', 140)) + '</p>') + '</div>';
-    });
-    if (firstRows.length) sections.push('<section><h3>처음 답과 지금 답</h3>' + firstRows.join('') + '</section>');
-    // 답을 고친 칸
-    const revs = Array.isArray(data.revisions) ? data.revisions : [];
-    const byKey = {};
-    for (const v of revs) { const b = String(v.before || '').trim(), a = String(v.after || '').trim(); if (!b || a === b) continue; (byKey[v.key] = byKey[v.key] || []).push(v); }
-    const revKeys = Object.keys(byKey).sort((a, b) => byKey[b].length - byKey[a].length);
-    if (revKeys.length) sections.push('<section><h3>답을 고친 칸 ' + revKeys.length + '개</h3>' + revKeys.slice(0, 12).map(k => {
-      const list = byKey[k], firstBefore = P.ownText(list[0].before), last = P.ownText(list[list.length - 1].after);
-      return '<details class="ans"><summary><b>' + esc(P.labels[k] || k) + '</b> <span class="muted">' + list.length + '번 · 마지막 ' + esc(fmtTime(list[list.length - 1].time)) + '</span></summary><p><span class="muted">고치기 전</span> ' + esc(shortText(firstBefore, 300)) + '</p><p><span class="muted">마지막</span> ' + esc(shortText(last || '(비움)', 300)) + '</p></details>';
-    }).join('') + '</section>');
-    // 담은 근거
-    const ev = Array.isArray(data.evidence) ? data.evidence : [];
-    if (ev.length) sections.push('<section><h3>담은 근거 ' + ev.length + '개</h3><ul class="plain">' + ev.slice(0, 20).map(e => '<li>' + esc((e.id ? e.id + ' ' : '') + (e.label || '') + ': ' + (e.value != null ? e.value : '') + ' ' + (e.unit || '') + (e.year ? ' (' + e.year + ')' : '') + (e.kind ? ' · ' + e.kind : '')) + '</li>').join('') + '</ul></section>');
-    // AI 코치 질문
-    const chat = Array.isArray(data.chat) ? data.chat : [];
-    if (chat.length) sections.push('<section><h3>AI 코치에게 물은 것 ' + chat.length + '번</h3><ul class="plain">' + chat.slice(-10).map(c => '<li>' + esc(shortText(c.question || '', 120)) + '</li>').join('') + '</ul></section>');
-    // 화석: 단계별 쓴 칸
-    if (data.records && typeof data.records === 'object' && P.id === 'fossil') {
-      const rows = Object.keys(data.records).sort().map(k => { const recd = data.records[k] || {}; const n = Object.entries(recd).filter(([f, v]) => f !== '자료 버전' && typeof v === 'string' && v.trim()).length; const [l, st] = k.split('-').map(Number); return '<li>' + esc(l + '-' + (st + 1) + ' ' + (P.steps[l - 1] ? P.steps[l - 1][st] : '') + ': 쓴 칸 ' + n + '개') + '</li>'; });
-      if (rows.length) sections.push('<section><h3>탐구 칸</h3><ul class="plain">' + rows.join('') + '</ul></section>');
-    }
-    // 채점
-    const sc = rec.scores || [];
-    sections.push('<section><h3>채점</h3><dl class="kv">' + P.rubric.map(el => { const x = sc.find(v => v.element === el.id) || {}; return '<dt>' + esc((el.no || el.id) + ' ' + el.name) + '</dt><dd>' + (LEVELS.includes(x.level) ? LV(x.level) + ' ' + el.points[x.level] + '점' : x.level === 'U' ? '미확인' : '-') + (x.ai_level ? ' <span class="muted">AI 제안 ' + esc(LV(x.ai_level)) + '</span>' : '') + '</dd>'; }).join('') + '</dl></section>');
-    d.innerHTML = '<header><h2>' + esc(label(s)) + '</h2><button type="button" data-x>닫기</button></header><div class="body">' + sections.join('') + '</div>';
-    $$('[data-x]', d).forEach(b => b.onclick = closeDrawer);
+    $$('tr[data-student]', box).forEach(tr => { tr.onclick = () => openStudentPage(+tr.dataset.student); tr.onkeydown = e => { if (e.key === 'Enter') openStudentPage(+tr.dataset.student); }; });
   }
 
   async function renderClass(force) {
     const box = $('#p-class');
     if (!rs) box.innerHTML = '<div class="empty">불러오는 중…</div>';
     try { await loadResearch(force); } catch (e) { box.innerHTML = '<div class="empty">' + esc(e.message) + '</div>'; return; }
-    if (tab !== 'class') return;
+    if (tab !== 'records' || recView !== 'class' || sv) return;
     const list = ov ? ov.students : [], n = list.length;
     if (!n) { box.innerHTML = '<div class="empty">아직 들어온 학생이 없어요.</div>'; return; }
     const who = arr => arr.length ? arr.map(s => label(s)).join(', ') : '없음';
