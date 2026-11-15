@@ -271,7 +271,7 @@
       asi_teacher_score({ p_tok, p_student_id, p_element, p_level, p_note }) {
         const r = teacherRoom(p_tok);
         if (!db.students.some(s => s.id === p_student_id && s.room_id === r.id)) fail('no_student');
-        if ((r.program === 'netzero' && !/^N[1-6]$/.test(p_element || '')) || (r.program === 'fossil' && !/^P[1-8]$/.test(p_element || ''))) fail('bad_element');
+        if ((r.program === 'netzero' && !/^N([1-6]|[1-3]-[1-6]|4-[1-3])$/.test(p_element || '')) || (r.program === 'fossil' && !/^P[1-8]$/.test(p_element || ''))) fail('bad_element');
         if (p_level != null && !['A', 'B', 'C', 'D', 'E', 'U'].includes(p_level)) fail('bad_level');
         if (String(p_note || '').length > 1000) fail('too_long');
         let sc = db.scores.find(x => x.student_id === p_student_id && x.element === p_element);
@@ -313,12 +313,17 @@
         }
         if (body.action === 'suggest') {
           const el = body.element || {};
-          if (!/^[NP][1-8]$/.test(String(el.id))) fail('bad_element');
+          const okId = r.program === 'fossil' ? /^P[1-8]$/ : /^N([1-6]|[1-3]-[1-6]|4-[1-3])$/;
+          if (!okId.test(String(el.id))) fail('bad_element');
+          // 이 요소에 있는 단계만 쓴다(넷제로 3단계면 A·B·C) — 없는 단계를 원하면 가장 낮은 단계로
+          const ks = ['A', 'B', 'C', 'D', 'E'].filter(k => String((el.levels || {})[k] || '').trim());
+          if (!ks.length) fail('bad_element');
+          const pick = want => ks.includes(want) ? want : ks[ks.length - 1];
           const out = [];
           for (const st of db.students.filter(s => s.room_id === r.id)) {
             const rc = recordOf(st), text = (el.keys || []).map(k => at(rc && rc.data, k)).filter(Boolean).join(' ');
             if (!text) continue;
-            const level = /\d/.test(text) && text.length > 30 ? 'B' : text.length > 12 ? 'C' : 'D';
+            const level = pick(/\d/.test(text) && text.length > 30 ? 'B' : text.length > 12 ? 'C' : 'D');
             out.push({ student_id: st.id, level, evidence: '「' + text.slice(0, 30) + '」 체험용 가짜 제안' });
             let sc = db.scores.find(x => x.student_id === st.id && x.element === el.id);
             if (!sc) { sc = { id: ++seq.score, room_id: r.id, student_id: st.id, element: el.id, level: null, note: '', decided_at: null }; db.scores.push(sc); }

@@ -206,19 +206,21 @@
   }
   const students = plan.map(build);
 
-  // 채점: 1차시를 마친 학생의 ①② 를 선생님이 확정한 상태, ③ 은 일부만. ① 에는 AI 제안이 있고 몇 명은 선생님과 다르다
-  const levelFor = (tier, i, el) => ({ A: ['A', 'A', 'B'], B: ['B', 'C', 'B'], C: ['D', 'E', 'D'] })[tier][(i + el) % 3];
+  // 채점(3단계 루브릭, A=상 B=중 C=하): 1차시를 마친 학생의 1-1·1-2 를 선생님이 확정한 상태, 1-5 는 일부만.
+  // 1-1 에는 AI 제안이 있고 몇 명은 선생님과 다르다
+  const levelFor = (tier, i, el) => ({ A: ['A', 'A', 'B'], B: ['B', 'B', 'C'], C: ['C', 'C', 'B'] })[tier][(i + el) % 3];
   const scores = [], ai = [];
   students.forEach((s, i) => {
     const l1done = s.lesson > 1 || (s.lesson === 1 && s.step === 4);
     if (!l1done || s.away) return;
-    scores.push({ no: s.no, el: 'N1', level: levelFor(s.tier, i, 0) }, { no: s.no, el: 'N2', level: levelFor(s.tier, i, 1),
-      note: s.tier === 'A' && i % 2 === 0 ? '수치 두 개를 주장과 연결함. 처음 생각을 고친 까닭이 분명함.' : s.tier === 'C' && i % 2 === 0 ? '수치 없이 「늘었다」만 씀. 연도·단위를 다시 확인하도록 안내.' : '' });
-    if (s.tier === 'A' && i < 12) scores.push({ no: s.no, el: 'N3', level: 'B' });
+    scores.push({ no: s.no, el: 'N1-1', level: levelFor(s.tier, i, 0) }, { no: s.no, el: 'N1-2', level: levelFor(s.tier, i, 1),
+      note: s.tier === 'A' && i % 2 === 0 ? '저탄소 비율과 화석연료 사용량을 수치로 함께 들고, 사용량이 늘어 배출이 줄지 않았다고 연결함.' : s.tier === 'C' && i % 2 === 0 ? '수치 없이 「늘었다」만 씀. 표의 연도·단위를 다시 확인하도록 안내.' : '' });
+    if (s.tier === 'A' && i < 12) scores.push({ no: s.no, el: 'N1-5', level: 'B' });
     const teacher = levelFor(s.tier, i, 0), off = [3, 14, 23].includes(i);
-    const q = String(s.record.answers.l1energy || s.record.answers.l1pattern || '').slice(0, 40);
-    ai.push({ no: s.no, el: 'N1', level: off ? (teacher === 'A' ? 'B' : String.fromCharCode(teacher.charCodeAt(0) - 1)) : teacher,
-      evidence: (q ? '「' + q + '…」 ' : '') + ({ A: '대상·연도·단위를 갖춘 수치로 비율과 사용량을 구분함', B: '비율과 사용량을 구분하지만 수치가 빠짐', C: '수치 없이 변화의 인상만 씀', D: '변화 방향만 씀', E: '자료와 맞지 않는 설명' })[off ? 'B' : teacher] });
+    const q = String(s.record.answers.l1pattern || '').slice(0, 40);
+    const aiLevel = off ? (teacher === 'A' ? 'B' : String.fromCharCode(teacher.charCodeAt(0) - 1)) : teacher;
+    ai.push({ no: s.no, el: 'N1-1', level: aiLevel,
+      evidence: (q ? '「' + q + '…」 ' : '') + ({ A: '두 연도의 값을 단위와 함께 쓰고 배수와 전체 추세를 설명함', B: '두 연도의 값은 썼지만 변화량이나 추세 설명이 빠짐', C: '수치 없이 「늘었다」고만 씀' })[aiLevel] });
   });
 
   // AI 정리(답 묶기) 예시: 1-3 l1energy

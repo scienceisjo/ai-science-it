@@ -11,7 +11,8 @@
   const params = new URLSearchParams(location.search);
   const DEMO = params.get('demo') === '1';
   const AUTH_KEY = 'asi_teacher_' + P.id, RECENT_KEY = 'asi_teacher_recent_' + P.id;
-  const LEVELS = ['A', 'B', 'C', 'D', 'E'];
+  const LEVELS = P.levels || ['A', 'B', 'C', 'D', 'E'];
+  const LV = x => (P.levelNames && P.levelNames[x]) || x;   // 화면에 보이는 단계 이름(넷제로: 상·중·하·무응답, 화석: A~E 그대로)
   const ONLINE_MS = 25000, STUCK_MS = 10 * 60000;
   const TABS = [['live', '수업 화면'], ['students', '학생별 기록'], ['answers', '답 모아보기'], ['scores', '채점표'], ['class', '반 전체 지표'], ['settings', '방 설정']];
   const STEPS = P.stepCount || 5, TOTAL = STEPS * 4, RANGE = [...Array(STEPS).keys()];
@@ -562,8 +563,8 @@
     const cell = (s, r) => {
       const sc = scoreOf(s.id, r.id), lv = sc && sc.level || '';
       return '<td><select data-s="' + s.id + '" data-e="' + r.id + '" class="' + (lv ? 'set' : '') + '" aria-label="' + esc(s.student_no + ' ' + r.no + ' ' + r.name) + '">'
-        + '<option value=""' + (lv ? '' : ' selected') + '>-</option>' + LEVELS.map(x => '<option value="' + x + '"' + (lv === x ? ' selected' : '') + '>' + x + ' ' + r.points[x] + '</option>').join('') + '<option value="U"' + (lv === 'U' ? ' selected' : '') + '>미확인</option></select>'
-        + (sc && sc.ai_level ? '<span class="ai">AI 제안 ' + esc(sc.ai_level) + '</span>' : '')
+        + '<option value=""' + (lv ? '' : ' selected') + '>-</option>' + LEVELS.map(x => '<option value="' + x + '"' + (lv === x ? ' selected' : '') + '>' + LV(x) + ' ' + r.points[x] + '</option>').join('') + '<option value="U"' + (lv === 'U' ? ' selected' : '') + '>미확인</option></select>'
+        + (sc && sc.ai_level ? '<span class="ai">AI 제안 ' + esc(LV(sc.ai_level)) + '</span>' : '')
         + '<button type="button" class="quiet" data-open-s="' + s.id + '" data-open-e="' + r.id + '" title="근거 보며 채점">근거</button></td>';
     };
     const first = P.rubric[0], last = P.rubric[P.rubric.length - 1];
@@ -597,7 +598,7 @@
     const el = P.rubric.find(r => r.id === ($('#sc-ai-el').value || aiEl)) || P.rubric[0];
     aiEl = el.id; aiBusy = true; drawScores();
     try {
-      const r = await ASI.ai({ token: auth.token, action: 'suggest', element: { id: el.id, no: el.no || el.id, name: el.name, levels: el.levels, keys: el.keys }, labels: Object.fromEntries(el.keys.map(k => [k, P.labels[k] || k])) });
+      const r = await ASI.ai({ token: auth.token, action: 'suggest', element: { id: el.id, no: el.no || el.id, name: el.name, levels: Object.fromEntries(Object.entries(el.levels).filter(([k]) => el.points[k] > 0)), names: P.levelNames || null, keys: el.keys }, labels: Object.fromEntries(el.keys.map(k => [k, P.labels[k] || k])) });
       aiBusy = false;
       await loadScores();
       toast(r.note === 'no_records' ? ASI.MSG.no_records : (el.no || el.id) + ' 제안을 ' + (r.suggestions || []).length + '명 받았어요. 칸 아래 「AI 제안」을 보고 정해 주세요.');
@@ -609,7 +610,7 @@
     const head = ['학번', '이름'].concat(P.rubric.flatMap(r => [r.no + ' ' + r.name + ' 단계', r.no + ' 점수'])).concat(['합계', '확정 요소 수']);
     const rows = list.map(s => {
       const t = totalOf(s.id);
-      return [s.student_no, s.name].concat(P.rubric.flatMap(r => { const sc = scoreOf(s.id, r.id), lv = sc && sc.level || ''; return [lv === 'U' ? '미확인' : lv, LEVELS.includes(lv) ? r.points[lv] : '']; })).concat([t.sum, t.n]);
+      return [s.student_no, s.name].concat(P.rubric.flatMap(r => { const sc = scoreOf(s.id, r.id), lv = sc && sc.level || ''; return [lv === 'U' ? '미확인' : LV(lv), LEVELS.includes(lv) ? r.points[lv] : '']; })).concat([t.sum, t.n]);
     });
     const csv = '﻿' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n');
     const a = document.createElement('a');
@@ -645,12 +646,12 @@
       + r.keys.map(k => { const q = P.questions.find(x => x.key === k), t = P.ownText(ans[k]), ev = P.evidenceCount(ans[k]); return '<div class="ans"><b>' + esc((q ? q.lesson + '-' + (q.step + 1) + ' ' : '') + (P.labels[k] || k)) + '</b><p' + (t ? '' : ' class="muted"') + '>' + (t ? esc(t) : '(쓰지 않음)') + '</p>' + (ev ? '<span class="muted" style="font-size:12px">가져온 근거 ' + ev + '개</span>' : '') + '</div>'; }).join('')
       + (rec.data ? '<p class="muted" style="font-size:12px;margin:0">담은 근거 ' + ((rec.data.evidence || []).length) + '개 · 마지막 저장 ' + esc(fmtTime(rec.updated_at)) + '</p>' : '<p class="muted">아직 저장된 기록이 없어요.</p>')
       + '</section><section><h3>단계 기준</h3><div class="levels">'
-      + LEVELS.map(x => '<label><input type="radio" name="lv" value="' + x + '"' + (lv === x ? ' checked' : '') + '><b>' + x + ' ' + r.points[x] + '점</b><span>' + esc(r.levels[x]) + '</span></label>').join('')
+      + LEVELS.map(x => '<label><input type="radio" name="lv" value="' + x + '"' + (lv === x ? ' checked' : '') + '><b>' + LV(x) + ' ' + r.points[x] + '점</b><span>' + esc(r.levels[x]) + '</span></label>').join('')
       + '<label><input type="radio" name="lv" value="U"' + (lv === 'U' ? ' checked' : '') + '><b>미확인</b><span>기록을 더 확인한 뒤 정합니다.</span></label>'
       + '<label><input type="radio" name="lv" value=""' + (!lv ? ' checked' : '') + '><b>비움</b><span>확정하지 않습니다.</span></label></div></section>'
       + (r.focus ? '<p class="muted" style="margin:0;font-size:12.5px"><b>채점 초점</b> ' + esc(r.focus) + '</p>' : '')
       + '<section><h3>선생님 메모</h3><textarea id="dr-note" rows="3" maxlength="1000" style="width:100%">' + esc(sc.note || '') + '</textarea></section>'
-      + '<section><h3>AI 제안</h3><div class="ai-box">' + (sc.ai_level ? '제안 단계 ' + esc(sc.ai_level) + (sc.ai_evidence ? '<br>근거로 본 문장: ' + esc(sc.ai_evidence) : '') + '<br>제안일 뿐이며 점수는 선생님이 정합니다.' : '아직 없음. 채점표 위 「AI 채점 제안 받기」로 받을 수 있어요. 점수는 선생님이 정합니다.') + '</div></section></div>'
+      + '<section><h3>AI 제안</h3><div class="ai-box">' + (sc.ai_level ? '제안 단계 ' + esc(LV(sc.ai_level)) + (sc.ai_evidence ? '<br>근거로 본 문장: ' + esc(sc.ai_evidence) : '') + '<br>제안일 뿐이며 점수는 선생님이 정합니다.' : '아직 없음. 채점표 위 「AI 채점 제안 받기」로 받을 수 있어요. 점수는 선생님이 정합니다.') + '</div></section></div>'
       + '<footer><button type="button" class="primary" id="dr-save">저장</button><button type="button" id="dr-next">저장하고 다음 학생</button><span class="grow"></span><button type="button" data-x>닫기</button></footer>';
     $$('[data-x]', d).forEach(b => b.onclick = closeDrawer);
     const saveIt = async () => {
@@ -777,7 +778,7 @@
     }
     // 채점
     const sc = rec.scores || [];
-    sections.push('<section><h3>채점</h3><dl class="kv">' + P.rubric.map(el => { const x = sc.find(v => v.element === el.id) || {}; return '<dt>' + esc((el.no || el.id) + ' ' + el.name) + '</dt><dd>' + (LEVELS.includes(x.level) ? x.level + ' ' + el.points[x.level] + '점' : x.level === 'U' ? '미확인' : '-') + (x.ai_level ? ' <span class="muted">AI 제안 ' + esc(x.ai_level) + '</span>' : '') + '</dd>'; }).join('') + '</dl></section>');
+    sections.push('<section><h3>채점</h3><dl class="kv">' + P.rubric.map(el => { const x = sc.find(v => v.element === el.id) || {}; return '<dt>' + esc((el.no || el.id) + ' ' + el.name) + '</dt><dd>' + (LEVELS.includes(x.level) ? LV(x.level) + ' ' + el.points[x.level] + '점' : x.level === 'U' ? '미확인' : '-') + (x.ai_level ? ' <span class="muted">AI 제안 ' + esc(LV(x.ai_level)) + '</span>' : '') + '</dd>'; }).join('') + '</dl></section>');
     d.innerHTML = '<header><h2>' + esc(label(s)) + '</h2><button type="button" data-x>닫기</button></header><div class="body">' + sections.join('') + '</div>';
     $$('[data-x]', d).forEach(b => b.onclick = closeDrawer);
   }
@@ -844,9 +845,9 @@
       const parts = LEVELS.map(L => [L, list.filter(s => lv(s) === L)]).concat([['U', list.filter(s => lv(s) === 'U')], ['-', list.filter(s => !lv(s))]]);
       const both = sc.filter(v => v.element === el.id && LEVELS.includes(v.level) && LEVELS.includes(v.ai_level));
       const same = both.filter(v => v.level === v.ai_level).length;
-      return '<div class="stackrow"><span class="lbl">' + esc((el.no || el.id) + ' ' + el.name) + '</span><span class="stack">' + parts.filter(p => p[1].length).map(([L, ss]) => '<i style="width:' + (ss.length / n * 100) + '%;background:' + (ORD[L] || (L === 'U' ? '#c3d0d0' : '#e7eded')) + '" data-tip="' + esc((L === '-' ? '아직 정하지 않음' : L === 'U' ? '미확인' : L + ' ' + el.points[L] + '점') + ' · ' + ss.length + '명' + (ss.length && L !== '-' ? ': ' + who(ss) : '')) + '"></i>').join('') + '</span><span class="num">확정 ' + parts.slice(0, 5).reduce((a, p) => a + p[1].length, 0) + '/' + n + (both.length ? ' · AI 제안과 같은 판정 ' + same + '/' + both.length : '') + '</span></div>';
+      return '<div class="stackrow"><span class="lbl">' + esc((el.no || el.id) + ' ' + el.name) + '</span><span class="stack">' + parts.filter(p => p[1].length).map(([L, ss]) => '<i style="width:' + (ss.length / n * 100) + '%;background:' + (ORD[L] || (L === 'U' ? '#c3d0d0' : '#e7eded')) + '" data-tip="' + esc((L === '-' ? '아직 정하지 않음' : L === 'U' ? '미확인' : LV(L) + ' ' + el.points[L] + '점') + ' · ' + ss.length + '명' + (ss.length && L !== '-' ? ': ' + who(ss) : '')) + '"></i>').join('') + '</span><span class="num">확정 ' + parts.slice(0, LEVELS.length).reduce((a, p) => a + p[1].length, 0) + '/' + n + (both.length ? ' · AI 제안과 같은 판정 ' + same + '/' + both.length : '') + '</span></div>';
     }).join('');
-    sections.push('<section class="cls"><h3>채점 분포</h3><div class="legend">' + LEVELS.map(L => '<span><i style="background:' + ORD[L] + '"></i>' + L + '</span>').join('') + '<span><i style="background:#c3d0d0"></i>미확인</span><span><i style="background:#e7eded;border:1px solid var(--line2)"></i>아직 안 정함</span></div>' + rub + '</section>');
+    sections.push('<section class="cls"><h3>채점 분포</h3><div class="legend">' + LEVELS.map(L => '<span><i style="background:' + ORD[L] + '"></i>' + LV(L) + '</span>').join('') + '<span><i style="background:#c3d0d0"></i>미확인</span><span><i style="background:#e7eded;border:1px solid var(--line2)"></i>아직 안 정함</span></div>' + rub + '</section>');
     // 내보내기
     sections.push('<section class="cls"><h3>연구용 내보내기</h3><p class="muted">연구회와 나눌 때는 가명(S01, S02…)으로 내보내세요. 학생이 글 안에 직접 쓴 이름은 지워지지 않아요.</p><div class="row-tools"><label class="switch"><input type="checkbox" id="ex-pseudo"' + (pseudo ? ' checked' : '') + '> 가명으로(학번·이름 빼기)</label><button type="button" id="ex-csv">학생별 지표 내려받기(CSV)</button><button type="button" id="ex-json">기록 전체 내려받기(JSON)</button><button type="button" id="cls-reload">새로 불러오기</button></div></section>');
     box.innerHTML = sections.join('');
@@ -874,7 +875,7 @@
       const lm = l => Math.round(Object.entries(act).filter(([k]) => k.startsWith(l + '-')).reduce((a, [, v]) => a + (Number(v) || 0), 0) / 60);
       return (pseudo ? [pseudoId(s)] : [pseudoId(s), s.student_no, s.name]).concat([d.size], [1, 2, 3, 4].map(l => RANGE.filter(st => d.has(l + '-' + st)).length), [minutesOf(r)], [1, 2, 3, 4].map(lm),
         P.columns.filter(c => c.id !== 'time').map(c => fmtNum(c.get(r))), tk ? [(r.first || {})[tk] || '', answerOf(s.id, tk) || ''] : [], P.choiceKeys.filter(k => k !== tk).map(k => answerOf(s.id, k) || ''),
-        P.rubric.flatMap(el => { const x = (scores || []).find(v => v.student_id === s.id && v.element === el.id) || {}; return [x.level === 'U' ? '미확인' : (x.level || ''), LEVELS.includes(x.level) ? el.points[x.level] : '', x.ai_level || '']; }),
+        P.rubric.flatMap(el => { const x = (scores || []).find(v => v.student_id === s.id && v.element === el.id) || {}; return [x.level === 'U' ? '미확인' : LV(x.level || ''), LEVELS.includes(x.level) ? el.points[x.level] : '', LV(x.ai_level || '')]; }),
         [t.sum, rs.saved.get(s.id) || '']);
     });
     download('학생별지표_' + stamp() + (pseudo ? '_가명' : '') + '.csv', '﻿' + [head].concat(rows).map(r => r.map(q).join(',')).join('\r\n'), 'text/csv');
