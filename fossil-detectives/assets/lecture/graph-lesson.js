@@ -4,20 +4,20 @@
  const evidence = document.getElementById('evidence');
  document.body.classList.add('marine-lesson');
  const section = (id,title,body) => `<section class="slide marine-slide" id="${id}" data-title="${title}" data-notes="${id}" data-tile="light"><p class="kicker">1차시 / 그래프를 함께 읽는 준비</p><h2 data-in>${title}</h2>${body}</section>`;
- evidence.insertAdjacentHTML('beforebegin',section('family','‘과’는 한 마리, 두 마리를 센 수가 아닙니다',`
+ evidence.insertAdjacentHTML('beforebegin',section('family','분류 단위 ‘과’',`
   <p class="family-lead" data-in>종보다 큰 분류 묶음인 <b>과</b>를 셉니다. 여러 속이 한 과에 속합니다.</p>
   <div class="family-demo" data-step="1"><section><h3>과 A</h3><p>속 1 · 속 2</p><div class="family-species"><span>종 가</span><span>종 나</span><span>종 다</span></div></section><section><h3>과 B</h3><p>속 3</p><div class="family-species"><span>종 라</span><span>종 마</span></div></section></div>
   <p class="family-count" data-step="2">이 가상 예의 <strong>과는 2개</strong>, 종은 5개입니다.<br>각 종의 개체가 몇 마리인지는 제시하지 않았습니다.</p>
   <p class="family-summary" data-step="3">이번 그래프: 화석 기록을 바탕으로 시기별 <b>해양 생물 과의 수</b>를 집계</p>
   <p class="foot">분류 단계 설명을 위한 가상 예시입니다. 실제 화석 자료가 아니며, 모든 과의 종 수가 같은 것은 아닙니다.</p>`));
  evidence.classList.add('marine-slide','marine-evidence');
- evidence.innerHTML=`<p class="kicker">1차시 / 축과 색을 함께 읽기</p><h2 data-in>색 하나가 아니라, 맨 위 경계선을 읽습니다</h2><div class="marine-teach-grid"><div>${MarineGraph.figure()}</div><div class="marine-callouts">
+ evidence.innerHTML=`<p class="kicker">1차시 / 축과 색을 함께 읽기</p><h2 data-in>축과 맨 위 경계선 읽기</h2><div class="marine-teach-grid"><div>${MarineGraph.figure()}</div><div class="marine-callouts">
   <section data-step="1"><h3>1. 가로축</h3><p>왼쪽 과거 → 오른쪽 현재<br>칸의 길이로 기간을 재지 않아요.</p></section>
   <section data-step="2"><h3>2. 세로축</h3><p>해양 생물 <b>과의 수</b><br>200·400·600 눈금을 확인해요.</p></section>
   <section data-step="3"><h3>3. 세 색의 합계</h3><p><b>맨 위 경계선</b>이 전체 과의 수예요.<br>색 하나의 두께와 구분해요.</p></section>
   <section data-step="4"><h3>색은 생물군 구분</h3><p>같은 시기에 여러 생물군이 함께 있어요. 색 이름은 암기하지 않아요.</p></section>
  </div></div><p class="foot" data-step="4">해양 생물의 기록입니다. 육상 생물을 포함한 지구 전체 생물 수 그래프가 아닙니다.</p>`;
- evidence.insertAdjacentHTML('afterend',section('graph-case','페름기 말, 감소 전과 후를 같이 읽어 봅시다',`
+ evidence.insertAdjacentHTML('afterend',section('graph-case','페름기 말 감소 전후 비교',`
   <div class="marine-teach-grid"><div>${MarineGraph.figure({example:true,teaching:true})}</div><div class="marine-callouts">
    <section data-step="1"><h3>함께 읽은 관찰</h3><p><b>약 400~500과에서<br>약 200과로 감소</b></p><small>눈금에서 읽은 대략적인 값</small></section>
    <section data-step="2"><h3>그 뒤의 변화</h3><p>긴 시간에 걸쳐 다시 증가<br>같은 생물의 부활은 아니에요.</p></section>

@@ -475,7 +475,7 @@
       + '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap"><span class="seg" role="tablist">' + [['learn', '학습하기 쪽'], ['slide', '선생님 슬라이드'], ['notice', '알림 글']].filter(x => x[0] !== 'learn' || P.textbook).map(([k, t]) => '<button type="button" data-kind="' + k + '" aria-pressed="' + (pick.kind === k) + '">' + t + '</button>').join('') + '</span>'
       + '<label class="switch" id="pk-lesson-wrap">차시 <select id="pk-lesson">' + [1, 2, 3, 4].map(n => '<option value="' + n + '"' + (n === pick.lesson ? ' selected' : '') + '>' + n + '차시 ' + esc(P.lessons[n - 1]) + '</option>').join('') + '</select></label></div>'
       + '<div id="pk-body"></div>'
-      + '<p class="muted" style="margin:0;font-size:12.5px">띄운 화면은 학생이 닫을 수 없고, 위쪽 초록 줄에서 쪽을 넘기거나 닫습니다. 학생 답은 「답 모아보기」에서 띄웁니다.</p></div>';
+      + '<p class="muted" style="margin:0;font-size:12.5px">띄운 화면은 이 화면 위쪽 초록 칸에도 똑같이 보이고, 거기서 쪽을 넘기거나 닫습니다. 「크게 보기」를 누르면 전체 화면으로 비출 수 있어요. 학생은 띄운 화면을 닫을 수 없어요. 학생 답은 「답 모아보기」에서 띄웁니다.</p></div>';
     const body = () => {
       $('#pk-lesson-wrap').hidden = pick.kind === 'notice';
       const l = pick.lesson;
@@ -492,7 +492,7 @@
         $('#pk-prev').onclick = () => { if (pick.page > 0) { pick.page--; go(); } };
         $('#pk-next').onclick = () => { if (pick.page < max - 1) { pick.page++; go(); } };
         $('#pk-show').onclick = () => { showScreen({ kind: 'slide', ref: String(l), page: pick.page, max }); d.close(); };
-        go();
+        go(); fitSlides(d);
       } else {
         $('#pk-body').innerHTML = '<textarea id="pk-text" rows="4" maxlength="300" style="width:100%;font-size:16px" placeholder="학생 화면 가운데에 크게 보일 글"></textarea><div style="margin-top:8px"><button type="button" class="primary" id="pk-show">띄우기</button></div>';
         $('#pk-show').onclick = () => { const t = $('#pk-text').value.trim(); if (!t) return; showScreen({ kind: 'notice', ref: '', page: 0, text: t }); d.close(); };
@@ -510,24 +510,105 @@
     const v = { kind: sc.kind, ref: sc.ref || '', page: sc.page || 0, text: sc.text || '' };
     setLive({ screen: v });
   }
+  // 학습하기 쪽 전체 내용은 학생 앱(index.html) 안에만 있다. 선생님 화면에도 학생과 같은 쪽을 보이려고 처음 한 번 읽어 온다
+  let bookFull = null, bookLoad = null;
+  function literalAt(src, name) {
+    const at = src.indexOf('const ' + name + '=');
+    if (at < 0) return '';
+    const start = src.indexOf('[', at);
+    let depth = 0, quote = '';
+    for (let i = start; i < src.length; i++) {
+      const ch = src[i];
+      if (quote) { if (ch === '\\') i++; else if (ch === quote) quote = ''; continue; }
+      if (ch === "'" || ch === '"' || ch === '`') quote = ch;
+      else if (ch === '[') depth++;
+      else if (ch === ']' && --depth === 0) return src.slice(start, i + 1);
+    }
+    return '';
+  }
+  function loadBook() {
+    if (bookFull !== null || bookLoad) return bookLoad;
+    bookLoad = fetch('index.html', { cache: 'no-cache' }).then(r => r.text()).then(src => {
+      const book = literalAt(src, 'TEXTBOOK'), notes = literalAt(src, 'BOOK_NOTES');
+      const fill = (/for\(let l=1;l<4;l\+\+\)TEXTBOOK\[l\]=BOOK_NOTES[^\n]*/.exec(src) || [''])[0];
+      if (!book) throw new Error('no textbook');
+      bookFull = Function('"use strict";const TEXTBOOK=' + book + ';' + (notes ? 'const BOOK_NOTES=' + notes + ';' + fill : '') + ';return TEXTBOOK;')();
+    }).catch(() => { bookFull = false; }).then(() => { bookLoad = null; const el = $('#screen-strip'); if (el) { el._key = ''; drawStrip(); } });
+    return bookLoad;
+  }
+  // 학생 화면에 뜬 것과 같은 내용(선생님 화면의 띄움 칸)
+  function screenView(sc) {
+    const l = +sc.ref || 1;
+    if (sc.kind === 'slide') return '<div class="sv-slide"><iframe title="학생 화면에 띄운 슬라이드" tabindex="-1" src="' + esc(P.slideURL(l, sc.page)) + '"></iframe></div>';
+    if (sc.kind === 'learn') {
+      if (bookFull === null) { loadBook(); return '<div class="sv-learn"><p class="muted">학습하기 쪽을 불러오는 중…</p></div>'; }
+      const pg = bookFull && bookFull[l - 1] && bookFull[l - 1][sc.page];
+      if (!pg) return '<div class="sv-learn"><h3>' + esc((P.textbook[l - 1] || [])[sc.page] || '') + '</h3><p class="muted">이 쪽의 내용을 불러오지 못했어요. 학생 화면에는 그대로 떠 있어요.</p></div>';
+      return '<div class="sv-learn"><h3>' + esc(pg.title) + '</h3>' + (pg.lead ? '<p class="sv-lead">' + esc(pg.lead) + '</p>' : '')
+        + (pg.cards || []).map(c => '<section><h4>' + esc(c[0]) + '</h4><p>' + c[1] + '</p></section>').join('') + '</div>';
+    }
+    if (sc.kind === 'answer') return '<div class="sv-answer">' + (P.labels[sc.ref] ? '<p class="muted">' + esc(P.labels[sc.ref]) + '</p>' : '') + '<blockquote>' + esc(sc.text || '') + '</blockquote></div>';
+    return '<div class="sv-notice">' + esc(sc.text || '') + '</div>';
+  }
+  // 슬라이드는 1280×720 으로 그린 뒤 칸 너비에 맞게 줄인다(좁은 칸에 그대로 그리면 휴대폰 모양으로 바뀜)
+  const fitRO = {};
+  function fitSlides(root) {
+    if (fitRO[root.id]) fitRO[root.id].disconnect();
+    const boxes = $$('.sv-slide, .slide-preview', root).filter(b => b.querySelector('iframe'));
+    const fit = () => boxes.forEach(b => { const f = b.querySelector('iframe'); f.classList.add('fit'); f.style.transform = 'scale(' + (b.clientWidth / 1280) + ')'; });
+    fit();
+    if (window.ResizeObserver && boxes.length) { fitRO[root.id] = new ResizeObserver(fit); boxes.forEach(b => fitRO[root.id].observe(b)); }
+  }
+  // 크게 보기: 창 전체를 덮고, 브라우저가 허락하면 전체 화면까지(막힌 브라우저에서도 창 크기로는 커진다)
+  let stripOpen = true, stripWhat = '', stripBig = false;
+  const stripFull = () => stripBig;
+  function setBig(on) {
+    const el = $('#screen-strip');
+    stripBig = !!on;
+    if (stripBig && el && el.requestFullscreen && !document.fullscreenElement) el.requestFullscreen().catch(() => {});
+    if (!stripBig && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    if (el) { el._key = ''; drawStrip(); }
+  }
+  function stripPage(step) {
+    const sc = ov && ov.live.screen, b = $(step > 0 ? '#st-next' : '#st-prev');
+    if (sc && b && !b.disabled) setLive({ screen: Object.assign({}, sc, { page: sc.page + step }) });
+  }
+  document.addEventListener('fullscreenchange', () => { if (!document.fullscreenElement && stripBig) setBig(false); });
+  document.addEventListener('keydown', e => {
+    if (!stripBig || document.querySelector('dialog[open]')) return;
+    if (e.key === 'Escape') { e.preventDefault(); setBig(false); }
+    else if (['ArrowRight', 'PageDown', ' '].includes(e.key)) { e.preventDefault(); stripPage(1); }
+    else if (['ArrowLeft', 'PageUp'].includes(e.key)) { e.preventDefault(); stripPage(-1); }
+  });
   function drawStrip() {
     const el = $('#screen-strip'), sc = ov && ov.live.screen;
-    if (!sc) { el.hidden = true; el.innerHTML = ''; el._key = ''; return; }
-    const key = JSON.stringify(sc); if (el._key === key && !el.hidden) return; el._key = key;
+    if (!sc) { if (stripBig) { stripBig = false; if (document.fullscreenElement) document.exitFullscreen().catch(() => {}); } el.classList.remove('big'); document.body.classList.remove('strip-big'); el.hidden = true; el.innerHTML = ''; el._key = ''; stripWhat = ''; return; }
+    const what0 = sc.kind + ':' + sc.ref + ':' + (sc.kind === 'notice' || sc.kind === 'answer' ? sc.text : '');
+    if (what0 !== stripWhat) { stripWhat = what0; stripOpen = true; }   // 새로 띄우면 다시 펼친다
+    const full = stripFull();
+    const key = JSON.stringify(sc) + stripOpen + full + (bookFull === null ? 0 : 1); if (el._key === key && !el.hidden) return; el._key = key;
     let what = '', pages = 0;
     if (sc.kind === 'learn' && P.textbook) { const l = +sc.ref || 1; pages = P.textbook[l - 1].length; what = l + '차시 학습하기 · ' + (sc.page + 1) + '/' + pages + '쪽 「' + P.textbook[l - 1][sc.page] + '」'; }
     else if (sc.kind === 'slide') { pages = slideMax[sc.ref] || 40; what = sc.ref + '차시 선생님 슬라이드 · ' + (sc.page + 1) + '쪽'; }
     else if (sc.kind === 'answer') what = '학생 답(이름 가림) · ' + (P.labels[sc.ref] || sc.ref);
     else what = '알림 글 · ' + sc.text.slice(0, 40);
     el.hidden = false;
-    el.innerHTML = '<span>학생 화면에 띄움:</span><b>' + esc(what) + '</b><span class="grow"></span>'
+    el.classList.toggle('folded', !stripOpen && !full);
+    el.classList.toggle('big', full); document.body.classList.toggle('strip-big', full);
+    el.innerHTML = '<div class="strip-row"><span>학생 화면에 띄움:</span><b>' + esc(what) + '</b><span class="grow"></span>'
       + (pages ? '<button type="button" id="st-prev"' + (sc.page <= 0 ? ' disabled' : '') + '>이전 쪽</button><button type="button" id="st-next"' + (sc.page >= pages - 1 ? ' disabled' : '') + '>다음 쪽</button>' : '')
-      + '<button type="button" class="primary" id="st-close">화면 닫기</button>';
+      + (full ? '' : '<button type="button" id="st-fold" aria-expanded="' + stripOpen + '">' + (stripOpen ? '접기' : '펼치기') + '</button>')
+      + '<button type="button" id="st-full">' + (full ? '작게 보기' : '크게 보기') + '</button>'
+      + '<button type="button" class="primary" id="st-close">화면 닫기</button></div>'
+      + (stripOpen || full ? '<div class="strip-view">' + screenView(sc) + '</div>' : '');
     if (pages) {
-      $('#st-prev').onclick = () => setLive({ screen: Object.assign({}, sc, { page: sc.page - 1 }) });
-      $('#st-next').onclick = () => setLive({ screen: Object.assign({}, sc, { page: sc.page + 1 }) });
+      $('#st-prev').onclick = () => stripPage(-1);
+      $('#st-next').onclick = () => stripPage(1);
     }
+    if ($('#st-fold')) $('#st-fold').onclick = () => { stripOpen = !stripOpen; el._key = ''; drawStrip(); };
+    $('#st-full').onclick = () => setBig(!full);
     $('#st-close').onclick = () => setLive({ screen: null });
+    fitSlides(el);
   }
 
   // ---------- 답 모아보기 ----------
@@ -949,6 +1030,11 @@
       const changed = pairs.filter(x => x.a !== x.b);
       stats.push(['처음 생각을 바꾼 학생', changed.length + '명', '처음 생각을 고른 ' + pairs.length + '명 중']);
       trans = { pairs, changed };
+    } else if (P.changeStat) {
+      // 같은 칸의 처음·지금 대신, 「수정」「판단이 바뀌었다」처럼 고친 것을 직접 고른 학생(넷제로 심플 데이터 탐구)
+      const cs = P.changeStat, ans = s => Object.fromEntries(cs.keys.map(k => [k, answerOf(s.id, k)]));
+      const answered = list.filter(s => cs.keys.some(k => !blankish(answerOf(s.id, k))));
+      stats.push([cs.label, answered.filter(s => cs.test(ans(s))).length + '명', cs.sub + ' · 답한 ' + answered.length + '명 중']);
     }
     if (P.columns.some(c => c.id === 'evidenceReal')) stats.push(['실제 수치 근거 2개 이상', list.filter(s => (R(s.id).evidenceReal || 0) >= 2).length + '명', '①② 근거 기준 참고']);
     const statHTML = '<div class="stats">' + stats.map(([t, v, sub]) => '<div class="stat"><span class="stat-label">' + esc(t) + '</span><b>' + esc(v) + '</b><span class="muted">' + esc(sub) + '</span></div>').join('') + '</div>';
