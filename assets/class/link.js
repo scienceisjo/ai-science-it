@@ -15,6 +15,8 @@ window.ClassLink = (() => {
   const placeLabel = p => PLACE_NAMES[p] || (/^step-(\d)$/.test(p) ? (LESSONS[lessonNo()] && LESSONS[lessonNo()].steps[+p.slice(5) - 1] || p.slice(5) + '단계') + ' 시설' : p);
   let core = null, lastPlaced = null, pendingGo = null;
   // 처음 답과 지금 답을 견줄 선택형·예상 칸(판단 수정 지표)
+  // 심플 데이터 탐구(simple-steps.js)에서 DATA PASSPORT 에 저장한 근거. 3차시 두 개는 교육용 가정이라 실제 수치 근거에서 뺀다
+  const simpleEv = () => (S && S.simple && Array.isArray(S.simple.ev)) ? S.simple.ev : [];
   const TRACK = ['l1initial', 'l1literacyA', 'l1literacyB', 'l2initial', 'l2aiChoice', 'l3prediction', 'l3balancePrediction', 'l3passivePrediction', 'l4prediction'];
 
   const A = {
@@ -48,7 +50,7 @@ window.ClassLink = (() => {
       let done = 0;
       if (AU && typeof AU.stepIssue === 'function') for (let l = 0; l < 4; l++) for (let s = 0; s < 5; s++) { try { if (!AU.stepIssue(l, s)) { per[l]++; done++; } } catch (e) {} }
       const answers = Object.values(S.answers || {}).filter(v => typeof v === 'string' && v.trim()).length;
-      return { done, total: 20, lessons: per, finished: (S.done || []).map(Boolean), answers, evidence: (S.evidence || []).length };
+      return { done, total: 20, lessons: per, finished: (S.done || []).map(Boolean), answers, evidence: (S.evidence || []).length + simpleEv().length };
     },
     // 연구 요약(선생님 화면 「학생별 기록」「반 전체 지표」용). 전체 클릭 기록(S.events)에서 세므로 잘라 보내는 것과 상관없다
     research() {
@@ -57,7 +59,7 @@ window.ClassLink = (() => {
       const first = {}, changed = {};
       for (const r of revs) {
         const before = String(r.before == null ? '' : r.before).trim(), after = String(r.after == null ? '' : r.after).trim();
-        if (TRACK.includes(r.key) && !(r.key in first)) first[r.key] = (before || after).slice(0, 200);
+        if ((TRACK.includes(r.key) || (window.NZSimple && NZSimple.choiceKeys.includes(r.key))) && !(r.key in first)) first[r.key] = (before || after).slice(0, 200);
         if (before && before !== after) changed[r.key] = (changed[r.key] || 0) + 1;
       }
       const AU = window.EcoLearningAudit, steps = [];
@@ -67,7 +69,7 @@ window.ClassLink = (() => {
         steps,
         chars: Object.values(S.answers || {}).reduce((a, v) => a + (typeof v === 'string' ? own(v).length : 0), 0),
         revisions: Object.values(changed).reduce((a, b) => a + b, 0), revisedKeys: Object.keys(changed).length, first,
-        evidence: (S.evidence || []).length, evidenceReal: (S.evidence || []).filter(e => e && e.kind === '실제 자료').length, inserted: n('evidence_inserted'),
+        evidence: (S.evidence || []).length + simpleEv().length, evidenceReal: (S.evidence || []).filter(e => e && e.kind === '실제 자료').length + simpleEv().filter(e => !/^l3/.test(e.id)).length, inserted: n('evidence_inserted'),
         textbookOpen: n('textbook_open'), textbookSec: Math.round(ev.filter(e => e.type === 'textbook_close').reduce((a, e) => a + (Number(e.seconds) || 0), 0)),
         help: n('learning_scaffold_open'), recall: n('concept_recall'), ai: (S.chat || []).length,
         trials: n('building_trial') + n('comparison_run') + n('council_trial')

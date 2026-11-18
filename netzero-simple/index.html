@@ -1,11 +1,9 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-<meta charset="utf-8">
+<meta charset="utf-8"><meta name="netzero-hosting" content="static">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>NET ZERO ECO-CITY · 심플 데이터 탐구</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
 :root{
   --bg:#f4f6f2; --card:#ffffff; --ink:#1d2a24; --muted:#5d6b64; --line:#dde3dc;
@@ -15,7 +13,10 @@
   --radius:14px;
 }
 *{box-sizing:border-box}
-html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;font-size:16px}
+/* 글꼴은 앱에 들어 있는 Pretendard(밖으로 요청하지 않음) */
+@font-face{font-family:"Pretendard";src:url("../assets/fonts/pretendard-regular.otf") format("opentype");font-weight:400 500;font-display:swap}
+@font-face{font-family:"Pretendard";src:url("../assets/fonts/pretendard-semibold.otf") format("opentype");font-weight:600 900;font-display:swap}
+html,body{margin:0;background:var(--bg);color:var(--ink);font-family:"Pretendard","Noto Sans KR",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;line-height:1.6;font-size:16px}
 button,select,input,textarea{font:inherit;color:inherit}
 a{color:var(--blue)}
 .wrap{max-width:980px;margin:0 auto;padding:0 18px 80px}
@@ -138,6 +139,11 @@ table.matrix th:first-child,table.matrix td:first-child{text-align:left}
 footer.foot{max-width:980px;margin:0 auto;padding:10px 18px 40px;color:var(--muted);font-size:12.5px}
 .modebadge{font-size:11.5px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--violet-soft);color:var(--violet)}
 .modebadge.ctl{background:#eceeec;color:var(--muted)}
+/* RPG 탐구 화면 안에 단계 하나만 보일 때(embed) */
+body.embed,html:has(body.embed){background:transparent}
+body.embed header.top,body.embed footer.foot,body.embed [data-act=reset]{display:none}
+body.embed .wrap{max-width:none;padding:0 2px 6px}
+body.embed .step:first-child{margin-top:0}
 .dialog{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;place-items:center;z-index:50}
 .dialog.open{display:grid}
 .dialog .box{background:#fff;border-radius:14px;padding:20px;max-width:380px;width:90%}
@@ -165,16 +171,25 @@ footer.foot{max-width:980px;margin:0 auto;padding:10px 18px 40px;color:var(--mut
 <script>
 const D = {"world":{"co2":[[1950,5930.4],[1951,6381.7],[1952,6467.7],[1953,6651.0],[1954,6789.7],[1955,7444.1],[1956,7926.3],[1957,8186.0],[1958,8417.5],[1959,8855.1],[1960,9387.0],[1961,9415.0],[1962,9747.2],[1963,10266.8],[1964,10824.5],[1965,11310.6],[1966,11862.6],[1967,12237.4],[1968,12905.3],[1969,13761.8],[1970,14899.1],[1971,15503.9],[1972,16224.6],[1973,17077.3],[1974,16997.9],[1975,16988.5],[1976,17862.5],[1977,18358.0],[1978,19024.7],[1979,19508.6],[1980,19409.8],[1981,18879.8],[1982,18729.7],[1983,18901.8],[1984,19457.2],[1985,20144.9],[1986,20438.0],[1987,21106.2],[1988,21918.8],[1989,22200.2],[1990,22732.1],[1991,23205.6],[1992,22520.4],[1993,22749.9],[1994,22974.6],[1995,23516.6],[1996,24233.5],[1997,24380.3],[1998,24295.7],[1999,24837.8],[2000,25511.5],[2001,25693.0],[2002,26265.3],[2003,27652.7],[2004,28610.0],[2005,29599.0],[2006,30594.2],[2007,31499.3],[2008,32049.7],[2009,31513.0],[2010,33317.7],[2011,34480.0],[2012,34954.7],[2013,35275.8],[2014,35465.7],[2015,35403.5],[2016,35392.8],[2017,35974.6],[2018,36734.0],[2019,37086.6],[2020,35158.2],[2021,36866.9],[2022,37527.8],[2023,38094.0],[2024,38598.6]],"mix":[[1990,87.4,12.6],[1991,87.0,13.0],[1992,87.0,13.0],[1993,86.5,13.5],[1994,86.5,13.5],[1995,86.1,13.9],[1996,86.2,13.8],[1997,86.2,13.8],[1998,86.1,13.9],[1999,86.0,14.0],[2000,86.0,14.0],[2001,86.2,13.8],[2002,86.3,13.7],[2003,86.9,13.1],[2004,86.8,13.2],[2005,87.0,13.0],[2006,86.9,13.1],[2007,87.2,12.8],[2008,86.9,13.1],[2009,86.6,13.4],[2010,86.5,13.5],[2011,86.7,13.3],[2012,86.7,13.3],[2013,86.3,13.7],[2014,86.0,14.0],[2015,85.7,14.3],[2016,85.3,14.7],[2017,85.0,15.0],[2018,84.6,15.4],[2019,84.1,15.9],[2020,83.0,17.0],[2021,83.0,17.1],[2022,82.6,17.4],[2023,82.1,17.9],[2024,81.3,18.7]]},"korea":{"co2":[[1950,2.2],[1951,2.9],[1952,3.5],[1953,4.7],[1954,5.2],[1955,6.4],[1956,7.6],[1957,8.2],[1958,9.0],[1959,11.2],[1960,12.5],[1961,14.4],[1962,17.3],[1963,21.1],[1964,22.2],[1965,25.0],[1966,30.0],[1967,35.1],[1968,37.2],[1969,42.5],[1970,53.7],[1971,58.5],[1972,60.2],[1973,73.0],[1974,75.6],[1975,81.7],[1976,93.1],[1977,105.5],[1978,113.1],[1979,132.9],[1980,134.5],[1981,139.6],[1982,140.8],[1983,149.1],[1984,160.7],[1985,168.8],[1986,176.3],[1987,185.4],[1988,211.0],[1989,223.5],[1990,250.5],[1991,275.7],[1992,299.9],[1993,330.2],[1994,355.7],[1995,383.7],[1996,421.0],[1997,445.0],[1998,378.0],[1999,410.5],[2000,440.0],[2001,455.6],[2002,476.1],[2003,485.2],[2004,491.4],[2005,498.7],[2006,503.5],[2007,521.7],[2008,532.7],[2009,537.8],[2010,594.3],[2011,623.4],[2012,627.9],[2013,634.6],[2014,629.4],[2015,634.2],[2016,637.9],[2017,654.5],[2018,670.2],[2019,646.1],[2020,597.6],[2021,616.1],[2022,606.9],[2023,589.2],[2024,583.7]],"mix":[[1990,85.1,14.9],[1991,86.4,13.6],[1992,87.9,12.1],[1993,88.5,11.5],[1994,89.6,10.4],[1995,89.0,11.0],[1996,89.1,10.9],[1997,89.6,10.4],[1998,86.7,13.3],[1999,86.0,14.0],[2000,86.1,13.9],[2001,86.3,13.7],[2002,86.1,13.9],[2003,85.2,14.8],[2004,85.6,14.4],[2005,84.6,15.4],[2006,84.7,15.3],[2007,85.7,14.3],[2008,85.3,14.7],[2009,85.7,14.3],[2010,86.7,13.3],[2011,86.7,13.3],[2012,87.2,12.8],[2013,88.0,12.0],[2014,86.5,13.5],[2015,85.9,14.1],[2016,86.5,13.5],[2017,87.3,12.7],[2018,88.3,11.7],[2019,86.9,13.1],[2020,84.8,15.2],[2021,85.2,14.8],[2022,83.7,16.3],[2023,82.9,17.1],[2024,82.5,17.5]]},"building":[13.8,14.04,13.92,14.04,14.28,13.68,19.08,22.68,25.32,20.16,16.44,14.52,13.68,12.96,13.2,14.88,13.68,13.08,12.6,11.76,11.88,11.76,11.76,11.76],"cities":[{"id":"stockholm","name":"스톡홀름","en":"Stockholm","years":[1990,2000,2005,2015,2016,2017],"total":[3669000,3509000,3104000,2458000,2326000,2193000],"sectorYear":2017,"sectors":{"난방":742000,"기타 전기·가스":415000,"교통":1036000},"metrics":[{"name":"난방 배출량","unit":"tCO₂e/년","years":[2000,2017],"values":[1848000,742000]},{"name":"도로 교통 배출량","unit":"tCO₂e/년","years":[2017],"values":[863000]}],"boundary":"난방·기타 전기 및 가스·교통의 지리적 배출 산정. 2020–2023 계획에 실린 과거 통계이며 최신 실적이 아닙니다.","policy":"석유 보일러를 지역난방·히트펌프로 전환하고, 지역난방의 재생연료 비율과 건물 효율을 높였습니다. 대중교통과 자전거 이용도 추진합니다.","limit":"난방의 감소와 교통의 정체가 함께 나타납니다. 소비재 생산 등 도시 밖의 배출은 이 세 부문 합계로 판단할 수 없습니다.","source":"https://start.stockholm/globalassets/start/om-stockholms-stad/sa-arbetar-staden/miljo-och-klimat/climate-action-plan-2020-2023.pdf","publication":"Climate Action Plan 2020–2023, pp.12,17,33","updated":"2020 계획 / 수업 추출 2026-09-25","target":"원문 계획의 2040 화석연료 없는 도시 목표와 과거 실적을 구분합니다."},{"id":"copenhagen","name":"코펜하겐","en":"Copenhagen","years":[2005,2010,2020,2021,2022,2023,2024],"total":[2480325,2431520,956526,839836,831857,677982,668797],"sectorYear":2024,"sectors":{"전력":136715,"지역난방":162259,"도로교통":272888,"기타·순흡수 포함":96935},"metrics":[{"name":"보행·자전거·대중교통 통행 비율","unit":"%","years":[2024],"values":[71]},{"name":"지역난방 CO₂ 중립 생산 비율(보고서 정의)","unit":"%","years":[2024],"values":[85]}],"boundary":"재생에너지 생산 크레딧 보정 전 합계를 사용합니다. Scope 1·2와 일부 Scope 3를 포함하며, 보정 후 2024 값 455,737과 섞지 않습니다.","policy":"지역난방과 전력의 전환, 자전거·보행·대중교통을 함께 추진합니다. 보고서의 2025 목표 중 친환경 통행 75%와 2024 실적 71%를 구분합니다.","limit":"보정 전·후 회계가 다릅니다. 2024 실적을 탄소중립 달성으로 해석할 수 없으며, 열 소비량은 2010보다 소폭 높습니다.","source":"https://www.kk.dk/sites/default/files/2026-08/CO2_regnskab_for_Koebenhavns_Kommune_2024-a.pdf","publication":"CO₂-regnskab 2024, pp.7,37","updated":"게시 경로 2026-08 / 수업 추출 2026-09-25","target":"2025 계획 목표는 목표입니다. 여기 제시한 실적은 2024년입니다."}],"building_id":"Panther_retail_Lester"};
 const KEY = 'nz-simple-v1';
+/* ---------- RPG 탐구 화면 안에서 단계 하나만(?embed=1&lesson=1~4&step=0~4) ----------
+   RPG 지도의 단계 시설마다 이 화면의 단계 하나를 보여 준다. 기록은 RPG 기록(S.simple)에 함께 저장된다(window.parent.__NZ_SIMPLE). */
+const QS = new URLSearchParams(location.search);
+const EMBED = QS.get('embed') === '1';
+const EL = Math.min(4, Math.max(1, +QS.get('lesson') || 1)), ES = Math.min(4, Math.max(0, +QS.get('step') || 0));
+const BR = (() => { try { return EMBED && window.parent !== window && window.parent.__NZ_SIMPLE ? window.parent.__NZ_SIMPLE : null; } catch (e) { return null; } })();
+// 차시별 RPG 단계(0~4) → 이 화면의 단계 번호. 3·4차시는 4단계라 다섯 번째 시설은 DATA PASSPORT
+const EMBED_MAP = { 1: [[1], [2], [3], [4], [5]], 2: [[1], [2], [3], [4], [5]], 3: [[1], [2], [3], [4], 'pp'], 4: [[1], [2], [3], [4], 'pp'] };
 const C = {green:'#1f7a4d', blue:'#2e63b8', amber:'#c27a12', red:'#b8442e', gray:'#8a948f', violet:'#6a4fb3', teal:'#1b8a8a'};
 
 /* ---------- state ---------- */
 function fresh(){return {mode:'coach', tab:'1', ev:[], out:{}, log:[], l1:{c:'world',y1:1990,y2:2024,y3:2024}, l2:{}, l3:{p:20}, l4:{pol:[],link:{},pf:{},ver:{}}}}
 let S;
-try{ S = Object.assign(fresh(), JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ S = fresh(); }
+try{ S = Object.assign(fresh(), BR ? (BR.get() || {}) : JSON.parse(localStorage.getItem(KEY)||'{}')); }catch(e){ S = fresh(); }
 for(const k of ['l1','l2','l3','l4']) S[k] = Object.assign(fresh()[k], S[k]||{});
 if(location.hash==='#control') S.mode='control';
 if(location.hash==='#coach') S.mode='coach';
-function save(){ try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
+if(BR){ S.mode = BR.mode(); S.tab = String(EL); }
+function save(){ if(BR){ try{ BR.put(JSON.parse(JSON.stringify(S))); }catch(e){} return; } try{ localStorage.setItem(KEY, JSON.stringify(S)); }catch(e){} }
 function log(l, ev, detail){ S.log.push({t:new Date().toISOString(), l, ev, detail}); save(); }
 const coachOn = () => S.mode==='coach';
 
@@ -588,7 +603,7 @@ function allText(){
 
 /* ---------- actions ---------- */
 const need = (cond, msg) => { if(!cond){ flash(msg); return false; } return true; };
-function flash(msg){ const d=$('#dlg'); $('#dlgText').textContent=msg; $('#dlgNo').style.display='none'; $('#dlgYes').textContent='확인'; d.classList.add('open'); $('#dlgYes').onclick=()=>d.classList.remove('open'); }
+function flash(msg){ if(BR && BR.flash){ BR.flash(msg); return; } const d=$('#dlg'); $('#dlgText').textContent=msg; $('#dlgNo').style.display='none'; $('#dlgYes').textContent='확인'; d.classList.add('open'); $('#dlgYes').onclick=()=>d.classList.remove('open'); }
 function confirmBox(msg, yes){ const d=$('#dlg'); $('#dlgText').textContent=msg; $('#dlgNo').style.display=''; $('#dlgYes').textContent='지우기'; d.classList.add('open'); $('#dlgNo').onclick=()=>d.classList.remove('open'); $('#dlgYes').onclick=()=>{d.classList.remove('open'); yes();}; }
 async function copy(text, el){ try{ await navigator.clipboard.writeText(text); if(el) el.textContent='복사했다.'; }catch(e){ if(el) el.textContent='복사가 막혀 있다. 아래 내용을 직접 선택해 복사한다.'; } }
 
@@ -623,7 +638,24 @@ const ACT = {
 
 /* ---------- render ---------- */
 const VIEWS={'1':L1,'2':L2,'3':L3,'4':L4,'pp':PP};
+function renderEmbed(){
+  document.body.classList.add('embed');
+  if(BR) S.mode = BR.mode();
+  const want = EMBED_MAP[EL][ES];
+  if(want === 'pp'){ $('#app').innerHTML = PP(); }
+  else {
+    S.tab = String(EL);
+    const box = document.createElement('div'); box.innerHTML = VIEWS[S.tab]();
+    box.querySelectorAll('section.hero').forEach(x => x.remove());
+    let shown = 0;
+    box.querySelectorAll('section.step').forEach(sec => { const n = +((sec.querySelector('.step-h .num') || {}).textContent || 0); if (want.includes(n)) shown++; else sec.remove(); });
+    if(!shown) box.insertAdjacentHTML('beforeend', `<section class="step locked">${stepHead(want[0], '', '아직 열리지 않았어요')}<div class="lockmsg">앞 단계에서 근거나 판단을 저장하면 열려요. 지도로 돌아가 앞 단계 시설부터 들러 주세요.</div></section>`);
+    $('#app').replaceChildren(...box.childNodes);
+  }
+  if(BR && BR.resize) requestAnimationFrame(() => BR.resize(document.documentElement.scrollHeight));
+}
 function render(keepScroll){
+  if(EMBED){ renderEmbed(); return; }
   const y=window.scrollY;
   $('#tabs').innerHTML = [['1','1차시 WHY'],['2','2차시 HOW'],['3','3차시 WHAT'],['4','4차시 CREATE'],['pp','PASSPORT']].map(([k,t])=>`<button data-tab="${k}" aria-current="${S.tab===k}" class="${S.out['l'+k]?'done':''}">${t}</button>`).join('');
   $('#app').innerHTML = VIEWS[S.tab]();
@@ -647,6 +679,8 @@ document.addEventListener('change', e=>{
 });
 $('#modeBtn').onclick=()=>{ S.mode=coachOn()?'control':'coach'; save(); render(true); };
 render();
+if(BR && BR.resize && window.ResizeObserver) new ResizeObserver(() => BR.resize(document.documentElement.scrollHeight)).observe(document.body);
+if(BR && BR.ready) BR.ready(EL, ES);
 </script>
 </body>
 </html>

@@ -13,6 +13,7 @@
  const keyProblem=(l,k)=>({key:k,step:stepFor(l,k),message:k==='l1initial'?'지금 생각과 가장 가까운 설명을 하나 골라 주세요. “아직 잘 모르겠어요.”를 골라도 됩니다.':'「'+(answerLabels[k]||k)+'」 기록이 필요해요. 한두 문장으로 설명하거나, 아직 판단하기 어렵다면 어떤 자료가 더 필요한지 적어 주세요.'});
  // The contract checks records and comparison conditions, never scientific correctness.
  function stepIssue(l,s){
+  if(window.NZSimple&&NZSimple.active)return NZSimple.gate(S.simple,l,s);   // 2026-11-15 탐구 단계 = 심플 데이터 탐구(simple-steps.js)
   const step=curriculum.lessons[l].steps[s];
   const missing=step.keys.find(k=>!has(k));if(missing)return keyProblem(l,missing);
   if(l<2&&s===1&&!pinnedPair(l))return {step:1,message:'같은 대상·단위의 서로 다른 두 연도 값을 근거로 담아 주세요.'};
@@ -34,6 +35,7 @@
   return null;
  }
  function finalIssue(l,requireAI=true){
+  if(window.NZSimple&&NZSimple.active){for(let s=0;s<5;s++){const e=NZSimple.gate(S.simple,l,s);if(e)return e}return null}
   for(let s=0;s<5;s++){const e=stepIssue(l,s);if(e)return e}
   if(l===0&&(S.answers.l1evidence.match(/\d+(?:[.,]\d+)*/g)||[]).length<2)return {key:'l1evidence',step:4,message:'근거 칸에 담은 실제 수치 두 개를 가져오고, 그 의미를 설명해 주세요.'};
   if(l===3&&requireAI&&!S.model)return {step:3,message:'AI 생성 모델 검증은 아직 하지 않았습니다. 모델을 가져오거나 아래에서 작성한 활동만 저장할 수 있습니다.'};
