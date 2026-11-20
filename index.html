@@ -2527,7 +2527,7 @@ buildScene=function(force=false){if(!INQUIRY_PAGE)return inquiryBuildScene(force
 const inquiryGo=go;
 go=function(l,s){if(!INQUIRY_PAGE)return inquiryGo(l,s);flushLearningInputs();if(!canVisitLesson(l))return toast('이전 차시 기록이 필요합니다.');S.lesson=l;S.steps[l]=s;save();history.replaceState(null,'',inquiryURL(l,s));render();window.scrollTo(0,0)};
 const inquiryNext=next;
-next=function(){if(!INQUIRY_PAGE)return inquiryNext();flushLearningInputs();const l=S.lesson,s=S.steps[l],err=cruiseRequirement(l,s);if(err)return showCruiseRequirement(err);if(s===4){S.done[l]=true;log('lesson_completed')}else S.steps[l]=s+1;if(l===0&&S.mapReturn&&(s===2||s===4))S.mapReturn.pendingScene=s===2?'second-look':'first-record-next-question';save();if(s===4&&!S.council?.episodes[l]?.final){location.assign(councilURL(l));return}returnFromInquiry()};
+next=function(){if(!INQUIRY_PAGE)return inquiryNext();flushLearningInputs();const l=S.lesson,s=S.steps[l],err=cruiseRequirement(l,s);if(err)return showCruiseRequirement(err);if(classMode()&&!COUNCIL_PAGE&&s<4&&!classToMap){log('learning_direct_transition',{by:'class_mode'});return go(l,s+1)}if(s===4){S.done[l]=true;log('lesson_completed')}else S.steps[l]=s+1;if(l===0&&S.mapReturn&&(s===2||s===4))S.mapReturn.pendingScene=s===2?'second-look':'first-record-next-question';save();if(s===4&&!S.council?.episodes[l]?.final){location.assign(councilURL(l));return}returnFromInquiry()};
 document.addEventListener('click',e=>{if(!INQUIRY_PAGE)return;const b=e.target.closest('button');if(!b)return;
  if(b.id==='inquiry-return'||['view-city','view-house','world-open','world-back','activity-close'].includes(b.id)){e.preventDefault();e.stopImmediatePropagation();returnFromInquiry()}
  if(b.id==='previous'){e.preventDefault();e.stopImmediatePropagation();if(S.steps[S.lesson]>0)go(S.lesson,S.steps[S.lesson]-1)}
@@ -2610,6 +2610,9 @@ function noMapNotice(lost=false){
 }
 $('#world-canvas').addEventListener('webglcontextlost',e=>{e.preventDefault();if(!INQUIRY_PAGE)noMapNotice(true)});
 const noMapStyle=document.createElement('style');noMapStyle.textContent='#no-map{position:absolute;inset:0;z-index:7;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;padding:24px;background:#f3f6f6;text-align:center}#no-map h2{font-size:22px;margin:0}#no-map p{max-width:440px;margin:0 0 8px;color:var(--muted);line-height:1.7}#no-map .row{justify-content:center}#no-map button{min-height:44px;padding:8px 18px;font-size:15px}.no-map .world-tools,.no-map .pad,.no-map .scene-chip,.no-map .world-label{display:none}.no-map .app{grid-template-columns:1fr}.no-map .workspace{display:none!important}.no-map .world{display:block!important}';document.head.append(noMapStyle);
+// In class mode the inquiry page's main button opens the next step; this second button keeps the record and goes out to the map.
+let classToMap=false;
+document.addEventListener('click',e=>{if(!e.target.closest('#class-to-map'))return;classToMap=true;try{next()}finally{classToMap=false}});
 const classModeStyle=document.createElement('style');classModeStyle.textContent=`
 .class-mode #home-open,.class-mode #teacher-open,.class-mode #council-open,.class-mode #resource-hub-link,.class-mode .tools a[href="research.html"],.class-mode #scene-shot,.class-mode .presentation-entry,.class-mode #world-clock,.class-mode .cruise-switch,.class-mode .rpg-route{display:none!important}
 .class-mode .cruise-controls #cruise-next{min-height:40px;font-size:14px;font-weight:700;background:#fff;border-color:#fff;color:#173b33}.class-mode .cruise-controls #cruise-next:disabled{opacity:.6}.class-mode .cruise-controls #cruise-next .lucide{width:16px;height:16px}.class-mode .cruise-controls #cruise-stop{width:40px;min-height:40px}

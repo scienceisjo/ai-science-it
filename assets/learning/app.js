@@ -122,7 +122,7 @@
   if(!D||!CITIES||COUNCIL_PAGE)return;
   if(INQUIRY_PAGE){
    $('#deliverable').textContent='활동 결과: '+curriculum.lessons[S.lesson].output;
-   if(S.steps[S.lesson]<4){const b=document.createElement('button');b.type='button';b.id='learning-next-data';b.innerHTML='다음 자료 <i data-lucide="arrow-right"></i>';$('.actions').append(b)}
+   if(S.steps[S.lesson]<4){const b=document.createElement('button');b.type='button';if(typeof classMode==='function'&&classMode()){b.id='class-to-map';b.innerHTML='기록하고 맵으로';$('#next').innerHTML='기록하고 다음 탐구로 <i data-lucide="arrow-right"></i>'}else{b.id='learning-next-data';b.innerHTML='다음 자료 <i data-lucide="arrow-right"></i>'}$('.actions').append(b)}
    if(S.lesson===3&&S.steps[3]===4){const b=document.createElement('button');b.id='learning-core-save';b.innerHTML='<i data-lucide="save"></i> 작성한 활동 저장';$('.actions').prepend(b);$('#next').innerHTML='AI 3D 검증까지 완료 <i data-lucide="check"></i>'}
    applyBaseline();refreshProgress();
    const optional=$('.council-invite');if(optional){const details=document.createElement('details');details.className='learning-optional';details.innerHTML='<summary>선택 활동 · 시민 설계회의</summary>';optional.replaceWith(details);details.append(optional)}
@@ -132,7 +132,7 @@
  };
  // Reset only owned buttons before each render; existing inputs and navigation keep their behavior.
  const decoratedRender=render;
- render=function(){document.querySelectorAll('#learning-next-data,#learning-core-save').forEach(el=>el.remove());decoratedRender()};
+ render=function(){document.querySelectorAll('#learning-next-data,#class-to-map,#learning-core-save').forEach(el=>el.remove());decoratedRender()};
  async function completion(l,core=false){
   flushLearningInputs();const e=finalIssue(l,!core);if(e)return showCruiseRequirement(e);
   if(l===3&&!core){try{if(!await modelRead())return showCruiseRequirement({step:3,message:'이 기기에 모델 파일이 없습니다. GLB를 다시 가져오거나 작성한 활동만 저장하세요.'})}catch{return showCruiseRequirement({step:3,message:'모델 저장소를 확인하지 못했습니다. 파일을 다시 확인해 주세요.'})}}
