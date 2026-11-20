@@ -42,6 +42,13 @@
     }
     if (typeof p.notice === 'string' && p.notice.trim()) v.notice = p.notice.trim().slice(0, 200);
     if (['name', 'no', 'off'].includes(p.peers)) v.peers = p.peers;   // 친구 캐릭터 표시(11-13)
+    const g = p.gallery;                                               // 갤러리 워크(11-20): 열림·제목·보여 줄 칸 최대 4개
+    if (isObj(g) && typeof g.on === 'boolean') {
+      v.gallery = { on: g.on, title: String(g.title == null ? '' : g.title).trim().slice(0, 40),
+        fields: (Array.isArray(g.fields) ? g.fields : []).filter(f => isObj(f) && Array.isArray(f.path) && f.path.length >= 1 && f.path.length <= 4
+          && f.path.every(k => typeof k === 'string' && k.length >= 1 && k.length <= 40) && typeof f.label === 'string' && f.label.trim().length >= 1 && f.label.trim().length <= 40)
+          .slice(0, 4).map(f => ({ label: f.label.trim().slice(0, 40), path: f.path.slice() })) };
+    }
     return v;
   }
   const stripNulls = o => Object.fromEntries(Object.entries(o).filter(([, v]) => v !== null));
@@ -49,8 +56,8 @@
   function createServer(opts) {
     opts = opts || {};
     const clock = opts.now || (() => Date.now());
-    const db = { rooms: [], sessions: [], students: [], records: [], commands: [], scores: [], notes: [] };
-    let seq = { room: 0, student: 0, command: 0, score: 0, note: 0 };
+    const db = { rooms: [], sessions: [], students: [], records: [], commands: [], scores: [], notes: [], gallery: [] };
+    let seq = { room: 0, student: 0, command: 0, score: 0, note: 0, gallery: 0 };
     const calls = [];
     const iso = () => new Date(clock()).toISOString();
 
@@ -205,6 +212,52 @@
         r.live = cleanLive(stripNulls(Object.assign({}, r.live, p_patch)), clock());
         r.live_rev++;
         return { live: clone(r.live), live_rev: r.live_rev };
+      },
+
+      // ---- 갤러리 워크(2026-11-20, gallery-20261120.sql 과 같은 동작) ----
+      asi_gallery({ p_token }) {
+        const st = student(p_token), r = db.rooms.find(x => x.id === st.room_id), g = r.live && r.live.gallery;
+        if (!g || !g.on) return { on: false };
+        const mode = r.live.peers || 'name', lab = s => mode === 'name' ? s.name : s.student_no;
+        const val = (s, path) => { const rc = recordOf(s); let v = rc ? rc.data : null; for (const k of path) v = v == null ? null : v[k]; return v == null ? '' : String(v).slice(0, 600); };
+        return {
+          on: true, title: g.title || '', labels: g.fields.map(f => f.label),
+          cards: db.students.filter(s => s.room_id === st.room_id && s.id !== st.id).sort((a, b) => a.student_no < b.student_no ? -1 : 1)
+            .map(s => ({ id: s.id, label: lab(s), values: g.fields.map(f => val(s, f.path)) })),
+          inbox: db.gallery.filter(n => n.to_id === st.id).map(n => ({ id: n.id, from_id: n.from_id, from: lab(db.students.find(s => s.id === n.from_id)), body: n.body, reply: n.reply })),
+          sent: db.gallery.filter(n => n.from_id === st.id).map(n => ({ id: n.id, to_id: n.to_id, body: n.body, reply: n.reply }))
+        };
+      },
+      asi_gallery_ask({ p_token, p_to, p_body }) {
+        const st = student(p_token), r = db.rooms.find(x => x.id === st.room_id), v = String(p_body == null ? '' : p_body).trim();
+        if (!(r.live && r.live.gallery && r.live.gallery.on)) fail('gallery_closed');
+        if (v.length < 1 || v.length > 100) fail('bad_body');
+        if (p_to == null || p_to === st.id || !db.students.some(s => s.id === p_to && s.room_id === st.room_id)) fail('bad_target');
+        if (db.gallery.filter(n => n.from_id === st.id && Date.parse(n.created_at) > clock() - 3600e3).length >= 30) fail('too_many');
+        const n = { id: ++seq.gallery, room_id: st.room_id, from_id: st.id, to_id: p_to, body: v, reply: null, created_at: iso(), replied_at: null };
+        db.gallery.push(n);
+        return { ok: true, id: n.id };
+      },
+      asi_gallery_reply({ p_token, p_id, p_body }) {
+        const st = student(p_token), r = db.rooms.find(x => x.id === st.room_id), v = String(p_body == null ? '' : p_body).trim();
+        if (!(r.live && r.live.gallery && r.live.gallery.on)) fail('gallery_closed');
+        if (v.length < 1 || v.length > 200) fail('bad_body');
+        const n = db.gallery.find(x => x.id === p_id && x.to_id === st.id);
+        if (!n) fail('no_note');
+        n.reply = v; n.replied_at = iso();
+        return { ok: true, id: n.id };
+      },
+      asi_teacher_gallery({ p_tok }) {
+        const r = teacherRoom(p_tok), who = id => db.students.find(s => s.id === id) || {};
+        return db.gallery.filter(n => n.room_id === r.id).sort((a, b) => b.id - a.id).map(n => ({ id: n.id,
+          from_id: n.from_id, from_no: who(n.from_id).student_no, from_name: who(n.from_id).name,
+          to_id: n.to_id, to_no: who(n.to_id).student_no, to_name: who(n.to_id).name,
+          body: n.body, reply: n.reply, created_at: n.created_at, replied_at: n.replied_at }));
+      },
+      asi_teacher_gallery_delete({ p_tok, p_id }) {
+        const r = teacherRoom(p_tok), i = db.gallery.findIndex(n => n.id === p_id && n.room_id === r.id);
+        if (i >= 0) db.gallery.splice(i, 1);
+        return { ok: i >= 0 };
       },
 
       asi_teacher_command({ p_tok, p_target, p_kind, p_payload }) {

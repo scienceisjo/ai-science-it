@@ -20,7 +20,7 @@ window.ClassLink = (() => {
   const TRACK = ['l1initial', 'l1literacyA', 'l1literacyB', 'l2initial', 'l2aiChoice', 'l3prediction', 'l3balancePrediction', 'l3passivePrediction', 'l4prediction'];
 
   const A = {
-    id: 'netzero', keyPrefix: 'netzero_class_',
+    id: 'netzero', keyPrefix: 'netzero_class_', galleryRadius: 3.2,
     placeRe: /^(researcher|guide|portal|record|archive|start|step-[1-5])$/,
     volatileKeys: ['events', 'seconds'],
     eligible() {

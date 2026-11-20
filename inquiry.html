@@ -1353,7 +1353,7 @@ function addArchiveVillageRpg(){
  label('서하 · 기록관 연구원',4.6,2.45,-14.2).scale.set(2.55,.54,1);
  const stations=[];for(let step=0;step<5;step++){const t={kind:'station',step,x:A.door.x,z:A.door.z,name:'지구 탄소 기록관',markX:A.door.x,markZ:A.door.z-.8,markY:4.3};stations.push(t);rpgTargets.push(t)}
  // Exit bench: opens the Data Passport; the carry case with the ball appears only after the reward.
- const bench=villageBench(13.4,-14.1,0,.8),rt={kind:'record',x:13.4,z:-12.7,name:'기록 확인 벤치',markX:13.4,markZ:-14.1,markY:2.1};archiveTarget(bench,rt);
+ const bench=villageBench(13.4,-14.1,0,.8),rt={kind:'record',x:13.4,z:-12.7,name:'기록 확인 벤치',markX:13.4,markZ:-14.1,markY:2.1};archiveTarget(bench,rt);sourceKiosks();
  const book=new THREE.Group();city.add(book);cozyBox(.34,.06,.46,12.85,.62,-14.05,'#2f6f5b',book,.02);cozyBox(.3,.012,.42,12.85,.656,-14.05,'#f1ede0',book,.004);
  book.traverse(o=>{if(o.isMesh){o.userData.rpg=rt;clickables.push(o)}});
  const bag=new THREE.Group();bag.position.set(13.95,.58,-14.05);bag.visible=false;city.add(bag);
@@ -1809,7 +1809,7 @@ function openActivity(step){if(cruiseEnabled()&&step>S.steps[S.lesson])for(let s
 function npcTalk(){pressed.clear();rpgWalk=null;const accepted=questState()[S.lesson],l=LESSONS[S.lesson];showModal(RPG_NPCS[S.lesson],'<p class="npc-name">'+l.place+' · 현장 연구팀</p><p class="npc-lines">'+(S.done[S.lesson]?'이 구역의 탐구 기록이 준비됐어요. 근거가 충분한지 다시 확인하거나 포탈로 다른 구역에 방문해 보세요.':accepted?'수집한 자료를 바탕으로 설명을 다듬어 봅시다. 지금 조사할 곳은 '+l.steps[S.steps[S.lesson]]+'입니다.':l.question+' 이 구역의 자료를 조사해서 함께 답을 찾아주세요.')+'</p><div class="note">임무 결과: '+l.output+'</div><div class="row"><button class="primary" id="rpg-accept">'+(accepted?(S.lesson===0?'현재 탐구 장소로 이동':'현재 탐구 열기'):'임무 수락')+'</button><button id="rpg-npc-leave">'+(archiveRoom?'기록관으로 돌아가기':'도시로 돌아가기')+'</button></div>')}
 function portalTalk(){pressed.clear();rpgWalk=null;showModal(S.lesson===0?'다음 탐사 안내 포탈':'도시 이동 포탈','<div class="region-list">'+LESSONS.map((l,i)=>'<button data-region="'+i+'" '+(i===S.lesson||!canVisitLesson(i)?'disabled':'')+'><span><b>0'+(i+1)+' '+l.place+'</b><br><small>'+(!canVisitLesson(i)?'잠김 · 이전 차시 기록 필요':S.done[i]?'탐구 기록 완료':questState()[i]?'임무 진행 중':'새 임무')+'</small></span><i data-lucide="'+(i===S.lesson?'map-pin':'arrow-right')+'"></i></button>').join('')+'</div>');icons()}
 function travelRegion(i){if(!Number.isInteger(i)||i<0||i>3)return;if(!canVisitLesson(i)){toast('현재 차시의 탐구 기록을 마치면 다음 구역이 열립니다.');return}$('#modal').close();closeActivity();if(archiveRoom)leaveArchive(false);S.lesson=i;S.mapReturn=null;districtSpawnLesson=-1;log('portal_travel',{region:i});player.position.set(0,0,3);villageSpawnPending=true;followYaw=0;followReady=false;rpgWalk=null;render();buildScene(true);resetOutdoorCamera();rpgHud();$('#world-canvas').focus();districtArrival()}
-function rpgInteract(target=rpgNearest){if(!target||rpgBlocked())return;log('rpg_interact',{target:target.kind,step:target.step});if(target.kind==='npc'){tutorialAction('interact');npcTalk()}else if(target.kind==='guide')ecoTalk();else if(target.kind==='record')passport();else if(target.kind==='experiment'){if(storyTarget?.id==='lesson1-comparison-bench')storyTarget=null;openComparisonBench()}else if(target.kind==='portal')portalTalk();else if(target.kind==='exit')leaveArchive();else if(target.kind==='station'&&S.lesson===0)enterArchive(target);else openActivity(target.step)}
+function rpgInteract(target=rpgNearest){if(!target||rpgBlocked())return;log('rpg_interact',{target:target.kind,step:target.step});if(target.kind==='npc'){tutorialAction('interact');npcTalk()}else if(target.kind==='guide')ecoTalk();else if(target.kind==='source')openSourceRoom(target.room);else if(target.kind==='record')passport();else if(target.kind==='experiment'){if(storyTarget?.id==='lesson1-comparison-bench')storyTarget=null;openComparisonBench()}else if(target.kind==='portal')portalTalk();else if(target.kind==='exit')leaveArchive();else if(target.kind==='station'&&S.lesson===0)enterArchive(target);else openActivity(target.step)}
 function addRpgObjects(){
  rpgTargets=[];const l=S.lesson;
  if(l===0){addArchiveVillageRpg();return}
@@ -1847,7 +1847,7 @@ function rpgFrame(dt){
  if(rpgWalk&&!blocked){const dx=rpgWalk.x-player.position.x,dz=rpgWalk.z-player.position.z,d=Math.hypot(dx,dz);if(d<.15){if(rpgWalk.points?.length)Object.assign(rpgWalk,rpgWalk.points.shift());else{const t=rpgWalk.target,fromMap=rpgWalk.fromMap,cruise=rpgWalk.cruise;rpgWalk=null;if(fromMap)tutorialAction('map');if(t){if(cruise)cruiseArrived(t,cruise);else rpgInteract(t)}}}else{const step=Math.min(dt*(archiveRoom?6:8),d);if(!moveRpgPlayer(dx/d*step,dz/d*step)){rpgWalk=null;toast('앞이 막혀 있어요. 통로에서 다시 이동해 주세요.')}}}
  rpgNearest=rpgTargets.reduce((best,t)=>{const d=Math.hypot(player.position.x-t.x,player.position.z-t.z);return d<(archiveRoom?2:3)&&(!best||d<best.distance)?{...t,distance:d}:best},null);
  const b=$('#rpg-interact');b.hidden=!rpgNearest||blocked;
- if(rpgNearest){const action=rpgNearest.kind==='npc'||rpgNearest.kind==='guide'?'대화하기':rpgNearest.kind==='record'?'기록 보기':rpgNearest.kind==='portal'?'이동하기':rpgNearest.kind==='exit'?'나가기':rpgNearest.kind==='station'&&S.lesson===0?'입장하기':'조사하기',key=action+':'+rpgNearest.name;
+ if(rpgNearest){const action=rpgNearest.kind==='npc'||rpgNearest.kind==='guide'?'대화하기':rpgNearest.kind==='source'?'자료실 보기':rpgNearest.kind==='record'?'기록 보기':rpgNearest.kind==='portal'?'이동하기':rpgNearest.kind==='exit'?'나가기':rpgNearest.kind==='station'&&S.lesson===0?'입장하기':'조사하기',key=action+':'+rpgNearest.name;
   if(b.dataset.prompt!==key){b.dataset.prompt=key;b.innerHTML='<span class="interact-copy"><strong>'+action+'</strong><small>'+esc(rpgNearest.name)+'</small></span><kbd aria-hidden="true">E</kbd>';b.setAttribute('aria-label',rpgNearest.name+' '+action+' (E)');b.setAttribute('aria-keyshortcuts','E')}
  }
  updateObjectiveMarker(reduced);updateNavigation(dt);updateCruise();updateFirstPersonHands(rpgBlocked(),reduced);
@@ -2613,6 +2613,38 @@ const noMapStyle=document.createElement('style');noMapStyle.textContent='#no-map
 // In class mode the inquiry page's main button opens the next step; this second button keeps the record and goes out to the map.
 let classToMap=false;
 document.addEventListener('click',e=>{if(!e.target.closest('#class-to-map'))return;classToMap=true;try{next()}finally{classToMap=false}});
+// 자료실: 탐구 자료의 원본을 모아 둔 게시대. 앱 안 요약을 먼저 읽고, 원본은 고르면 새 창으로 열린다. 확인한 것은 자료 카드(답 칸 l1src_*)로 남긴다.
+// 요약 문장은 1차시 탐구 화면이 출처에 대해 이미 밝힌 내용(자료 이름·단위·기간·수집일)만 쓴다.
+const SOURCE_ROOMS={
+ co2:{key:'l1src_co2',title:'탄소 기록 자료실',x:14.5,z:-9.4,step:'CO₂ 그래프 읽기',
+  lead:'기록관의 CO₂ 그래프가 어디서 온 숫자인지 확인하는 곳이야. 내가 고른 두 해의 값을 원본에서 다시 찾아볼 수 있어.',
+  question:'이 수치는 누가 모아서 발표한 것일까? 탐구 화면에서 읽은 값과 원본의 값이 같은지 확인해 보자.',
+  sources:[['Our World in Data · 연간 CO₂ 배출량','기록관 CO₂ 그래프의 원본이다. Global Carbon Budget 자료를 바탕으로 한 나라별 연간 배출량이고 기간은 1950~2024년이다. 탐구 화면은 2026년 9월 25일에 받은 값을 백만 톤 CO₂ 단위로 보여 준다.','https://ourworldindata.org/grapher/annual-co2-emissions-per-country']]},
+ energy:{key:'l1src_energy',title:'에너지 구성 자료실',x:4,z:-9.6,step:'에너지 구성 비교',
+  lead:'화석연료와 저탄소 에너지 비율이 어디서 온 숫자인지 확인하는 곳이야. 비율을 읽기 전에 무엇을 100으로 놓았는지부터 보자.',
+  question:'이 비율은 전기만 센 것일까, 전체 에너지를 센 것일까? 원본에서 「저탄소 에너지」에 무엇이 들어가는지 찾아보자.',
+  sources:[['Our World in Data · 에너지 구성(Energy mix)','에너지 구성 그래프의 원본이다. Energy Institute 등의 자료를 바탕으로 했고, 전력만이 아니라 전체 에너지(1차에너지) 가운데 차지하는 비율(%)이다. 기간은 1990~2024년이다.','https://ourworldindata.org/grapher/energy-mix?metric=share&source=low_carbon_energy&tab=line']]}
+};
+Object.assign(answerLabels,Object.fromEntries(Object.values(SOURCE_ROOMS).map(r=>[r.key,'자료실 · '+r.title])));
+function sourceKiosks(){
+ for(const [id,r] of Object.entries(SOURCE_ROOMS)){
+  const g=new THREE.Group();g.position.set(r.x,0,r.z);city.add(g);
+  for(const px of [-1,1])cozyBox(.14,2.2,.14,px,1.1,0,'#5e6b69',g,.03);cozyBox(2.3,1.2,.12,0,1.6,0,'#f1efe2',g,.04);cozySign(r.title,2.15,.42,0,2.48,.08,g,'#285f52');
+  g.updateMatrixWorld(true);plazaObstacles.push(new THREE.Box3().setFromObject(g));
+  archiveTarget(g,{kind:'source',room:id,x:r.x,z:r.z+1.4,name:r.title,markX:r.x,markZ:r.z,markY:3.3});
+ }
+}
+function openSourceRoom(id){
+ const r=SOURCE_ROOMS[id];if(!r)return;pressed.clear();rpgWalk=null;
+ showModal(r.title,'<div class="source-room"><p class="small">자료실 · 「'+esc(r.step)+'」와 이어지는 자료</p><p class="npc-lines">'+esc(r.lead)+'</p><div class="note"><b>여기서 확인할 것</b><br>'+esc(r.question)+'</div><ul class="source-list">'+r.sources.map(s=>'<li><b>'+esc(s[0])+'</b><p>'+esc(s[1])+'</p><a href="'+esc(s[2])+'" target="_blank" rel="noopener">원본 열기 (영어)</a></li>').join('')+'</ul><p class="small">원본은 새 창으로 열려요. 영어 자료는 그래프와 숫자부터 보면 돼요. 요약만 읽고 카드를 써도 괜찮아요.</p><label class="source-card"><span>자료 카드 · 여기서 확인한 것 한 가지와 내 설명에 어떻게 쓸지</span><textarea id="source-text" maxlength="600" placeholder="예: ___ 자료에서 ___을 확인했다. 내 설명의 ___을 뒷받침한다(또는 고쳐야 한다)."></textarea></label><div class="row"><button id="source-save" class="primary" data-source="'+id+'">자료 카드 저장</button><button id="rpg-npc-leave">맵으로 돌아가기</button></div></div>');
+ $('#source-text').value=typeof S.answers[r.key]==='string'?S.answers[r.key]:'';log('source_room_open',{room:id});
+}
+document.addEventListener('click',e=>{
+ const b=e.target.closest('#source-save');if(!b)return;const r=SOURCE_ROOMS[b.dataset.source],v=$('#source-text').value.trim();
+ if(!v){toast('확인한 것을 한 줄 적어 주세요.');$('#source-text').focus();return}
+ answer(r.key,v);save();$('#modal').close();$('#world-canvas').focus();toast('자료 카드를 저장했어요.');
+});
+const sourceRoomStyle=document.createElement('style');sourceRoomStyle.textContent='.source-list{list-style:none;margin:14px 0 6px;padding:0;display:grid;gap:10px}.source-list li{border:1px solid var(--line);border-radius:6px;padding:11px 14px}.source-list b{display:block;font-size:14px}.source-list p{margin:4px 0 6px;font-size:13px;line-height:1.75}.source-list a{font-size:13px;font-weight:700;color:var(--green)}.source-card{display:block;margin:14px 0 4px}.source-card span{display:block;font-size:13px;font-weight:700;margin-bottom:6px}.source-card textarea{width:100%;min-height:84px;box-sizing:border-box;border:1px solid var(--line);border-radius:6px;padding:10px;font:inherit;font-size:14px;line-height:1.7}.source-room .npc-lines{font-size:15px;line-height:1.8;margin:6px 0 0}';document.head.append(sourceRoomStyle);
 const classModeStyle=document.createElement('style');classModeStyle.textContent=`
 .class-mode #home-open,.class-mode #teacher-open,.class-mode #council-open,.class-mode #resource-hub-link,.class-mode .tools a[href="research.html"],.class-mode #scene-shot,.class-mode .presentation-entry,.class-mode #world-clock,.class-mode .cruise-switch,.class-mode .rpg-route{display:none!important}
 .class-mode .cruise-controls #cruise-next{min-height:40px;font-size:14px;font-weight:700;background:#fff;border-color:#fff;color:#173b33}.class-mode .cruise-controls #cruise-next:disabled{opacity:.6}.class-mode .cruise-controls #cruise-next .lucide{width:16px;height:16px}.class-mode .cruise-controls #cruise-stop{width:40px;min-height:40px}

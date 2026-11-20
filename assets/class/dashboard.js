@@ -142,6 +142,7 @@
       + '<details class="more" id="more"><summary>더 보기<span class="more-state" id="more-state"></span></summary><div class="more-body">'
       + '<label class="switch"><input type="checkbox" id="sw-lock"> 이동 잠금</label>'
       + '<span class="group" id="peer-mode" title="학생 지도에 같은 차시 친구 캐릭터를 보여 줘요. 머리 위 이름표를 이름·학번으로 고르거나 끌 수 있어요."><span class="lbl">친구 캐릭터</span>' + [['name', '이름'], ['no', '학번'], ['off', '끔']].map(([v, t]) => '<button type="button" data-peers="' + v + '" aria-pressed="false">' + t + '</button>').join('') + '</span>'
+      + (P.gallery && P.gallery.length ? '<span class="group" id="gallery-ctl" title="열면 학생들이 친구의 카드 한 장을 보고 질문 한 줄을 남길 수 있어요. 오간 질문은 「질문 보기」에 모두 나와요."><span class="lbl">갤러리</span><button type="button" id="gallery-toggle" aria-pressed="false">열기</button><button type="button" id="gallery-notes">질문 보기</button></span>' : '')
       + '<span class="group"><span class="lbl">타이머</span><span class="timer-left" id="timer-left"></span>' + [5, 10, 15].map(m => '<button type="button" data-timer="' + m + '">' + m + '분</button>').join('') + '<button type="button" data-timer="0" id="timer-off">끄기</button></span>'
       + '<span class="group"><span class="lbl">공지</span><input type="text" id="notice-in" maxlength="200" placeholder="학생 화면 위쪽에 한 줄"><button type="button" id="notice-send">올리기</button><button type="button" id="notice-clear">내리기</button></span>'
       + '<label class="switch" title="이 화면을 학생들 앞에 비출 때 켭니다. 학번과 이름 대신 「학생 1」처럼 보여요."><input type="checkbox" id="hide-names"> 이름 가리기</label>'
@@ -184,6 +185,7 @@
     $('#btn-gather').onclick = openGather;
     $('#sw-lock').onchange = e => setLive({ move_lock: e.target.checked });
     $$('[data-peers]').forEach(b => b.onclick = () => setLive({ peers: b.dataset.peers }));
+    if ($('#gallery-toggle')) { $('#gallery-toggle').onclick = toggleGallery; $('#gallery-notes').onclick = openGalleryNotes; }
     $$('[data-open]').forEach(b => b.onclick = () => {
       const n = +b.dataset.open, cur = (ov && Array.isArray(ov.live.open_lessons)) ? ov.live.open_lessons.slice() : [1];
       const next = cur.includes(n) ? cur.filter(x => x !== n) : cur.concat(n).sort();
@@ -262,6 +264,7 @@
     pause.textContent = live.paused ? '멈춤 풀기' : '모두 멈춤';
     $('#sw-lock').checked = !!live.move_lock;
     $$('[data-peers]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.peers === (live.peers || 'name'))));
+    const gt = $('#gallery-toggle'); if (gt) { const gon = !!(live.gallery && live.gallery.on); gt.setAttribute('aria-pressed', String(gon)); gt.textContent = gon ? '닫기' : '열기'; }
     const open = Array.isArray(live.open_lessons) ? live.open_lessons : [];
     $$('[data-open]').forEach(b => b.setAttribute('aria-pressed', String(open.includes(+b.dataset.open))));
     const ni = $('#notice-in'); if (document.activeElement !== ni && live.notice && !ni.value) ni.value = live.notice;
@@ -279,6 +282,7 @@
     const live = ov.live || {}, bits = [];
     if (live.move_lock) bits.push('이동 잠금');
     if ((live.peers || 'name') === 'off') bits.push('친구 캐릭터 끔');
+    if (live.gallery && live.gallery.on) bits.push('갤러리 열림');
     if (live.notice) bits.push('공지');
     const end = live.timer_end ? Date.parse(live.timer_end) : NaN, left = Math.round((end - nowMs()) / 1000);
     if (!isNaN(end)) bits.push('타이머 ' + (left > 0 ? Math.floor(left / 60) + ':' + String(left % 60).padStart(2, '0') : '끝'));
@@ -442,6 +446,38 @@
     });
     $$('[data-view]', act).forEach(b => b.onclick = () => { const w = who(); command(w.t, 'view', { mode: b.dataset.view }, '시점을 맞췄어요.'); });
     $('#reload-go', act).onclick = () => { const w = who(); if (confirm((w.all ? '모든 학생' : w.n + '명') + '의 화면을 새로 고칠까요? 쓰던 글은 저장된 뒤 다시 열려요.')) command(w.t, 'reload', {}, '새로 고침을 보냈어요.'); };
+  }
+
+  // ---------- 갤러리 워크(2026-11-20) ----------
+  // 어느 카드를 보여 줄지: 열린 차시 가운데 카드가 정해진 가장 뒤 차시, 없으면 첫 카드
+  function galleryCard() { const list = P.gallery || [], open = (ov && ov.live && ov.live.open_lessons) || []; return list.slice().reverse().find(g => open.includes(g.lesson)) || list[0] || null; }
+  async function toggleGallery() {
+    const live = (ov && ov.live) || {}, on = !(live.gallery && live.gallery.on), card = galleryCard();
+    if (!card) return;
+    await setLive({ gallery: on ? { on: true, title: card.title, fields: card.fields } : { on: false } });
+    const now = ov && ov.live && ov.live.gallery;
+    if (on && !(now && now.on)) toast('갤러리는 학급 서버에 갤러리 추가분(SQL)을 실행한 뒤에 쓸 수 있어요.');
+    else toast(on ? '갤러리를 열었어요. 학생 화면에 친구의 「' + card.title + '」와 질문 칸이 떠요.' : '갤러리를 닫았어요.');
+  }
+  function openGalleryNotes() {
+    const d = $('#dlg');
+    d.innerHTML = '<div class="dlg-head"><h2>갤러리에서 오간 질문</h2><button type="button" data-close>닫기</button></div><div class="dlg-body" id="gal-notes"><p class="gal-info">불러오는 중이에요.</p></div>';
+    $('[data-close]', d).onclick = () => d.close();
+    d.showModal();
+    const who = (id, no, name) => { const s = ov && ov.students.find(x => x.id === id); return esc(s ? label(s) : hideNames ? '학생' : no + ' ' + name); };
+    const draw = async () => {
+      let rows;
+      try { rows = await call('asi_teacher_gallery', {}); }
+      catch (e) { $('#gal-notes').innerHTML = '<p class="gal-info">' + esc(e.code === 'not_installed' ? '학급 서버에 갤러리 추가분(SQL)을 실행한 뒤에 볼 수 있어요.' : e.message) + '</p>'; return; }
+      $('#gal-notes').innerHTML = rows.length
+        ? '<p class="gal-info">질문 ' + rows.length + '개 · 답이 달린 질문 ' + rows.filter(r => r.reply).length + '개</p>' + rows.map(r => '<div class="gal-note"><p class="gal-who"><b>' + who(r.from_id, r.from_no, r.from_name) + '</b> → <b>' + who(r.to_id, r.to_no, r.to_name) + '</b><span>' + esc(fmtTime(r.created_at)) + '</span><button type="button" data-gal-del="' + r.id + '">지우기</button></p><p>' + esc(r.body) + '</p>' + (r.reply ? '<p class="gal-reply">답: ' + esc(r.reply) + '</p>' : '') + '</div>').join('')
+        : '<p class="gal-info">아직 오간 질문이 없어요.</p>';
+      $$('[data-gal-del]', d).forEach(b => b.onclick = async () => {
+        if (!confirm('이 질문을 지울까요? 답도 함께 지워져요.')) return;
+        try { await call('asi_teacher_gallery_delete', { p_id: +b.dataset.galDel }); draw(); } catch (e) { toast(e.message); }
+      });
+    };
+    draw();
   }
 
   // ---------- 모두 모으기 ----------

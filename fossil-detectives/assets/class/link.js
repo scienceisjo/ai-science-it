@@ -22,7 +22,7 @@ window.FossilLink = (() => {
   }
 
   const A = {
-    id: 'fossil', keyPrefix: 'fossil_class_', lateBoot: true,
+    id: 'fossil', keyPrefix: 'fossil_class_', lateBoot: true, galleryRadius: 7,
     placeRe: /^(start|guide|portal|step-[1-4])$/,
     volatileKeys: ['time'],
     // 저장 키를 정할 때(본문 스크립트가 PRESENTATION 을 선언하기 전)도 불리므로 주소에서 직접 읽는다

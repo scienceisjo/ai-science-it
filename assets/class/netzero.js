@@ -34,6 +34,8 @@
   const questions = L ? L.lessons.flatMap((l, li) => l.steps.flatMap((s, si) => s.keys.map(k => ({
     key: k, lesson: li + 1, step: si, stepName: s.name, label: labels[k] || k, path: ['answers', k]
   })))) : [];
+  // 자료실 카드(2026-11-20, 선택): 1차시 지도 자료실에서 남긴 한 줄. 단계 마침 조건·채점 요소에는 넣지 않는다
+  if (questions.length) [['l1src_co2', 0, '자료실 · 탄소 기록 자료실'], ['l1src_energy', 1, '자료실 · 에너지 구성 자료실']].forEach(([k, si, label]) => { labels[k] = label; questions.push({ key: k, lesson: 1, step: si, stepName: steps[0][si], label, path: ['answers', k] }); });
   const textbook = [
     ['에너지 보존과 효율', '배출 그래프 읽기', '비율과 사용량', '전력과 전체 에너지', 'CER로 설명하기'],
     ['도시 비교의 기준', '변화량과 원인', '두 종류의 근거', '목표와 실적', '조건부 제안'],
@@ -153,6 +155,8 @@
     // 채점 단계: 서버에는 A~D 로 저장하고 화면에는 상·중·하·무응답으로 보인다
     levels: ['A', 'B', 'C', 'D'], levelNames: { A: '상', B: '중', C: '하', D: '무응답' },
     lessons: lessonNames, steps, questions, labels, textbook, rubric, place,
+    // 갤러리 워크에서 친구에게 보여 줄 카드(차시마다 한 장, 칸은 4개까지)
+    gallery: [{ lesson: 1, title: 'CER 카드', fields: [{ label: '주장', path: ['answers', 'l1_claim'] }, { label: '체크한 근거', path: ['answers', 'l1_use'] }, { label: '추론', path: ['answers', 'l1_reason'] }] }],
     // 학생을 옮길 수 있는 곳. lessons 가 있으면 그 차시에만 있는 곳
     places: [
       { id: 'researcher', label: '연구원' }, { id: 'guide', label: '에코' }, { id: 'portal', label: '포탈' },

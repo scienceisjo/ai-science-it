@@ -259,7 +259,7 @@ window.ASILink = (() => {
         if (!r) r = await ASI.rpc('asi_tick', base, { timeout: 8000 });
         if (offline) { offline = false; queueSend(0); }
         if (r.now) skew = Date.parse(r.now) - Date.now();
-        if (r.live && typeof r.live === 'object') { live = r.live; liveRev = r.live_rev; renderLive(); }
+        if (r.live && typeof r.live === 'object') { live = r.live; liveRev = r.live_rev; renderLive(); galleryState(); }
         else if (liveShown() && Array.from(document.querySelectorAll('dialog[open]')).some(x => x.id !== 'class-live')) renderLive();
         if (!!r.records_locked !== locked) { locked = !!r.records_locked; if (!locked) queueSend(0); }
         if (r.group_no !== undefined && ses.group !== r.group_no) { ses.group = r.group_no; store.set(SESSION_KEY, ses); }
@@ -562,6 +562,131 @@ window.ASILink = (() => {
       } catch (e) { A.toast(e.message); }
       finally { if (b) b.disabled = false; }
     }
+    // ---------- 갤러리 워크(2026-11-20) ----------
+    // 선생님이 갤러리를 열면: 친구 캐릭터에 다가가거나 위쪽 「갤러리」를 눌러 친구 카드 한 장을 보고 질문 한 줄을 남긴다.
+    // 친구에게 가는 것은 선생님이 고른 칸뿐이고(서버가 고른다), 오간 질문과 답은 선생님 화면에 모두 보인다.
+    let gal = null, galTimer = 0, galNearTimer = 0, galSupport = true, galWas = false, galNearId = null, galPeer = null, galTab = 'cards', galSeen = 0, galMiss = 0;
+    const galOn = () => on && galSupport && !!(live.gallery && live.gallery.on);
+    const GAL_ERR = { gallery_closed: '선생님이 갤러리를 닫았어요.', too_many: '질문은 한 시간에 30개까지 남길 수 있어요.', bad_body: '한 글자 이상 써 주세요.', bad_target: '이 친구에게는 질문을 남길 수 없어요.', no_note: '이 질문을 찾지 못했어요.' };
+    const galFilled = c => c.values.some(v => String(v || '').trim());
+    async function loadGallery() {
+      clearTimeout(galTimer);
+      if (!galOn()) return;
+      try {
+        const g = await ASI.rpc('asi_gallery', { p_token: ses.token }, { timeout: 8000 });
+        if (g && g.on) {
+          const waiting = g.inbox.filter(n => !n.reply).length, top = g.inbox.reduce((m, n) => Math.max(m, n.id), 0);
+          if (gal && top > galSeen && waiting) A.toast('새 질문이 왔어요. 위쪽 「갤러리」에서 확인해 보세요.');
+          galSeen = Math.max(galSeen, top);
+          gal = g; galButton();
+          const d = q('#class-gallery-dlg');
+          if (d && d.open && !Array.from(d.querySelectorAll('textarea')).some(t => t.value)) drawGallery();
+        }
+      } catch (e) { if (e.code === 'not_installed') { galSupport = false; galleryState(); return; } }
+      if (galOn()) galTimer = setTimeout(loadGallery, document.hidden ? 30000 : 12000);
+    }
+    function galButton() {
+      let b = q('#class-gallery');
+      if (!galOn()) { if (b) b.remove(); return; }
+      const tools = A.tools();
+      if (!b && tools) {
+        b = document.createElement('button'); b.id = 'class-gallery'; b.type = 'button';
+        b.onclick = () => openGallery(null);
+        const hand = q('#class-hand'); if (hand && hand.parentNode === tools) hand.after(b); else tools.prepend(b);
+      }
+      if (!b) return;
+      const waiting = gal ? gal.inbox.filter(n => !n.reply).length : 0;
+      b.innerHTML = '<i data-lucide="users"></i><span>갤러리' + (waiting ? ' ' + waiting : '') + '</span>';
+      b.title = waiting ? '답을 기다리는 질문 ' + waiting + '개' : '친구 카드를 보고 질문을 남겨요';
+      b.classList.toggle('class-gallery-new', waiting > 0);
+      try { A.icons(); } catch (e) {}
+    }
+    function galleryState() {
+      const now = galOn();
+      if (now && !galWas) {
+        if (Date.now() - initAt > 5000) A.toast('선생님이 갤러리를 열었어요. 친구 캐릭터에 다가가거나 위쪽 「갤러리」를 눌러 보세요.');
+        loadGallery();
+        if (!galNearTimer) galNearTimer = setInterval(nearPeer, 600);
+      }
+      if (!now && galWas) {
+        A.toast('선생님이 갤러리를 닫았어요.');
+        const d = q('#class-gallery-dlg'); if (d && d.open) d.close();
+        gal = null; clearTimeout(galTimer); clearInterval(galNearTimer); galNearTimer = 0; nearPeer();
+      }
+      galWas = now; galButton();
+    }
+    // 가까이 있는 친구 캐릭터가 있으면 화면 아래에 「○○ 카드 보기」
+    function nearPeer() {
+      const b = q('#class-near');
+      const c = galOn() && peers.size && !document.querySelector('dialog[open]') ? myCoords() : null;
+      let best = null;
+      if (c) {
+        const R = A.galleryRadius || 3;
+        for (const p of peers.values()) {
+          if (!p.inMap) continue;
+          const d = Math.hypot(p.to.x - c.x, p.to.z - c.z);
+          if (d <= R && (!best || d < best.d)) best = { id: p.id, text: p.text, d };
+        }
+      }
+      // 친구 위치가 한두 번 안 잡혀도 버튼이 깜빡이지 않게(갤러리가 닫히거나 창이 열리면 바로 숨김)
+      if (!best) { if (c && ++galMiss < 3) return; if (b) b.hidden = true; galNearId = null; return; }
+      galMiss = 0;
+      let el = b;
+      if (!el) { el = document.createElement('button'); el.id = 'class-near'; el.type = 'button'; el.onclick = () => openGallery(galNearId); document.body.append(el); }
+      if (galNearId !== best.id || el.hidden) { galNearId = best.id; el.textContent = best.text + ' 카드 보기'; el.hidden = false; }
+    }
+    function openGallery(peerId) {
+      const d = dialog('class-gallery-dlg', '갤러리');
+      d.classList.add('class-gallery');
+      if (peerId != null) { galPeer = peerId; galTab = 'cards'; }
+      drawGallery();
+      if (!d.open) d.showModal();
+      loadGallery();
+    }
+    function drawGallery() {
+      const d = q('#class-gallery-dlg'); if (!d) return;
+      const g = gal || { title: (live.gallery || {}).title || '', labels: [], cards: [], inbox: [], sent: [] };
+      const waiting = g.inbox.filter(n => !n.reply).length, title = g.title || '카드';
+      if (galPeer == null || !g.cards.some(c => c.id === galPeer)) { const first = g.cards.find(galFilled) || g.cards[0]; galPeer = first ? first.id : null; }
+      const cur = g.cards.find(c => c.id === galPeer) || null;
+      let body = '';
+      if (galTab === 'inbox') {
+        body = g.inbox.length ? g.inbox.slice().reverse().map(n => '<div class="class-gnote"><p><b>' + esc(n.from) + '</b> ' + esc(n.body) + '</p>'
+            + (n.reply ? '<p class="class-greply"><b>내 답</b> ' + esc(n.reply) + '</p>' : '')
+            + '<div class="class-grow"><textarea maxlength="200" rows="2" data-reply="' + n.id + '" placeholder="' + (n.reply ? '답을 고치려면 다시 써 주세요.' : '답을 써 주세요. (200자까지)') + '"></textarea><button type="button" data-reply-go="' + n.id + '">' + (n.reply ? '답 고치기' : '답하기') + '</button></div></div>').join('')
+          : '<p class="class-sub">아직 받은 질문이 없어요.</p>';
+      } else {
+        const mine = cur ? g.sent.filter(n => n.to_id === cur.id) : [];
+        body = '<div class="class-gpick">' + (g.cards.length ? g.cards.map(c => '<button type="button" data-peer="' + c.id + '" aria-pressed="' + (!!cur && c.id === cur.id) + '"' + (galFilled(c) ? '' : ' class="class-gempty" title="아직 쓴 내용이 없어요"') + '>' + esc(c.label) + '</button>').join('') : '<p class="class-sub">아직 같은 반 친구가 없어요.</p>') + '</div>'
+          + (cur ? '<div class="class-gcard"><h3>' + esc(cur.label) + '의 ' + esc(title) + '</h3>'
+              + (galFilled(cur) ? g.labels.map((l, i) => '<dl><dt>' + esc(l) + '</dt><dd>' + (String(cur.values[i] || '').trim() ? esc(cur.values[i]) : '<span class="class-sub">아직 쓰지 않았어요.</span>') + '</dd></dl>').join('') : '<p class="class-sub">아직 쓴 내용이 없어요.</p>')
+              + '</div>'
+              + mine.map(n => '<div class="class-gnote"><p><b>내 질문</b> ' + esc(n.body) + '</p>' + (n.reply ? '<p class="class-greply"><b>' + esc(cur.label) + '</b> ' + esc(n.reply) + '</p>' : '<p class="class-sub">아직 답이 없어요.</p>') + '</div>').join('')
+              + '<div class="class-grow"><textarea id="class-gask" maxlength="100" rows="2" placeholder="카드를 읽고 궁금한 점을 한 줄로 물어보세요. (100자까지)"></textarea><button type="button" class="primary" id="class-gask-go">질문 남기기</button></div>' : '');
+      }
+      d.innerHTML = '<div class="class-form"><h2>갤러리 ' + esc(title) + '</h2>'
+        + '<p class="class-sub">친구에게는 내 ' + esc(title) + '만 보여요. 남긴 질문과 답은 선생님도 봐요.</p>'
+        + '<div class="class-gtabs"><button type="button" data-gtab="cards" aria-pressed="' + (galTab !== 'inbox') + '">친구 카드</button><button type="button" data-gtab="inbox" aria-pressed="' + (galTab === 'inbox') + '">받은 질문' + (waiting ? ' ' + waiting : '') + '</button></div>'
+        + '<div class="class-gbody">' + body + '</div>'
+        + '<div class="class-actions"><button type="button" data-gclose>닫기</button></div></div>';
+      d.querySelector('[data-gclose]').onclick = () => d.close();
+      d.querySelectorAll('[data-gtab]').forEach(b => b.onclick = () => { galTab = b.dataset.gtab; drawGallery(); });
+      d.querySelectorAll('[data-peer]').forEach(b => b.onclick = () => { galPeer = +b.dataset.peer; drawGallery(); });
+      const go = d.querySelector('#class-gask-go');
+      if (go) go.onclick = async () => {
+        const t = d.querySelector('#class-gask'), v = t.value.trim(); if (!v) { t.focus(); return; }
+        go.disabled = true;
+        try { await ASI.rpc('asi_gallery_ask', { p_token: ses.token, p_to: cur.id, p_body: v }); t.value = ''; A.toast('질문을 남겼어요.'); await loadGallery(); drawGallery(); }
+        catch (e) { A.toast(GAL_ERR[e.code] || e.message); go.disabled = false; }
+      };
+      d.querySelectorAll('[data-reply-go]').forEach(b => b.onclick = async () => {
+        const t = d.querySelector('[data-reply="' + b.dataset.replyGo + '"]'), v = t.value.trim(); if (!v) { t.focus(); return; }
+        b.disabled = true;
+        try { await ASI.rpc('asi_gallery_reply', { p_token: ses.token, p_id: +b.dataset.replyGo, p_body: v }); t.value = ''; A.toast('답을 남겼어요.'); await loadGallery(); drawGallery(); }
+        catch (e) { A.toast(GAL_ERR[e.code] || e.message); b.disabled = false; }
+      });
+    }
+
     function dialog(id, label) {
       let d = q('#' + id);
       if (!d) { d = document.createElement('dialog'); d.id = id; d.className = 'class-dlg'; d.setAttribute('aria-label', label); document.body.append(d); }
